@@ -22,7 +22,7 @@ public record ContextoAcesso(UUID tenantId, UUID usuarioId, Set<String> permisso
 	}
 
 	/** Contexto só com o tenant, usado enquanto o usuário ainda está sendo identificado. */
-	static ContextoAcesso somenteTenant(UUID tenantId) {
+	public static ContextoAcesso somenteTenant(UUID tenantId) {
 		return new ContextoAcesso(tenantId, null, Set.of(), List.of());
 	}
 

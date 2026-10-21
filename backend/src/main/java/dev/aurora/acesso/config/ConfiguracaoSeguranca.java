@@ -1,8 +1,10 @@
-package dev.aurora.acesso;
+package dev.aurora.acesso.config;
 
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+
+import dev.aurora.acesso.service.ContextoAcessoService;
 
 import jakarta.servlet.http.HttpServletRequest;
 
@@ -34,7 +36,7 @@ class ConfiguracaoSeguranca {
 
 	@Bean
 	SecurityFilterChain api(HttpSecurity http, AuthenticationManagerResolver<HttpServletRequest> porEmissor,
-			ResolvedorContexto resolvedor) throws Exception {
+			ContextoAcessoService resolvedor) throws Exception {
 		return http
 			.authorizeHttpRequests(regras -> regras
 				.requestMatchers("/actuator/health/**").permitAll()
@@ -53,7 +55,7 @@ class ConfiguracaoSeguranca {
 	 * e o token precisa ter a audiência da API.
 	 */
 	@Bean
-	AuthenticationManagerResolver<HttpServletRequest> autenticacaoPorEmissor(ResolvedorContexto resolvedor,
+	AuthenticationManagerResolver<HttpServletRequest> autenticacaoPorEmissor(ContextoAcessoService resolvedor,
 			@Value("${aurora.seguranca.audiencia}") String audiencia) {
 		Map<String, AuthenticationManager> porEmissor = new ConcurrentHashMap<>();
 		return new JwtIssuerAuthenticationManagerResolver(emissor -> {

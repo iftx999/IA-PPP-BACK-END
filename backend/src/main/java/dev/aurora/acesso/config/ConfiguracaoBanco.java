@@ -1,4 +1,4 @@
-package dev.aurora.acesso;
+package dev.aurora.acesso.config;
 
 import javax.sql.DataSource;
 

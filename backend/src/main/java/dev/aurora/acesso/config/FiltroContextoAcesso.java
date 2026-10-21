@@ -1,6 +1,9 @@
-package dev.aurora.acesso;
+package dev.aurora.acesso.config;
 
 import java.io.IOException;
+
+import dev.aurora.acesso.ContextoAcesso;
+import dev.aurora.acesso.service.ContextoAcessoService;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -19,9 +22,9 @@ import org.springframework.web.filter.OncePerRequestFilter;
  */
 class FiltroContextoAcesso extends OncePerRequestFilter {
 
-	private final ResolvedorContexto resolvedor;
+	private final ContextoAcessoService resolvedor;
 
-	FiltroContextoAcesso(ResolvedorContexto resolvedor) {
+	FiltroContextoAcesso(ContextoAcessoService resolvedor) {
 		this.resolvedor = resolvedor;
 	}
 

@@ -1,10 +1,12 @@
-package dev.aurora.acesso;
+package dev.aurora.acesso.config;
 
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.stream.Collectors;
 
 import javax.sql.DataSource;
+
+import dev.aurora.acesso.ContextoAcesso;
 
 import org.springframework.jdbc.datasource.DelegatingDataSource;
 
