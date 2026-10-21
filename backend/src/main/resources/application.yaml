@@ -38,6 +38,9 @@ aurora:
     audiencia: aurora-api
   cors:
     origens: ${AURORA_CORS_ORIGENS}
+  auditoria:
+    # Chave do HMAC da trilha (>= 32 bytes). Guardar em cofre de segredos; trocar exige nova cadeia (ADR 0009).
+    chave: ${AURORA_AUDITORIA_CHAVE}
 
 springdoc:
   api-docs:

@@ -10,3 +10,7 @@ springdoc:
     enabled: false
   swagger-ui:
     enabled: false
+
+# Atrás de proxy/balanceador: IP de origem e esquema vêm dos cabeçalhos X-Forwarded-* confiáveis.
+server:
+  forward-headers-strategy: framework

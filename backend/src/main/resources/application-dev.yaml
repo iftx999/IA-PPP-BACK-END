@@ -7,5 +7,7 @@ spring:
     password: ${AURORA_OWNER_PASSWORD:owner-dev}
 
 aurora:
+  auditoria:
+    chave: ${AURORA_AUDITORIA_CHAVE:chave-de-desenvolvimento-nao-usar-em-producao}
   cors:
     origens: ${AURORA_CORS_ORIGENS:http://localhost:4200}
