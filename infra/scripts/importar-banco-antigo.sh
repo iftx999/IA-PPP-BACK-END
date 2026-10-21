@@ -28,6 +28,10 @@ docker exec "$ORIGEM" pg_dump -U postgres --data-only --no-owner --disable-trigg
   | docker exec -i "$DESTINO" psql -U postgres -d aurora -v ON_ERROR_STOP=1 -q \
       -c "SET session_replication_role = replica" -f -
 
+# O provedor de identidade antigo não existe mais: cada usuário se vincula de novo pelo e-mail verificado
+# no primeiro login (ver ResolvedorContexto).
+docker exec "$DESTINO" psql -U postgres -d aurora -q -c "UPDATE usuario SET sub_externo = NULL"
+
 echo "Importado:"
 docker exec "$DESTINO" psql -U postgres -d aurora -c "
   SELECT 'tenant' AS tabela, count(*) FROM tenant UNION ALL

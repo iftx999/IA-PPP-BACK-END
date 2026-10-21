@@ -23,27 +23,6 @@
     "from": "nao-responda@aurora.dev",
     "fromDisplayName": "Aurora"
   },
-  "clientScopes": [
-    {
-      "name": "aurora-api",
-      "protocol": "openid-connect",
-      "attributes": {
-        "include.in.token.scope": "true"
-      },
-      "protocolMappers": [
-        {
-          "name": "aud-aurora-api",
-          "protocol": "openid-connect",
-          "protocolMapper": "oidc-audience-mapper",
-          "config": {
-            "included.custom.audience": "aurora-api",
-            "access.token.claim": "true",
-            "id.token.claim": "false"
-          }
-        }
-      ]
-    }
-  ],
   "clients": [
     {
       "clientId": "aurora-web",
@@ -61,11 +40,18 @@
         "pkce.code.challenge.method": "S256",
         "post.logout.redirect.uris": "http://localhost:4200/*"
       },
-      "defaultClientScopes": [
-        "openid",
-        "profile",
-        "email",
-        "aurora-api"
+      "protocolMappers": [
+        {
+          "name": "aud-aurora-api",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.custom.audience": "aurora-api",
+            "access.token.claim": "true",
+            "id.token.claim": "false",
+            "introspection.token.claim": "true"
+          }
+        }
       ]
     }
   ],
