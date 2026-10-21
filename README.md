@@ -8,10 +8,11 @@ Especificação completa em [`docs/`](docs/).
 
 ## Estrutura
 
+O front-end (Angular 22) fica no repositório [IA-PPP-FRONT-END](https://github.com/iftx999/IA-PPP-FRONT-END-).
+
 | Pasta | Conteúdo |
 |-------|----------|
 | `backend/` | API em Java 21 + Spring Boot 4.1 (Spring Security, Flyway, Spring Modulith) |
-| `frontend/` | SPA em Angular 22 |
 | `infra/` | Docker Compose: PostgreSQL 18 + PostGIS + pgvector, Keycloak, Mailpit |
 | `docs/` | Visão, histórias, regras de negócio, modelo de dados, arquitetura, identidade visual, ADRs |
 
