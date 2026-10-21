@@ -8,7 +8,7 @@ import dev.aurora.BancoDeTeste;
 import dev.aurora.DadosDeTeste;
 import dev.aurora.DadosDeTeste.Tenant;
 import dev.aurora.TestcontainersConfiguration;
-import dev.aurora.acesso.ContextoAcesso;
+import dev.aurora.contexto.ContextoAcesso;
 import dev.aurora.auditoria.TipoEvento;
 import org.junit.jupiter.api.Test;
 

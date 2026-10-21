@@ -2,7 +2,7 @@ package dev.aurora.acesso.config;
 
 import java.io.IOException;
 
-import dev.aurora.acesso.ContextoAcesso;
+import dev.aurora.contexto.ContextoAcesso;
 import dev.aurora.acesso.service.ContextoAcessoService;
 
 import jakarta.servlet.FilterChain;

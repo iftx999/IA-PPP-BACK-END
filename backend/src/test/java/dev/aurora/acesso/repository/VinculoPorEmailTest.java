@@ -10,7 +10,7 @@ import java.util.UUID;
 
 import dev.aurora.DadosDeTeste;
 import dev.aurora.TestcontainersConfiguration;
-import dev.aurora.acesso.ContextoAcesso;
+import dev.aurora.contexto.ContextoAcesso;
 import org.junit.jupiter.api.Test;
 
 import org.springframework.beans.factory.annotation.Autowired;

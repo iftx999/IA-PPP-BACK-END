@@ -6,7 +6,7 @@ import java.util.Arrays;
 import java.util.Map;
 import java.util.UUID;
 
-import dev.aurora.acesso.ContextoAcesso;
+import dev.aurora.contexto.ContextoAcesso;
 import dev.aurora.auditoria.Auditoria;
 import dev.aurora.auditoria.TipoEvento;
 import dev.aurora.auditoria.model.ResultadoVerificacao;

@@ -6,7 +6,7 @@ import java.util.stream.Collectors;
 
 import javax.sql.DataSource;
 
-import dev.aurora.acesso.ContextoAcesso;
+import dev.aurora.contexto.ContextoAcesso;
 
 import org.springframework.jdbc.datasource.DelegatingDataSource;
 

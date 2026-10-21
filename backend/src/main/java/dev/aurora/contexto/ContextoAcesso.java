@@ -1,4 +1,4 @@
-package dev.aurora.acesso;
+package dev.aurora.contexto;
 
 import java.util.List;
 import java.util.Objects;
@@ -27,6 +27,18 @@ public record ContextoAcesso(UUID tenantId, UUID usuarioId, Set<String> permisso
 	 */
 	public static ContextoAcesso somenteTenant(UUID tenantId) {
 		return new ContextoAcesso(tenantId, null, Set.of(), List.of());
+	}
+
+	/**
+	 * Escopo inclui a unidade raiz do tenant (caminho ltree de um nível): atua sobre o
+	 * tenant inteiro.
+	 */
+	public boolean abrangeTenantInteiro() {
+		return escopos.stream().anyMatch(caminho -> caminho.indexOf('.') < 0);
+	}
+
+	public boolean pode(String permissao) {
+		return permissoes.contains(permissao);
 	}
 
 	public static Optional<ContextoAcesso> atual() {

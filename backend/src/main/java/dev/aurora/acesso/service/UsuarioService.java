@@ -1,6 +1,6 @@
 package dev.aurora.acesso.service;
 
-import dev.aurora.acesso.ContextoAcesso;
+import dev.aurora.contexto.ContextoAcesso;
 import dev.aurora.acesso.model.UsuarioAutenticado;
 import dev.aurora.acesso.repository.UsuarioRepository;
 import dev.aurora.comum.RecursoNaoEncontradoException;

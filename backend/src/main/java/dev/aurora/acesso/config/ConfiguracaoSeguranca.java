@@ -1,5 +1,6 @@
 package dev.aurora.acesso.config;
 
+import dev.aurora.contexto.ContextoAcesso;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;

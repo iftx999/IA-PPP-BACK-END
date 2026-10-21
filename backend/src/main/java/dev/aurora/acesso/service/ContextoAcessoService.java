@@ -6,7 +6,7 @@ import java.util.Optional;
 import java.util.TreeSet;
 import java.util.UUID;
 
-import dev.aurora.acesso.ContextoAcesso;
+import dev.aurora.contexto.ContextoAcesso;
 import dev.aurora.acesso.model.Concessao;
 import dev.aurora.acesso.repository.TenantRepository;
 import dev.aurora.acesso.repository.UsuarioRepository;
