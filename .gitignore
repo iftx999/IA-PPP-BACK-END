@@ -1,0 +1,9 @@
+# Segredos locais
+infra/.env
+*.env.local
+
+# IDEs e SO
+.idea/
+.vscode/
+*.iml
+.DS_Store

@@ -1,0 +1,41 @@
+# Ambiente de desenvolvimento da Aurora.
+#   docker compose -f infra/compose.yaml up -d
+name: aurora-dev
+
+services:
+  postgres:
+    build: ./postgres
+    image: aurora-postgres:dev
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      AURORA_OWNER_PASSWORD: ${AURORA_OWNER_PASSWORD}
+      AURORA_APP_PASSWORD: ${AURORA_APP_PASSWORD}
+    ports:
+      - "5433:5432"   # 5433 para não colidir com outros Postgres locais
+    volumes:
+      - postgres-dados:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d aurora"]
+      interval: 5s
+      retries: 20
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.8.1
+    command: ["start-dev", "--import-realm", "--http-port=8180"]
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+      KC_HOSTNAME: http://localhost:8180
+    ports:
+      - "8180:8180"
+    volumes:
+      - ./keycloak/realm-aurora.json:/opt/keycloak/data/import/realm-aurora.json:ro
+
+  mailpit:
+    image: axllent/mailpit:v1.27
+    ports:
+      - "8025:8025"   # interface web
+      - "1025:1025"   # SMTP
+
+volumes:
+  postgres-dados:
