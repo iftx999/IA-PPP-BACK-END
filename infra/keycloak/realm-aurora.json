@@ -52,7 +52,8 @@
             "introspection.token.claim": "true"
           }
         }
-      ]
+      ],
+      "fullScopeAllowed": false
     }
   ],
   "users": [
@@ -69,7 +70,8 @@
           "value": "aurora-dev",
           "temporary": false
         }
-      ]
+      ],
+      "id": "9f157236-2059-526f-8124-c6991c871df6"
     },
     {
       "username": "diretoria@exemplo.dev",
@@ -84,7 +86,8 @@
           "value": "aurora-dev",
           "temporary": false
         }
-      ]
+      ],
+      "id": "902b546b-7485-5946-b272-27cdb128b12c"
     },
     {
       "username": "comercial.cidadea@exemplo.dev",
@@ -99,7 +102,8 @@
           "value": "aurora-dev",
           "temporary": false
         }
-      ]
+      ],
+      "id": "25042d26-3693-5954-a42e-e2846967f7d7"
     },
     {
       "username": "auditoria@exemplo.dev",
@@ -114,7 +118,8 @@
           "value": "aurora-dev",
           "temporary": false
         }
-      ]
+      ],
+      "id": "e10afad3-5358-5925-8a2f-fc2a74c5aa7e"
     },
     {
       "username": "convidada@exemplo.dev",
@@ -129,7 +134,8 @@
           "value": "aurora-dev",
           "temporary": false
         }
-      ]
+      ],
+      "id": "b67a7d80-0e63-5fde-9143-1c31be32a4ec"
     }
   ]
 }
