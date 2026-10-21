@@ -12,7 +12,7 @@ import dev.aurora.adesao.model.MetaVigente;
 import dev.aurora.adesao.model.Painel;
 import dev.aurora.adesao.model.PontoSerie;
 import dev.aurora.adesao.model.Projecao;
-import dev.aurora.adesao.model.Situacao;
+import dev.aurora.adesao.Situacao;
 import dev.aurora.adesao.model.UnidadeResumo;
 import org.jspecify.annotations.Nullable;
 

@@ -14,4 +14,14 @@ class TratadorDeErros {
 		return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, erro.getMessage());
 	}
 
+	@ExceptionHandler(ConflitoException.class)
+	ProblemDetail conflito(ConflitoException erro) {
+		return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, erro.getMessage());
+	}
+
+	@ExceptionHandler(RegraVioladaException.class)
+	ProblemDetail regraViolada(RegraVioladaException erro) {
+		return ProblemDetail.forStatusAndDetail(HttpStatus.UNPROCESSABLE_CONTENT, erro.getMessage());
+	}
+
 }

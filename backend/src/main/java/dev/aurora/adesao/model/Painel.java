@@ -1,5 +1,7 @@
 package dev.aurora.adesao.model;
 
+import dev.aurora.adesao.Situacao;
+
 import java.math.BigDecimal;
 import java.time.YearMonth;
 import java.util.List;

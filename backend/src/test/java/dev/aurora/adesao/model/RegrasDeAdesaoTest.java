@@ -6,6 +6,8 @@ import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.List;
 
+import dev.aurora.adesao.Situacao;
+
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 

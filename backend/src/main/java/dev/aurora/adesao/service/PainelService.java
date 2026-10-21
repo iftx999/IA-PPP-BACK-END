@@ -8,7 +8,7 @@ import dev.aurora.adesao.model.LinhaUnidade;
 import dev.aurora.adesao.model.Painel;
 import dev.aurora.adesao.model.PontoSerie;
 import dev.aurora.adesao.model.Projecao;
-import dev.aurora.adesao.model.Situacao;
+import dev.aurora.adesao.Situacao;
 import dev.aurora.adesao.model.UnidadeResumo;
 import dev.aurora.adesao.repository.AdesaoRepository;
 import dev.aurora.comum.RecursoNaoEncontradoException;
