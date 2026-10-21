@@ -14,3 +14,4 @@ gera um novo ADR que o substitui.
 | [0007](0007-repositorios-separados.md) | Repositórios separados para back-end e front-end | Aceito |
 | [0008](0008-qualidade-no-build.md) | Formatação, cobertura e documentação da API verificadas no build | Aceito |
 | [0009](0009-trilha-de-auditoria.md) | Trilha de auditoria encadeada por HMAC | Aceito |
+| [0010](0010-biblioteca-de-componentes.md) | Angular Material como base dos componentes de interface | Aceito |
