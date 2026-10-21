@@ -5,6 +5,7 @@ import java.util.UUID;
 
 import dev.aurora.unidades.model.Unidade;
 import dev.aurora.unidades.service.UnidadeService;
+import org.jspecify.annotations.Nullable;
 
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -16,7 +17,8 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/v1/unidades")
 class UnidadeController {
 
-	record UnidadeResponse(UUID id, String tipo, UUID unidadePaiId, String codigo, String nome, String codigoIbge) {
+	record UnidadeResponse(UUID id, String tipo, @Nullable UUID unidadePaiId, String codigo, String nome,
+			@Nullable String codigoIbge) {
 
 		static UnidadeResponse de(Unidade u) {
 			return new UnidadeResponse(u.id(), u.tipo(), u.unidadePaiId(), u.codigo(), u.nome(), u.codigoIbge());
