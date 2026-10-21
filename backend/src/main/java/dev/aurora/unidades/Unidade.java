@@ -1,4 +1,4 @@
-package dev.aurora.unidades.model;
+package dev.aurora.unidades;
 
 import java.util.UUID;
 

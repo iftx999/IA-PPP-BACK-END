@@ -4,7 +4,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-import dev.aurora.unidades.model.Unidade;
+import dev.aurora.unidades.Unidade;
 
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
@@ -29,6 +29,12 @@ public class UnidadeRepository {
 
 	public List<Unidade> listarNoEscopo() {
 		return jdbc.sql(SELECAO + " ORDER BY caminho").query(Unidade.class).list();
+	}
+
+	public Optional<Unidade> buscarPrincipalDoEscopo() {
+		return jdbc.sql(SELECAO + " ORDER BY tipo = 'GRUPO', nlevel(caminho), nome LIMIT 1")
+			.query(Unidade.class)
+			.optional();
 	}
 
 	public Optional<Unidade> buscarNoEscopo(UUID id) {

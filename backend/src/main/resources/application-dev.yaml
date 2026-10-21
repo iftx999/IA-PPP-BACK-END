@@ -7,6 +7,8 @@ spring:
     password: ${AURORA_OWNER_PASSWORD:owner-dev}
 
 aurora:
+  seguranca:
+    chave-cursor: ${AURORA_CHAVE_CURSOR:chave-de-cursor-de-desenvolvimento-nao-usar}
   auditoria:
     chave: ${AURORA_AUDITORIA_CHAVE:chave-de-desenvolvimento-nao-usar-em-producao}
   cors:

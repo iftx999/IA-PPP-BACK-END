@@ -4,7 +4,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import dev.aurora.comum.RecursoNaoEncontradoException;
-import dev.aurora.unidades.model.Unidade;
+import dev.aurora.unidades.Unidade;
 import dev.aurora.unidades.repository.UnidadeRepository;
 import org.junit.jupiter.api.Test;
 

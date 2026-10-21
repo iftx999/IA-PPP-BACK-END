@@ -3,7 +3,7 @@ package dev.aurora.unidades.controller;
 import java.util.List;
 import java.util.UUID;
 
-import dev.aurora.unidades.model.Unidade;
+import dev.aurora.unidades.Unidade;
 import dev.aurora.unidades.service.UnidadeService;
 import org.jspecify.annotations.Nullable;
 

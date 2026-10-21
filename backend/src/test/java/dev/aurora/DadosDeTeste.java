@@ -54,6 +54,25 @@ public final class DadosDeTeste {
 
 	/** Cria um usuário com o perfil de administrador na unidade informada (escopo). */
 	public static UUID criarUsuario(Tenant t, String sub, String email, UUID unidadeEscopo) throws SQLException {
+		return criarUsuario(t, sub, email, unidadeEscopo, t.perfilAdmin());
+	}
+
+	/** Cria um perfil do tenant com as permissões informadas. */
+	public static UUID criarPerfil(Tenant t, String nome, String... permissoes) throws SQLException {
+		var id = UUID.randomUUID();
+		try (var c = BancoDeTeste.comoSuperusuario()) {
+			executar(c, "INSERT INTO perfil (id, tenant_id, nome) VALUES (?::uuid, ?::uuid, ?)", id, t.id(), nome);
+			for (var permissao : permissoes) {
+				executar(c,
+						"INSERT INTO perfil_permissao (tenant_id, perfil_id, permissao) VALUES (?::uuid, ?::uuid, ?)",
+						t.id(), id, permissao);
+			}
+		}
+		return id;
+	}
+
+	public static UUID criarUsuario(Tenant t, String sub, String email, UUID unidadeEscopo, UUID perfil)
+			throws SQLException {
 		var id = UUID.randomUUID();
 		try (var c = BancoDeTeste.comoSuperusuario()) {
 			executar(c,
@@ -61,8 +80,8 @@ public final class DadosDeTeste {
 					id, t.id(), sub, email, email);
 			executar(c, """
 					INSERT INTO usuario_perfil_escopo (id, tenant_id, usuario_id, perfil_id, unidade_id)
-					VALUES (?::uuid, ?::uuid, ?::uuid, ?::uuid, ?::uuid)""", UUID.randomUUID(), t.id(), id,
-					t.perfilAdmin(), unidadeEscopo);
+					VALUES (?::uuid, ?::uuid, ?::uuid, ?::uuid, ?::uuid)""", UUID.randomUUID(), t.id(), id, perfil,
+					unidadeEscopo);
 		}
 		return id;
 	}
@@ -133,6 +152,34 @@ public final class DadosDeTeste {
 				    (tenant_id, competencia, codigo_origem, unidade_id, situacao, fonte_dados_id, execucao_id)
 				VALUES (?::uuid, DATE '2026-08-01', ?, ?::uuid, ?, ?::uuid, ?::uuid)""", t.id(), matricula, unidade,
 				situacao, t.fonte(), t.execucao());
+	}
+
+	private static void imovel(Connection c, Tenant t, String competencia, String matricula, UUID unidade,
+			String situacao) throws SQLException {
+		executar(c, """
+				INSERT INTO imovel_situacao_mensal
+				    (tenant_id, competencia, codigo_origem, unidade_id, situacao, fonte_dados_id, execucao_id)
+				VALUES (?::uuid, ?::date, ?, ?::uuid, ?, ?::uuid, ?::uuid)""", t.id(), competencia, matricula, unidade,
+				situacao, t.fonte(), t.execucao());
+	}
+
+	/**
+	 * Histórico de jun a ago/2026 no setor A1: 2001001 ligado até jul e cortado em ago;
+	 * 2001002 a 2001005 factíveis (nunca ligados); 2001006 ligado. Somados ao B-001
+	 * (factível na Cidade B) da criação do tenant.
+	 */
+	public static void criarHistoricoDeImoveis(Tenant t) throws SQLException {
+		try (var c = BancoDeTeste.comoSuperusuario()) {
+			for (var mes : new String[] { "2026-06-01", "2026-07-01" }) {
+				imovel(c, t, mes, "2001001", t.setorA1(), "LIGADO");
+				imovel(c, t, mes, "2001002", t.setorA1(), "FACTIVEL");
+			}
+			imovel(c, t, "2026-08-01", "2001001", t.setorA1(), "CORTADO");
+			for (var matricula : new String[] { "2001002", "2001003", "2001004", "2001005" }) {
+				imovel(c, t, "2026-08-01", matricula, t.setorA1(), "FACTIVEL");
+			}
+			imovel(c, t, "2026-08-01", "2001006", t.setorA1(), "LIGADO");
+		}
 	}
 
 	private static void executar(Connection c, String sql, Object... parametros) throws SQLException {

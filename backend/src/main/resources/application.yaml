@@ -36,6 +36,8 @@ aurora:
   seguranca:
     # Audiência exigida nos tokens de acesso (mapeada no client do Keycloak).
     audiencia: aurora-api
+    # Segredo dos cursores de paginação (>= 32 caracteres).
+    chave-cursor: ${AURORA_CHAVE_CURSOR}
   cors:
     origens: ${AURORA_CORS_ORIGENS}
   auditoria:
