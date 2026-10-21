@@ -19,14 +19,14 @@ import dev.aurora.adesao.model.UnidadeResumo;
  * Resposta de GET /api/v1/painel. Percentuais com 4 casas; a formatação (pt-BR, 1 casa) é
  * do front.
  */
-record PainelResponse(UnidadeDto unidade, YearMonth competencia, List<YearMonth> competenciasDisponiveis,
-		AdesaoDto adesao, long factiveis, long cortados, BigDecimal variacaoPp, Situacao situacao, MetaDto meta,
-		ProjecaoDto projecao, List<PontoDto> serie, List<LinhaDto> unidades) {
+record PainelResponse(UnidadeDto unidade, UnidadeDto acima, YearMonth competencia,
+		List<YearMonth> competenciasDisponiveis, AdesaoDto adesao, long factiveis, long cortados, BigDecimal variacaoPp,
+		Situacao situacao, MetaDto meta, ProjecaoDto projecao, List<PontoDto> serie, List<LinhaDto> unidades) {
 
 	record UnidadeDto(UUID id, String nome, String tipo) {
 
 		static UnidadeDto de(UnidadeResumo u) {
-			return new UnidadeDto(u.id(), u.nome(), u.tipo());
+			return u == null ? null : new UnidadeDto(u.id(), u.nome(), u.tipo());
 		}
 	}
 
@@ -82,10 +82,11 @@ record PainelResponse(UnidadeDto unidade, YearMonth competencia, List<YearMonth>
 	}
 
 	static PainelResponse de(Painel p) {
-		return new PainelResponse(UnidadeDto.de(p.unidade()), p.competencia(), p.competenciasDisponiveis(),
-				AdesaoDto.de(p.adesao()), p.composicao().factiveis(), p.composicao().cortados(), p.variacaoPp(),
-				p.situacao(), MetaDto.de(p.meta()), ProjecaoDto.de(p.projecao()),
-				p.serie().stream().map(PontoDto::de).toList(), p.filhas().stream().map(LinhaDto::de).toList());
+		return new PainelResponse(UnidadeDto.de(p.unidade()), UnidadeDto.de(p.acima()), p.competencia(),
+				p.competenciasDisponiveis(), AdesaoDto.de(p.adesao()), p.composicao().factiveis(),
+				p.composicao().cortados(), p.variacaoPp(), p.situacao(), MetaDto.de(p.meta()),
+				ProjecaoDto.de(p.projecao()), p.serie().stream().map(PontoDto::de).toList(),
+				p.filhas().stream().map(LinhaDto::de).toList());
 	}
 
 }

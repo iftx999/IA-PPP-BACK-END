@@ -50,6 +50,17 @@ public class AdesaoRepository {
 			.optional();
 	}
 
+	/** Unidade-pai, só se também estiver no escopo (não revela unidades de fora). */
+	public Optional<UnidadeResumo> buscarPaiNoEscopo(UUID unidadeId) {
+		return jdbc.sql("""
+				SELECT p.id, p.nome, p.tipo
+				  FROM unidade u JOIN unidade p ON p.id = u.unidade_pai_id
+				 WHERE u.id = ? AND p.ativo AND p.caminho <@ ANY (app_escopos())""")
+			.param(unidadeId)
+			.query(UnidadeResumo.class)
+			.optional();
+	}
+
 	/**
 	 * Unidade mais alta do escopo que tem medição, preferindo a concessão ao grupo
 	 * econômico.

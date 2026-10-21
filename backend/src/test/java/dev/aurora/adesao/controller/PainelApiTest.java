@@ -67,6 +67,7 @@ class PainelApiTest {
 	void setorSemMetaPropriaSegueAUnidadeAcima() throws Exception {
 		mvc.perform(get("/api/v1/painel").param("unidade", t.setorA1().toString()).with(token("sub-gestor")))
 			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.acima.id", is(t.cidadeA().toString())))
 			.andExpect(jsonPath("$.meta.seguidaDe.id", is(t.cidadeA().toString())))
 			.andExpect(jsonPath("$.meta.valor", closeTo(85.0, 0.001)))
 			.andExpect(jsonPath("$.situacao", is("META_ATINGIDA")));
@@ -77,7 +78,9 @@ class PainelApiTest {
 		mvc.perform(get("/api/v1/painel").with(token("sub-gestor")))
 			.andExpect(jsonPath("$.unidade.id", is(t.concessao().toString())));
 		mvc.perform(get("/api/v1/painel").with(token("sub-cidade-a")))
-			.andExpect(jsonPath("$.unidade.id", is(t.cidadeA().toString())));
+			.andExpect(jsonPath("$.unidade.id", is(t.cidadeA().toString())))
+			// a concessão (pai) está fora do escopo: não aparece
+			.andExpect(jsonPath("$.acima", nullValue()));
 	}
 
 	@Test

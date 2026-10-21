@@ -68,9 +68,9 @@ public class PainelService {
 					Situacao.classificar(filha.atual().percentual(), metaFilha), metaFilha);
 		}).toList();
 
-		return new Painel(unidade, competencia, competencias, atual, adesao.contarSemLigacao(unidade.id(), competencia),
-				atual.variacaoPp(anterior), Situacao.classificar(atual.percentual(), meta), meta, projecao, serie,
-				filhas);
+		return new Painel(unidade, adesao.buscarPaiNoEscopo(unidade.id()).orElse(null), competencia, competencias,
+				atual, adesao.contarSemLigacao(unidade.id(), competencia), atual.variacaoPp(anterior),
+				Situacao.classificar(atual.percentual(), meta), meta, projecao, serie, filhas);
 	}
 
 }
