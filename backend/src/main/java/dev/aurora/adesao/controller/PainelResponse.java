@@ -15,7 +15,10 @@ import dev.aurora.adesao.model.Projecao;
 import dev.aurora.adesao.model.Situacao;
 import dev.aurora.adesao.model.UnidadeResumo;
 
-/** Resposta de GET /api/v1/painel. Percentuais com 4 casas; a formatação (pt-BR, 1 casa) é do front. */
+/**
+ * Resposta de GET /api/v1/painel. Percentuais com 4 casas; a formatação (pt-BR, 1 casa) é
+ * do front.
+ */
 record PainelResponse(UnidadeDto unidade, YearMonth competencia, List<YearMonth> competenciasDisponiveis,
 		AdesaoDto adesao, long factiveis, long cortados, BigDecimal variacaoPp, Situacao situacao, MetaDto meta,
 		ProjecaoDto projecao, List<PontoDto> serie, List<LinhaDto> unidades) {
@@ -34,9 +37,11 @@ record PainelResponse(UnidadeDto unidade, YearMonth competencia, List<YearMonth>
 		}
 	}
 
-	/** {@code seguidaDe} preenchida quando a meta é herdada ("Segue Cidade A · 85,0%"). */
-	record MetaDto(BigDecimal valor, BigDecimal alerta, LocalDate vigenciaInicio, LocalDate vigenciaFim,
-			String origem, UnidadeDto seguidaDe) {
+	/**
+	 * {@code seguidaDe} preenchida quando a meta é herdada ("Segue Cidade A · 85,0%").
+	 */
+	record MetaDto(BigDecimal valor, BigDecimal alerta, LocalDate vigenciaInicio, LocalDate vigenciaFim, String origem,
+			UnidadeDto seguidaDe) {
 
 		static MetaDto de(MetaVigente m) {
 			if (m == null) {
@@ -56,8 +61,8 @@ record PainelResponse(UnidadeDto unidade, YearMonth competencia, List<YearMonth>
 			if (p == null) {
 				return null;
 			}
-			return new ProjecaoDto(p.ritmoAtual(), p.mesesNaBase(), p.faltam(), p.mesesRestantes(),
-					p.ritmoNecessario(), p.projecaoNoPrazo(), p.prazo(), p.mesAtingimento(), p.atinge());
+			return new ProjecaoDto(p.ritmoAtual(), p.mesesNaBase(), p.faltam(), p.mesesRestantes(), p.ritmoNecessario(),
+					p.projecaoNoPrazo(), p.prazo(), p.mesAtingimento(), p.atinge());
 		}
 	}
 

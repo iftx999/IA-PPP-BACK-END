@@ -29,8 +29,9 @@ public class PainelService {
 	}
 
 	/**
-	 * Painel da unidade (padrão: a mais alta do escopo) na competência (padrão: a mais recente). Unidade fora do
-	 * escopo ou competência sem medição respondem como não encontradas.
+	 * Painel da unidade (padrão: a mais alta do escopo) na competência (padrão: a mais
+	 * recente). Unidade fora do escopo ou competência sem medição respondem como não
+	 * encontradas.
 	 */
 	@Transactional(readOnly = true)
 	public Painel montar(Optional<UUID> unidadeId, Optional<YearMonth> competenciaPedida) {
@@ -67,9 +68,9 @@ public class PainelService {
 					Situacao.classificar(filha.atual().percentual(), metaFilha), metaFilha);
 		}).toList();
 
-		return new Painel(unidade, competencia, competencias, atual,
-				adesao.contarSemLigacao(unidade.id(), competencia), atual.variacaoPp(anterior),
-				Situacao.classificar(atual.percentual(), meta), meta, projecao, serie, filhas);
+		return new Painel(unidade, competencia, competencias, atual, adesao.contarSemLigacao(unidade.id(), competencia),
+				atual.variacaoPp(anterior), Situacao.classificar(atual.percentual(), meta), meta, projecao, serie,
+				filhas);
 	}
 
 }

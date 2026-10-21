@@ -18,9 +18,10 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
 /**
- * Leituras do painel. A adesão vem de {@code medicao} (indicador ADESAO_REDE, numerador = ligados, denominador = com
- * rede), pré-agregada por unidade e competência. O RLS limita tudo ao tenant e ao escopo do usuário; as metas também
- * são visíveis nas unidades acima do escopo, para resolver a herança.
+ * Leituras do painel. A adesão vem de {@code medicao} (indicador ADESAO_REDE, numerador =
+ * ligados, denominador = com rede), pré-agregada por unidade e competência. O RLS limita
+ * tudo ao tenant e ao escopo do usuário; as metas também são visíveis nas unidades acima
+ * do escopo, para resolver a herança.
  */
 @Repository
 public class AdesaoRepository {
@@ -49,20 +50,22 @@ public class AdesaoRepository {
 			.optional();
 	}
 
-	/** Unidade mais alta do escopo que tem medição, preferindo a concessão ao grupo econômico. */
+	/**
+	 * Unidade mais alta do escopo que tem medição, preferindo a concessão ao grupo
+	 * econômico.
+	 */
 	public Optional<UnidadeResumo> buscarUnidadePadrao(UUID indicadorId) {
 		return jdbc.sql("""
 				SELECT u.id, u.nome, u.tipo FROM unidade u
 				 WHERE u.ativo AND u.caminho <@ ANY (app_escopos())
 				   AND EXISTS (SELECT 1 FROM medicao m WHERE m.unidade_id = u.id AND m.indicador_id = ?)
 				 ORDER BY u.tipo = 'GRUPO', nlevel(u.caminho), u.nome
-				 LIMIT 1""")
-			.param(indicadorId)
-			.query(UnidadeResumo.class)
-			.optional();
+				 LIMIT 1""").param(indicadorId).query(UnidadeResumo.class).optional();
 	}
 
-	/** RN-14: só competências com medição calculada, da mais recente para a mais antiga. */
+	/**
+	 * RN-14: só competências com medição calculada, da mais recente para a mais antiga.
+	 */
 	public List<YearMonth> listarCompetencias(UUID unidadeId, UUID indicadorId) {
 		return jdbc.sql("""
 				SELECT periodo_inicio FROM medicao
@@ -88,18 +91,22 @@ public class AdesaoRepository {
 			.list();
 	}
 
-	/** Unidades filhas com medição na competência, com a medição do mês anterior quando houver. */
+	/**
+	 * Unidades filhas com medição na competência, com a medição do mês anterior quando
+	 * houver.
+	 */
 	public List<MedicaoUnidade> listarFilhas(UUID unidadeId, UUID indicadorId, YearMonth competencia) {
-		return jdbc.sql("""
-				SELECT u.id, u.nome, u.tipo,
-				       m.numerador AS ligados, m.denominador AS com_rede,
-				       a.numerador AS ligados_ant, a.denominador AS com_rede_ant
-				  FROM unidade u
-				  JOIN medicao m ON m.unidade_id = u.id AND m.indicador_id = :indicador AND m.periodo_inicio = :competencia
-				  LEFT JOIN medicao a ON a.unidade_id = u.id AND a.indicador_id = :indicador
-				                     AND a.periodo_inicio = :anterior
-				 WHERE u.unidade_pai_id = :unidade AND u.ativo
-				 ORDER BY u.nome""")
+		return jdbc
+			.sql("""
+					SELECT u.id, u.nome, u.tipo,
+					       m.numerador AS ligados, m.denominador AS com_rede,
+					       a.numerador AS ligados_ant, a.denominador AS com_rede_ant
+					  FROM unidade u
+					  JOIN medicao m ON m.unidade_id = u.id AND m.indicador_id = :indicador AND m.periodo_inicio = :competencia
+					  LEFT JOIN medicao a ON a.unidade_id = u.id AND a.indicador_id = :indicador
+					                     AND a.periodo_inicio = :anterior
+					 WHERE u.unidade_pai_id = :unidade AND u.ativo
+					 ORDER BY u.nome""")
 			.param("indicador", indicadorId)
 			.param("competencia", inicio(competencia))
 			.param("anterior", inicio(competencia.minusMonths(1)))

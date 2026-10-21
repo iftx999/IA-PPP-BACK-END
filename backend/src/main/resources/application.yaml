@@ -1,20 +1,24 @@
+# Configuração comum a todos os ambientes. Segredos e endereços vêm de variáveis de ambiente;
+# valores padrão de desenvolvimento ficam só em application-dev.yaml.
 spring:
   application:
     name: aurora-api
+  profiles:
+    default: dev
   threads:
     virtual:
       enabled: true
   datasource:
     # A API conecta como aurora_app (sem BYPASSRLS); o RLS do banco é a última barreira de isolamento.
-    url: ${AURORA_DB_URL:jdbc:postgresql://localhost:5433/aurora}
+    url: ${AURORA_DB_URL}
     username: aurora_app
-    password: ${AURORA_APP_PASSWORD:app-dev}
+    password: ${AURORA_APP_PASSWORD}
     hikari:
       maximum-pool-size: 10
   flyway:
     # Migrações rodam como dono do schema.
     user: aurora_owner
-    password: ${AURORA_OWNER_PASSWORD:owner-dev}
+    password: ${AURORA_OWNER_PASSWORD}
   jpa:
     open-in-view: false
     hibernate:
@@ -23,15 +27,30 @@ spring:
     problemdetails:
       enabled: true
 
+server:
+  shutdown: graceful
+  compression:
+    enabled: true
+
 aurora:
   seguranca:
-    # Audiência exigida nos tokens de acesso (mapeada no client scope "aurora-api" do Keycloak).
+    # Audiência exigida nos tokens de acesso (mapeada no client do Keycloak).
     audiencia: aurora-api
   cors:
-    origens: ${AURORA_CORS_ORIGENS:http://localhost:4200}
+    origens: ${AURORA_CORS_ORIGENS}
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
 
 management:
   endpoints:
     web:
       exposure:
         include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true

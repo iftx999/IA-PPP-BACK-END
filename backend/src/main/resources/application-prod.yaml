@@ -1,0 +1,12 @@
+# Produção: sem valores padrão de segredo (a aplicação não sobe se faltar variável), logs estruturados em JSON
+# (ECS) para o coletor e documentação da API desligada.
+logging:
+  structured:
+    format:
+      console: ecs
+
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false

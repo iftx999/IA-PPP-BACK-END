@@ -15,8 +15,8 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 
 /**
- * Traduz um token válido em {@link ContextoAcesso}: emissor -> tenant, sub (ou e-mail verificado, no primeiro
- * acesso) -> usuário, concessões vigentes -> permissões e escopo.
+ * Traduz um token válido em {@link ContextoAcesso}: emissor -> tenant, sub (ou e-mail
+ * verificado, no primeiro acesso) -> usuário, concessões vigentes -> permissões e escopo.
  */
 @Service
 public class ContextoAcessoService {
@@ -34,7 +34,10 @@ public class ContextoAcessoService {
 		return tenants.buscarPorEmissor(emissor);
 	}
 
-	/** Vazio quando o emissor é desconhecido, o tenant está inativo ou a pessoa não é usuária ativa. */
+	/**
+	 * Vazio quando o emissor é desconhecido, o tenant está inativo ou a pessoa não é
+	 * usuária ativa.
+	 */
 	public Optional<ContextoAcesso> resolver(Jwt token) throws Exception {
 		var tenantId = tenantDoEmissor(String.valueOf(token.getIssuer()));
 		if (tenantId.isEmpty()) {
@@ -63,7 +66,10 @@ public class ContextoAcessoService {
 		return Optional.of(new ContextoAcesso(tenantId, usuarioId.get(), permissoes, List.copyOf(escopos)));
 	}
 
-	/** Pelo sub; no primeiro acesso de um convidado, vincula o sub pelo e-mail, desde que verificado pelo IdP. */
+	/**
+	 * Pelo sub; no primeiro acesso de um convidado, vincula o sub pelo e-mail, desde que
+	 * verificado pelo IdP.
+	 */
 	private Optional<UUID> identificarUsuario(Jwt token) {
 		var porSub = usuarios.buscarAtivoPorSub(token.getSubject());
 		if (porSub.isPresent()) {

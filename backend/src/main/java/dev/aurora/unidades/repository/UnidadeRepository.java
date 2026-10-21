@@ -9,7 +9,10 @@ import dev.aurora.unidades.model.Unidade;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
-/** Unidades ativas do escopo do usuário (as atribuídas e as descendentes), via app_escopos(). */
+/**
+ * Unidades ativas do escopo do usuário (as atribuídas e as descendentes), via
+ * app_escopos().
+ */
 @Repository
 public class UnidadeRepository {
 

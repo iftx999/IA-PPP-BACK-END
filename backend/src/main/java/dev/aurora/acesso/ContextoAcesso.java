@@ -8,8 +8,9 @@ import java.util.UUID;
 import java.util.concurrent.Callable;
 
 /**
- * Quem está agindo e onde: tenant, usuário, permissões efetivas e escopo (caminhos ltree das unidades).
- * Resolvido no servidor a cada requisição; nunca vem do corpo da requisição nem do texto enviado à IA.
+ * Quem está agindo e onde: tenant, usuário, permissões efetivas e escopo (caminhos ltree
+ * das unidades). Resolvido no servidor a cada requisição; nunca vem do corpo da
+ * requisição nem do texto enviado à IA.
  */
 public record ContextoAcesso(UUID tenantId, UUID usuarioId, Set<String> permissoes, List<String> escopos) {
 
@@ -21,7 +22,9 @@ public record ContextoAcesso(UUID tenantId, UUID usuarioId, Set<String> permisso
 		escopos = List.copyOf(escopos);
 	}
 
-	/** Contexto só com o tenant, usado enquanto o usuário ainda está sendo identificado. */
+	/**
+	 * Contexto só com o tenant, usado enquanto o usuário ainda está sendo identificado.
+	 */
 	public static ContextoAcesso somenteTenant(UUID tenantId) {
 		return new ContextoAcesso(tenantId, null, Set.of(), List.of());
 	}
@@ -34,7 +37,9 @@ public record ContextoAcesso(UUID tenantId, UUID usuarioId, Set<String> permisso
 		return atual().orElseThrow(() -> new IllegalStateException("contexto de acesso não definido"));
 	}
 
-	/** Executa a ação dentro do contexto informado (ex.: tarefas agendadas por tenant). */
+	/**
+	 * Executa a ação dentro do contexto informado (ex.: tarefas agendadas por tenant).
+	 */
 	public static <T> T executar(ContextoAcesso contexto, Callable<T> acao) throws Exception {
 		var anterior = ATUAL.get();
 		ATUAL.set(contexto);

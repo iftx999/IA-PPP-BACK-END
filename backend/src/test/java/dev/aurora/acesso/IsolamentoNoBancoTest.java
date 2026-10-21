@@ -19,7 +19,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 /** RLS como última barreira: conectado como aurora_app, sem passar pela API. */
 class IsolamentoNoBancoTest {
 
-	/** Tabelas com tenant_id lidas antes de existir contexto; não contêm dado de negócio. */
+	/**
+	 * Tabelas com tenant_id lidas antes de existir contexto; não contêm dado de negócio.
+	 */
 	private static final Set<String> SEM_RLS_PERMITIDO = Set.of("tenant_emissor", "credencial_conector",
 			"tarefa_em_fila");
 
@@ -100,8 +102,8 @@ class IsolamentoNoBancoTest {
 
 	private static Connection comContexto(Tenant t, String escopos) throws SQLException {
 		var c = BancoDeTeste.comoAplicacao();
-		try (var comando = c.prepareStatement(
-				"SELECT set_config('app.tenant_id', ?, false), set_config('app.escopos', ?, false)")) {
+		try (var comando = c
+			.prepareStatement("SELECT set_config('app.tenant_id', ?, false), set_config('app.escopos', ?, false)")) {
 			comando.setString(1, t.id().toString());
 			comando.setString(2, escopos);
 			comando.execute();

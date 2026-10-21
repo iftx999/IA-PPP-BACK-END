@@ -22,7 +22,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-/** Isolamento de ponta a ponta: o tenant e o escopo vêm do token e do banco, nunca da URL. */
+/**
+ * Isolamento de ponta a ponta: o tenant e o escopo vêm do token e do banco, nunca da URL.
+ */
 @SpringBootTest
 @AutoConfigureMockMvc
 @Import(TestcontainersConfiguration.class)
@@ -66,8 +68,7 @@ class IsolamentoNaApiTest {
 	void unidadeForaDoEscopoRetorna404() throws Exception {
 		mvc.perform(get("/api/v1/unidades/{id}", a.cidadeB()).with(token(a, "sub-cidade-a")))
 			.andExpect(status().isNotFound());
-		mvc.perform(get("/api/v1/unidades").with(token(a, "sub-cidade-a")))
-			.andExpect(jsonPath("$", hasSize(2)));
+		mvc.perform(get("/api/v1/unidades").with(token(a, "sub-cidade-a"))).andExpect(jsonPath("$", hasSize(2)));
 	}
 
 	@Test

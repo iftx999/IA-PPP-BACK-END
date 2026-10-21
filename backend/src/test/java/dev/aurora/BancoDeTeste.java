@@ -12,8 +12,8 @@ import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.images.builder.ImageFromDockerfile;
 
 /**
- * Banco de teste compartilhado: a mesma imagem de infra/postgres (PostGIS, pgvector, papéis aurora_owner e aurora_app),
- * com as migrações aplicadas uma vez.
+ * Banco de teste compartilhado: a mesma imagem de infra/postgres (PostGIS, pgvector,
+ * papéis aurora_owner e aurora_app), com as migrações aplicadas uma vez.
  */
 public final class BancoDeTeste {
 
@@ -39,10 +39,7 @@ public final class BancoDeTeste {
 				.waitingFor(Wait.forLogMessage(".*database system is ready to accept connections.*\\s", 2)
 					.withStartupTimeout(Duration.ofMinutes(3)));
 			container.start();
-			Flyway.configure()
-				.dataSource(jdbcUrl(), "aurora_owner", SENHA_OWNER)
-				.load()
-				.migrate();
+			Flyway.configure().dataSource(jdbcUrl(), "aurora_owner", SENHA_OWNER).load().migrate();
 		}
 		return jdbcUrl();
 	}

@@ -4,9 +4,9 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 
 /**
- * RN-01 e RN-02. Adesão = ligados / imóveis com rede disponível × 100, onde "com rede" = ligados + factíveis +
- * cortados (imóveis sem rede ficam fora). Em níveis superiores soma-se ligados e com rede (não se faz média de
- * percentuais).
+ * RN-01 e RN-02. Adesão = ligados / imóveis com rede disponível × 100, onde "com rede" =
+ * ligados + factíveis + cortados (imóveis sem rede ficam fora). Em níveis superiores
+ * soma-se ligados e com rede (não se faz média de percentuais).
  */
 public record Adesao(long ligados, long comRede) {
 
@@ -28,7 +28,10 @@ public record Adesao(long ligados, long comRede) {
 		return comRede - ligados;
 	}
 
-	/** RN-04: variação em pontos percentuais em relação a outra competência (nula se faltar algum lado). */
+	/**
+	 * RN-04: variação em pontos percentuais em relação a outra competência (nula se
+	 * faltar algum lado).
+	 */
 	public BigDecimal variacaoPp(Adesao anterior) {
 		if (anterior == null || percentual() == null || anterior.percentual() == null) {
 			return null;

@@ -9,7 +9,10 @@ import org.springframework.context.annotation.Configuration;
 @Configuration(proxyBeanMethods = false)
 class ConfiguracaoBanco {
 
-	/** Envolve o DataSource da aplicação para que toda conexão carregue o contexto de acesso. */
+	/**
+	 * Envolve o DataSource da aplicação para que toda conexão carregue o contexto de
+	 * acesso.
+	 */
 	@Bean
 	static BeanPostProcessor contextoNoDataSource() {
 		return new BeanPostProcessor() {

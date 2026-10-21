@@ -11,15 +11,17 @@ import java.util.Optional;
 /**
  * RN-05: projeção "no ritmo".
  * <ul>
- * <li>Ritmo atual: média mensal de novas ligações nos últimos {@value #JANELA_MESES} meses, usando só meses com o
- * tamanho de rede atual. Quando a rede muda, o mês da mudança e os anteriores saem da conta, porque comparam outro
- * denominador (ex.: rede cresceu em abr/2026 → base mai–ago = (8.761 − 8.357) / 4 = 101/mês).</li>
+ * <li>Ritmo atual: média mensal de novas ligações nos últimos {@value #JANELA_MESES}
+ * meses, usando só meses com o tamanho de rede atual. Quando a rede muda, o mês da
+ * mudança e os anteriores saem da conta, porque comparam outro denominador (ex.: rede
+ * cresceu em abr/2026 → base mai–ago = (8.761 − 8.357) / 4 = 101/mês).</li>
  * <li>Denominador futuro: a rede do tamanho atual (não prevê expansão).</li>
- * <li>Faltam = ⌈meta% × com rede − ligados⌉; ritmo necessário = faltam / meses até o fim da vigência.</li>
+ * <li>Faltam = ⌈meta% × com rede − ligados⌉; ritmo necessário = faltam / meses até o fim
+ * da vigência.</li>
  * <li>Projeção na data = (ligados + ritmo × meses restantes) / com rede.</li>
  * </ul>
- * Campos que dependem de prazo ficam nulos quando a meta não tem fim; {@code mesAtingimento} fica nulo quando o
- * ritmo atual não é positivo.
+ * Campos que dependem de prazo ficam nulos quando a meta não tem fim;
+ * {@code mesAtingimento} fica nulo quando o ritmo atual não é positivo.
  */
 public record Projecao(BigDecimal ritmoAtual, int mesesNaBase, long faltam, Integer mesesRestantes,
 		BigDecimal ritmoNecessario, BigDecimal projecaoNoPrazo, YearMonth prazo, YearMonth mesAtingimento,
@@ -53,9 +55,8 @@ public record Projecao(BigDecimal ritmoAtual, int mesesNaBase, long faltam, Inte
 			base = anterior;
 			meses++;
 		}
-		var ritmo = meses == 0 ? null
-				: BigDecimal.valueOf(atual.ligados() - base.ligados())
-					.divide(BigDecimal.valueOf(meses), 1, RoundingMode.HALF_UP);
+		var ritmo = meses == 0 ? null : BigDecimal.valueOf(atual.ligados() - base.ligados())
+			.divide(BigDecimal.valueOf(meses), 1, RoundingMode.HALF_UP);
 
 		var necessarioTotal = metaPct.multiply(BigDecimal.valueOf(atual.comRede()))
 			.divide(BigDecimal.valueOf(100), 0, RoundingMode.CEILING)
@@ -91,8 +92,8 @@ public record Projecao(BigDecimal ritmoAtual, int mesesNaBase, long faltam, Inte
 			mesAtingimento = null;
 		}
 
-		boolean atinge = faltam == 0 || (prazo == null ? mesAtingimento != null
-				: projecaoNoPrazo.compareTo(metaPct) >= 0);
+		boolean atinge = faltam == 0
+				|| (prazo == null ? mesAtingimento != null : projecaoNoPrazo.compareTo(metaPct) >= 0);
 
 		return Optional.of(new Projecao(ritmo, meses, faltam, mesesRestantes, ritmoNecessario, projecaoNoPrazo, prazo,
 				mesAtingimento, atinge));

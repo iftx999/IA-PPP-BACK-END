@@ -17,8 +17,9 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
 import org.springframework.web.filter.OncePerRequestFilter;
 
 /**
- * Depois da autenticação do token, resolve o contexto de acesso e troca as authorities pelas permissões do banco.
- * Token válido de pessoa que não é usuária ativa do tenant recebe 403.
+ * Depois da autenticação do token, resolve o contexto de acesso e troca as authorities
+ * pelas permissões do banco. Token válido de pessoa que não é usuária ativa do tenant
+ * recebe 403.
  */
 class FiltroContextoAcesso extends OncePerRequestFilter {
 

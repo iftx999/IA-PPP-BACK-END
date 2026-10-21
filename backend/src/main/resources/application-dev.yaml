@@ -1,0 +1,11 @@
+# Padrões do ambiente local (infra/compose.yaml). Nunca usar em produção.
+spring:
+  datasource:
+    url: ${AURORA_DB_URL:jdbc:postgresql://localhost:5433/aurora}
+    password: ${AURORA_APP_PASSWORD:app-dev}
+  flyway:
+    password: ${AURORA_OWNER_PASSWORD:owner-dev}
+
+aurora:
+  cors:
+    origens: ${AURORA_CORS_ORIGENS:http://localhost:4200}

@@ -127,7 +127,8 @@ class RegrasDeAdesaoTest {
 			var p = Projecao.calcular(semMudanca, new BigDecimal("50"), null).orElseThrow();
 
 			assertThat(p.mesesNaBase()).isEqualTo(6);
-			assertThat(p.ritmoAtual()).isEqualByComparingTo("18.3"); // base em fev (110): (220 - 110) / 6
+			assertThat(p.ritmoAtual()).isEqualByComparingTo("18.3"); // base em fev (110):
+																		// (220 - 110) / 6
 		}
 
 		@Test

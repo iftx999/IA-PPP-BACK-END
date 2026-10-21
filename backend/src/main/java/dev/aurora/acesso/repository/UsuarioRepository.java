@@ -32,11 +32,7 @@ public class UsuarioRepository {
 		return jdbc.sql("""
 				UPDATE usuario SET sub_externo = ?
 				 WHERE lower(email) = lower(?) AND sub_externo IS NULL AND ativo
-				RETURNING id""")
-			.param(sub)
-			.param(email)
-			.query(UUID.class)
-			.optional();
+				RETURNING id""").param(sub).param(email).query(UUID.class).optional();
 	}
 
 	/** Concessões vigentes, em unidades ativas. */
@@ -53,7 +49,10 @@ public class UsuarioRepository {
 			.list();
 	}
 
-	/** Atualiza o último acesso no máximo a cada 5 minutos, para não gravar em toda requisição. */
+	/**
+	 * Atualiza o último acesso no máximo a cada 5 minutos, para não gravar em toda
+	 * requisição.
+	 */
 	public void registrarAcesso(UUID usuarioId) {
 		jdbc.sql("""
 				UPDATE usuario SET ultimo_acesso = now()

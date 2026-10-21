@@ -37,22 +37,27 @@ class ConfiguracaoSeguranca {
 	@Bean
 	SecurityFilterChain api(HttpSecurity http, AuthenticationManagerResolver<HttpServletRequest> porEmissor,
 			ContextoAcessoService resolvedor) throws Exception {
-		return http
-			.authorizeHttpRequests(regras -> regras
-				.requestMatchers("/actuator/health/**").permitAll()
-				.anyRequest().authenticated())
+		return http.authorizeHttpRequests(regras -> regras.requestMatchers("/actuator/health/**")
+			.permitAll()
+			// Documentação da API: só existe fora de produção (springdoc desligado no
+			// perfil prod).
+			.requestMatchers("/v3/api-docs/**", "/swagger-ui.html", "/swagger-ui/**")
+			.permitAll()
+			.anyRequest()
+			.authenticated())
 			.oauth2ResourceServer(servidor -> servidor.authenticationManagerResolver(porEmissor))
 			.sessionManagement(sessao -> sessao.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 			// API sem cookie de sessão (token Bearer): CSRF não se aplica.
 			.csrf(csrf -> csrf.disable())
-			.cors(cors -> {})
+			.cors(cors -> {
+			})
 			.addFilterAfter(new FiltroContextoAcesso(resolvedor), BearerTokenAuthenticationFilter.class)
 			.build();
 	}
 
 	/**
-	 * Cada tenant tem seu emissor OIDC (realm). Só emissores cadastrados em tenant_emissor são aceitos,
-	 * e o token precisa ter a audiência da API.
+	 * Cada tenant tem seu emissor OIDC (realm). Só emissores cadastrados em
+	 * tenant_emissor são aceitos, e o token precisa ter a audiência da API.
 	 */
 	@Bean
 	AuthenticationManagerResolver<HttpServletRequest> autenticacaoPorEmissor(ContextoAcessoService resolvedor,
@@ -65,8 +70,7 @@ class ConfiguracaoSeguranca {
 			return porEmissor.computeIfAbsent(emissor, e -> {
 				var decodificador = (NimbusJwtDecoder) JwtDecoders.fromIssuerLocation(e);
 				decodificador.setJwtValidator(new DelegatingOAuth2TokenValidator<>(
-						JwtValidators.createDefaultWithIssuer(e),
-						new JwtClaimValidator<List<String>>(JwtClaimNames.AUD,
+						JwtValidators.createDefaultWithIssuer(e), new JwtClaimValidator<List<String>>(JwtClaimNames.AUD,
 								aud -> aud != null && aud.contains(audiencia))));
 				return new JwtAuthenticationProvider(decodificador)::authenticate;
 			});
