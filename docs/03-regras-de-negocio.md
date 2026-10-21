@@ -57,6 +57,9 @@ Cada meta tem **percentual de meta** e **limite de alerta** (alerta ≤ meta).
 ## RN-05 · Projeção "no ritmo"
 
 1. **Ritmo atual** = média mensal de novas ligações nos **últimos 6 meses**, **excluindo meses em que a rede mudou** (expansão altera o denominador).
+   Implementação: a janela recua até 6 meses **enquanto o tamanho da rede for o atual**; o mês da mudança e os anteriores
+   saem. É a única leitura que reproduz o demo: rede cresceu em abr/2026 → base mai–ago = (8.761 − 8.357) / 4 = **101/mês**
+   (excluir só abril daria 75/mês).
 2. **Denominador futuro** = rede do tamanho atual (sem prever expansão).
 3. **Projeção na data da meta** = (ligados atuais + ritmo × meses restantes) / com rede.
 4. **Ligações que faltam** = meta% × com rede − ligados.

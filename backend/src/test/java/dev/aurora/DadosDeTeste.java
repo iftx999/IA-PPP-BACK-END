@@ -64,6 +64,49 @@ public final class DadosDeTeste {
 		return id;
 	}
 
+	/**
+	 * Medições de adesão de jul e ago/2026 (números do demo) e metas: concessão 80/75 até dez/2026 (do contrato),
+	 * Cidade A 85/80 e Cidade B 75/70 sem fim. O setor A1 não tem meta própria (herda da Cidade A).
+	 */
+	public static void criarAdesao(Tenant t) throws SQLException {
+		var indicador = UUID.randomUUID();
+		try (var c = BancoDeTeste.comoSuperusuario()) {
+			executar(c, """
+					INSERT INTO indicador (id, tenant_id, codigo, nome, unidade_medida, sentido, periodicidade, origem)
+					VALUES (?::uuid, ?::uuid, 'ADESAO_REDE', 'Adesão à rede de esgoto', '%', 'MAIOR_MELHOR',
+					        'MENSAL', 'CONTRATUAL')""", indicador, t.id());
+			medicao(c, t, indicador, t.concessao(), "2026-07-01", 8_680, 11_400);
+			medicao(c, t, indicador, t.concessao(), "2026-08-01", 8_761, 11_400);
+			medicao(c, t, indicador, t.cidadeA(), "2026-07-01", 4_900, 5_800);
+			medicao(c, t, indicador, t.cidadeA(), "2026-08-01", 4_954, 5_800);
+			medicao(c, t, indicador, t.setorA1(), "2026-08-01", 2_966, 3_200);
+			medicao(c, t, indicador, t.cidadeB(), "2026-07-01", 3_780, 5_600);
+			medicao(c, t, indicador, t.cidadeB(), "2026-08-01", 3_807, 5_600);
+			meta(c, t, indicador, t.concessao(), "80", "75", "2026-12-31", "Contrato 001/2025, cláusula 7.2, p. 2");
+			meta(c, t, indicador, t.cidadeA(), "85", "80", null, null);
+			meta(c, t, indicador, t.cidadeB(), "75", "70", null, null);
+		}
+	}
+
+	private static void medicao(Connection c, Tenant t, UUID indicador, UUID unidade, String periodo, long ligados,
+			long comRede) throws SQLException {
+		executar(c, """
+				INSERT INTO medicao (tenant_id, indicador_id, unidade_id, periodo_inicio, valor, numerador, denominador,
+				                     versao_regra)
+				VALUES (?::uuid, ?::uuid, ?::uuid, ?::date, ?::numeric * 100 / ?::numeric, ?::numeric, ?::numeric,
+				        'ADESAO_V1')""",
+				t.id(), indicador, unidade, periodo, ligados, comRede, ligados, comRede);
+	}
+
+	private static void meta(Connection c, Tenant t, UUID indicador, UUID unidade, String valor, String alerta,
+			String fim, String origem) throws SQLException {
+		executar(c, """
+				INSERT INTO meta (id, tenant_id, indicador_id, unidade_id, vigencia_inicio, vigencia_fim, valor_meta,
+				                  valor_alerta, origem)
+				VALUES (?::uuid, ?::uuid, ?::uuid, ?::uuid, DATE '2025-01-01', ?::date, ?::numeric, ?::numeric, ?)""",
+				UUID.randomUUID(), t.id(), indicador, unidade, fim, valor, alerta, origem);
+	}
+
 	public static String rotulo(UUID... ids) {
 		var caminho = new StringBuilder();
 		for (var id : ids) {
