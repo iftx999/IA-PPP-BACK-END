@@ -27,12 +27,18 @@ public class UsuarioRepository {
 			.optional();
 	}
 
-	/** Vincula o sub ao usuário ativo, ainda sem vínculo, que tem esse e-mail. */
+	/**
+	 * Vincula o sub ao usuário ativo com esse e-mail. Idempotente: requisições
+	 * simultâneas do primeiro login (ex.: /eu e a tela) aceitam a linha já vinculada ao
+	 * mesmo sub. Se outra requisição estiver vinculando, o UPDATE espera o lock e
+	 * reavalia a condição sobre a versão gravada.
+	 */
 	public Optional<UUID> vincularSubPorEmail(String sub, String email) {
 		return jdbc.sql("""
-				UPDATE usuario SET sub_externo = ?
-				 WHERE lower(email) = lower(?) AND sub_externo IS NULL AND ativo
-				RETURNING id""").param(sub).param(email).query(UUID.class).optional();
+				UPDATE usuario SET sub_externo = :sub
+				 WHERE lower(email) = lower(:email) AND ativo
+				   AND (sub_externo IS NULL OR sub_externo = :sub)
+				RETURNING id""").param("sub", sub).param("email", email).query(UUID.class).optional();
 	}
 
 	/** Concessões vigentes, em unidades ativas. */
