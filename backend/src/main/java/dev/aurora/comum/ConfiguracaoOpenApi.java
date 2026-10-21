@@ -90,8 +90,10 @@ class ConfiguracaoOpenApi {
 
 	/**
 	 * Records de dev.aurora pelo nome simples, que é como o springdoc nomeia os esquemas.
+	 * Dois DTOs da API com o mesmo nome virariam um esquema só (um sobrescreve o outro),
+	 * então isso é erro de configuração: falha na subida.
 	 */
-	private static Map<String, Class<?>> recordsDaAplicacao() {
+	static Map<String, Class<?>> recordsDaAplicacao() {
 		var varredura = new ClassPathScanningCandidateComponentProvider(false);
 		varredura.addIncludeFilter(
 				(leitor, fabrica) -> Record.class.getName().equals(leitor.getClassMetadata().getSuperClassName()));
@@ -100,14 +102,23 @@ class ConfiguracaoOpenApi {
 		for (var candidato : varredura.findCandidateComponents("dev.aurora")) {
 			var tipo = ClassUtils.resolveClassName(candidato.getBeanClassName(),
 					ConfiguracaoOpenApi.class.getClassLoader());
-			if (porNome.putIfAbsent(tipo.getSimpleName(), tipo) != null) {
-				repetidos.add(tipo.getSimpleName());
+			if (!ehDaApi(tipo)) {
+				continue;
+			}
+			var anterior = porNome.putIfAbsent(tipo.getSimpleName(), tipo);
+			if (anterior != null) {
+				repetidos.add(anterior.getName() + " e " + tipo.getName());
 			}
 		}
-		// Nome ambíguo: não dá para saber a qual record o esquema se refere; fica como o
-		// springdoc gerou.
-		repetidos.forEach(porNome::remove);
+		if (!repetidos.isEmpty()) {
+			throw new IllegalStateException("DTOs da API com o mesmo nome colidem na OpenAPI: " + repetidos);
+		}
 		return porNome;
+	}
+
+	/** DTOs expostos pela API ficam nos pacotes controller. */
+	private static boolean ehDaApi(Class<?> tipo) {
+		return tipo.getPackageName().endsWith(".controller");
 	}
 
 }

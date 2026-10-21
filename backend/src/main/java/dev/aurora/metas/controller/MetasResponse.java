@@ -14,42 +14,42 @@ import dev.aurora.metas.service.MetaService;
 import org.jspecify.annotations.Nullable;
 
 /** Árvore de metas (GET /api/v1/metas). */
-record MetasResponse(LocalDate referencia, ResumoDto resumo, List<LinhaDto> linhas) {
+record MetasResponse(LocalDate referencia, ResumoMetasDto resumo, List<LinhaMetaDto> linhas) {
 
-	record ResumoDto(long cadastradas, long doContrato, long seguemAcima) {
+	record ResumoMetasDto(long cadastradas, long doContrato, long seguemAcima) {
 	}
 
-	record PropriaDto(UUID id, BigDecimal valor, @Nullable BigDecimal alerta, LocalDate vigenciaInicio,
+	record MetaPropriaDto(UUID id, BigDecimal valor, @Nullable BigDecimal alerta, LocalDate vigenciaInicio,
 			@Nullable LocalDate vigenciaFim, @Nullable String origem, boolean doContrato) {
 
-		static @Nullable PropriaDto de(@Nullable MetaDaUnidade m) {
-			return m == null ? null : new PropriaDto(m.id(), m.valor(), m.alerta(), m.vigenciaInicio(), m.vigenciaFim(),
-					m.origem(), m.doContrato());
+		static @Nullable MetaPropriaDto de(@Nullable MetaDaUnidade m) {
+			return m == null ? null : new MetaPropriaDto(m.id(), m.valor(), m.alerta(), m.vigenciaInicio(),
+					m.vigenciaFim(), m.origem(), m.doContrato());
 		}
 	}
 
-	record HerdadaDto(UUID unidadeId, String unidadeNome, BigDecimal valor, @Nullable BigDecimal alerta) {
+	record MetaHerdadaDto(UUID unidadeId, String unidadeNome, BigDecimal valor, @Nullable BigDecimal alerta) {
 
-		static @Nullable HerdadaDto de(@Nullable MetaHerdada m) {
-			return m == null ? null : new HerdadaDto(m.unidadeId(), m.unidadeNome(), m.valor(), m.alerta());
+		static @Nullable MetaHerdadaDto de(@Nullable MetaHerdada m) {
+			return m == null ? null : new MetaHerdadaDto(m.unidadeId(), m.unidadeNome(), m.valor(), m.alerta());
 		}
 	}
 
-	record LinhaDto(UUID unidadeId, String unidadeNome, String tipo, @Nullable UUID unidadePaiId, int nivel,
-			@Nullable PropriaDto propria, @Nullable HerdadaDto herdada, @Nullable BigDecimal adesao,
+	record LinhaMetaDto(UUID unidadeId, String unidadeNome, String tipo, @Nullable UUID unidadePaiId, int nivel,
+			@Nullable MetaPropriaDto propria, @Nullable MetaHerdadaDto herdada, @Nullable BigDecimal adesao,
 			@Nullable YearMonth competenciaAdesao, Situacao situacao) {
 
-		static LinhaDto de(LinhaMeta l) {
-			return new LinhaDto(l.unidadeId(), l.unidadeNome(), l.tipo(), l.unidadePaiId(), l.nivel(),
-					PropriaDto.de(l.propria()), HerdadaDto.de(l.herdada()), l.adesao(), l.competenciaAdesao(),
+		static LinhaMetaDto de(LinhaMeta l) {
+			return new LinhaMetaDto(l.unidadeId(), l.unidadeNome(), l.tipo(), l.unidadePaiId(), l.nivel(),
+					MetaPropriaDto.de(l.propria()), MetaHerdadaDto.de(l.herdada()), l.adesao(), l.competenciaAdesao(),
 					l.situacao());
 		}
 	}
 
 	static MetasResponse de(MetaService.Arvore a) {
 		var r = a.resumo();
-		return new MetasResponse(a.referencia(), new ResumoDto(r.cadastradas(), r.doContrato(), r.seguemAcima()),
-				a.linhas().stream().map(LinhaDto::de).toList());
+		return new MetasResponse(a.referencia(), new ResumoMetasDto(r.cadastradas(), r.doContrato(), r.seguemAcima()),
+				a.linhas().stream().map(LinhaMetaDto::de).toList());
 	}
 
 }
