@@ -137,5 +137,7 @@
       ],
       "id": "b67a7d80-0e63-5fde-9143-1c31be32a4ec"
     }
-  ]
+  ],
+  "loginTheme": "aurora",
+  "emailTheme": "keycloak"
 }

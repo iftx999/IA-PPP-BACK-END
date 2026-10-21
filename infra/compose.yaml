@@ -30,6 +30,7 @@ services:
       - "8180:8180"
     volumes:
       - ./keycloak/realm-aurora.json:/opt/keycloak/data/import/realm-aurora.json:ro
+      - ./keycloak/temas/aurora:/opt/keycloak/themes/aurora:ro
 
   mailpit:
     image: axllent/mailpit:v1.27

@@ -1,0 +1,235 @@
+/* Tema de login da Aurora (docs/07). Sobrescreve o PatternFly 5 do keycloak.v2 com os tokens da marca. */
+
+@font-face { font-family: 'Inter'; font-style: normal; font-display: swap; font-weight: 100 900;
+  src: url('../fonts/inter-latin-wght-normal.woff2') format('woff2-variations'); }
+@font-face { font-family: 'Inter'; font-style: normal; font-display: swap; font-weight: 100 900;
+  src: url('../fonts/inter-latin-ext-wght-normal.woff2') format('woff2-variations');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+@font-face { font-family: 'Archivo'; font-style: normal; font-display: swap; font-weight: 100 900; font-stretch: 62% 125%;
+  src: url('../fonts/archivo-latin-wdth-normal.woff2') format('woff2-variations'); }
+@font-face { font-family: 'JetBrains Mono'; font-style: normal; font-display: swap; font-weight: 100 800;
+  src: url('../fonts/jetbrains-mono-latin-wght-normal.woff2') format('woff2-variations'); }
+
+.aurora {
+  --bg-0: #051313; --bg-1: #081018; --bg-2: #0c181c; --bg-3: #12212a; --line: #1c2e36;
+  --text-1: #e8f0ee; --text-2: #b4c1c3; --text-3: #8496a0;
+  --accent: #4ad7bc; --accent-2: #1acbd8; --accent-3: #2c9aeb; --accent-glow: rgba(74, 215, 188, .35);
+  --danger: #e76069; --danger-soft: #ee7a62; --ok: #3de693;
+
+  /* PatternFly 5 → tokens da Aurora */
+  --pf-v5-global--FontFamily--text: 'Inter', system-ui, sans-serif;
+  --pf-v5-global--FontFamily--heading: 'Archivo', system-ui, sans-serif;
+  --pf-v5-global--BackgroundColor--100: var(--bg-2);
+  --pf-v5-global--BackgroundColor--200: var(--bg-1);
+  --pf-v5-global--Color--100: var(--text-1);
+  --pf-v5-global--Color--200: var(--text-2);
+  --pf-v5-global--BorderColor--100: var(--line);
+  --pf-v5-global--primary-color--100: var(--accent);
+  --pf-v5-global--primary-color--200: #3bc3a9;
+  --pf-v5-global--link--Color: var(--accent);
+  --pf-v5-global--link--Color--hover: #7fe6d2;
+  --pf-v5-global--danger-color--100: var(--danger);
+
+  margin: 0;
+  min-height: 100vh;
+  background: var(--bg-1);
+  color: var(--text-1);
+  font-family: 'Inter', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.aurora-tela {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(420px, 1fr);
+  min-height: 100vh;
+}
+
+/* ---------- Painel de marca ---------- */
+.aurora-marca {
+  position: relative;
+  display: flex; flex-direction: column; justify-content: space-between;
+  padding: 48px 56px;
+  overflow: hidden;
+  background:
+    radial-gradient(900px 600px at 15% 110%, rgba(26, 203, 216, .18), transparent 60%),
+    radial-gradient(700px 500px at 95% -10%, rgba(74, 215, 188, .14), transparent 60%),
+    var(--bg-0);
+  border-right: 1px solid var(--line);
+}
+.aurora-grade {
+  position: absolute; inset: 0; pointer-events: none;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, .03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, .03) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(ellipse at 30% 60%, #000 30%, transparent 75%);
+}
+.aurora-logotipo { position: relative; display: flex; align-items: center; gap: 12px;
+  font: 800 1.375rem 'Archivo', sans-serif; font-stretch: 112%; letter-spacing: .01em; }
+.aurora-manchete { position: relative; max-width: 560px; }
+.aurora-rotulo { margin: 0 0 20px; font: 600 .6875rem 'JetBrains Mono', monospace; letter-spacing: .14em;
+  text-transform: uppercase; color: var(--accent); }
+.aurora-titulo { margin: 0; font: 800 clamp(2rem, 3.4vw, 3.25rem)/1.08 'Archivo', sans-serif; font-stretch: 115%;
+  letter-spacing: -.01em; }
+.aurora-titulo s { color: var(--danger-soft); text-decoration-thickness: 3px; font-size: .62em; font-weight: 700; }
+.aurora-titulo span {
+  background: linear-gradient(100deg, var(--accent-2), var(--accent-3) 45%, var(--accent));
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.aurora-pontos { list-style: none; margin: 40px 0 0; padding: 0; display: grid; gap: 14px; }
+.aurora-pontos li { display: grid; grid-template-columns: 120px 1fr; gap: 12px; color: var(--text-2); font-size: .9375rem; }
+.aurora-pontos b { font: 600 .75rem 'JetBrains Mono', monospace; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--text-1); padding-top: 2px; }
+.aurora-rodape { position: relative; margin: 0; font-size: .8125rem; color: var(--text-3); }
+
+/* ---------- Coluna de acesso ---------- */
+.aurora-acesso.pf-v5-c-login__container,
+.aurora-acesso {
+  display: flex; flex-direction: column; justify-content: center; align-items: center;
+  padding: 48px 32px;
+  max-width: none; width: auto; margin: 0;
+  grid-template-columns: none; grid-template-areas: none;
+}
+.aurora-cabecalho { display: none; align-items: center; gap: 10px; margin-bottom: 24px;
+  font: 800 1.25rem 'Archivo', sans-serif; font-stretch: 112%; }
+
+.aurora .aurora-cartao.pf-v5-c-login__main {
+  width: 100%; max-width: 420px;
+  margin: 0;
+  padding: 8px 0;
+  background: transparent;
+  box-shadow: none;
+  border: 0;
+}
+.aurora .pf-v5-c-login__main-header { padding: 0 0 8px; display: block; }
+.aurora .pf-v5-c-login__main-header .pf-v5-c-title,
+.aurora #kc-page-title {
+  font: 700 1.75rem/1.2 'Archivo', sans-serif; font-stretch: 108%; color: var(--text-1);
+}
+.aurora .pf-v5-c-login__main-header-utilities { display: none; }
+.aurora .pf-v5-c-login__main-body { padding: 16px 0 0; }
+.aurora .pf-v5-c-login__main-footer { padding: 0; }
+.aurora .pf-v5-c-login__main-footer-band { border: 0; background: transparent; padding: 16px 0 0; color: var(--text-2); }
+
+/* Campos */
+.aurora .pf-v5-c-form { gap: 18px; }
+.aurora .pf-v5-c-form__label-text { font-size: .8125rem; font-weight: 500; color: var(--text-2); }
+.aurora .pf-v5-c-form-control {
+  --pf-v5-c-form-control--BackgroundColor: var(--bg-2);
+  --pf-v5-c-form-control--Color: var(--text-1);
+  --pf-v5-c-form-control--before--BorderColor: var(--line);
+  --pf-v5-c-form-control--before--BorderWidth: 1px;
+  --pf-v5-c-form-control--after--BorderColor: transparent;
+  --pf-v5-c-form-control--after--BorderBottomWidth: 0;
+  --pf-v5-c-form-control--hover--after--BorderBottomColor: transparent;
+  --pf-v5-c-form-control--focus--after--BorderBottomColor: transparent;
+  --pf-v5-c-form-control--BorderRadius: 10px;
+  --pf-v5-c-form-control--PaddingTop: 11px; --pf-v5-c-form-control--PaddingBottom: 11px;
+  --pf-v5-c-form-control--PaddingLeft: 14px; --pf-v5-c-form-control--PaddingRight: 14px;
+  border-radius: 10px;
+  transition: box-shadow .15s ease;
+}
+.aurora .pf-v5-c-form-control::before { border-radius: 10px; }
+.aurora .pf-v5-c-form-control:hover { --pf-v5-c-form-control--before--BorderColor: #2a434e; }
+.aurora .pf-v5-c-form-control:focus-within {
+  box-shadow: 0 0 0 1px var(--accent), 0 0 0 4px rgba(74, 215, 188, .15);
+}
+.aurora .pf-v5-c-form-control input { font-size: .9375rem; }
+.aurora .pf-v5-c-form-control input::placeholder { color: var(--text-3); }
+.aurora .pf-v5-c-form-control.pf-m-error { box-shadow: 0 0 0 1px var(--danger); }
+.aurora .pf-v5-c-input-group { gap: 0; }
+.aurora .pf-v5-c-input-group .pf-v5-c-button.pf-m-control {
+  border-radius: 0 10px 10px 0; background: var(--bg-2); color: var(--text-2);
+  --pf-v5-c-button--after--BorderColor: var(--line);
+}
+
+/* Botões */
+.aurora .pf-v5-c-button.pf-m-primary {
+  --pf-v5-c-button--m-primary--BackgroundColor: var(--accent);
+  --pf-v5-c-button--m-primary--hover--BackgroundColor: #6ee3cc;
+  --pf-v5-c-button--m-primary--focus--BackgroundColor: #6ee3cc;
+  --pf-v5-c-button--m-primary--active--BackgroundColor: #3bc3a9;
+  --pf-v5-c-button--m-primary--Color: #04201b;
+  --pf-v5-c-button--m-primary--hover--Color: #04201b;
+  --pf-v5-c-button--m-primary--focus--Color: #04201b;
+  --pf-v5-c-button--BorderRadius: 10px;
+  --pf-v5-c-button--PaddingTop: 12px; --pf-v5-c-button--PaddingBottom: 12px;
+  font-weight: 600; letter-spacing: .01em;
+  transition: box-shadow .15s ease, background-color .15s ease;
+}
+.aurora .pf-v5-c-button.pf-m-primary:hover,
+.aurora .pf-v5-c-button.pf-m-primary:focus-visible { box-shadow: 0 0 24px var(--accent-glow); }
+.aurora .pf-v5-c-button.pf-m-secondary {
+  --pf-v5-c-button--m-secondary--Color: var(--text-1);
+  --pf-v5-c-button--m-secondary--after--BorderColor: var(--line);
+  --pf-v5-c-button--BorderRadius: 10px;
+}
+
+/* Links, checkbox, alertas */
+.aurora a { color: var(--accent); text-decoration: none; }
+.aurora a:hover { text-decoration: underline; }
+.aurora .pf-v5-c-check__label { color: var(--text-2); font-size: .875rem; }
+.aurora .pf-v5-c-check__input { accent-color: var(--accent); }
+.aurora .pf-v5-c-alert {
+  --pf-v5-c-alert--BackgroundColor: var(--bg-3);
+  --pf-v5-c-alert--BoxShadow: none;
+  border: 1px solid var(--line); border-left: 3px solid var(--danger); border-radius: 10px;
+  margin-bottom: 18px;
+}
+.aurora .pf-v5-c-alert.pf-m-success { border-left-color: var(--ok); }
+.aurora .pf-v5-c-alert__title { color: var(--text-1); font-weight: 500; }
+.aurora .pf-v5-c-helper-text__item.pf-m-error, .aurora .kc-feedback-text { color: var(--text-1); }
+
+/* Celular: só o formulário, com a marca no topo */
+@media (max-width: 900px) {
+  .aurora-tela { grid-template-columns: 1fr; }
+  .aurora-marca { display: none; }
+  .aurora-cabecalho { display: flex; }
+  .aurora-acesso { justify-content: flex-start; padding-top: 64px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aurora * { transition: none !important; }
+}
+
+/* ---------- Ajustes sobre o keycloak.v2 ---------- */
+body#keycloak-bg.aurora,
+.aurora .pf-v5-c-login {
+  background: var(--bg-1);
+  background-image: none;
+  color-scheme: dark;
+}
+.aurora .pf-v5-c-login__main { border-top: 0; --pf-v5-c-login__main--BorderTopWidth: 0; }
+.aurora .pf-v5-c-login__main-header { border: 0; }
+
+/* Foco: contorno na cor de destaque, sem a borda clara do PatternFly */
+.aurora .pf-v5-c-form-control::before { border-color: var(--line); }
+.aurora .pf-v5-c-form-control::after { border: 0; }
+.aurora .pf-v5-c-form-control:focus-within::before { border-color: var(--accent); }
+
+/* Senha: campo e botão de mostrar formam uma peça só */
+.aurora .pf-v5-c-input-group { align-items: stretch; }
+.aurora .pf-v5-c-input-group > .pf-v5-c-input-group__item:first-child .pf-v5-c-form-control,
+.aurora .pf-v5-c-input-group > .pf-v5-c-input-group__item:first-child .pf-v5-c-form-control::before {
+  border-radius: 10px 0 0 10px;
+}
+.aurora .pf-v5-c-input-group__item .pf-v5-c-button.pf-m-control {
+  height: 100%;
+  padding: 0 14px;
+  border: 1px solid var(--line); border-left: 0;
+  border-radius: 0 10px 10px 0;
+  background: var(--bg-2);
+  color: var(--text-3);
+}
+.aurora .pf-v5-c-input-group__item .pf-v5-c-button.pf-m-control::after { border: 0; }
+.aurora .pf-v5-c-input-group__item .pf-v5-c-button.pf-m-control:hover { color: var(--text-1); }
+
+.aurora .pf-v5-c-form__group-label { padding-bottom: 6px; }
+.aurora .pf-v5-c-check__input { width: 16px; height: 16px; }
+/* O anel de foco acessível fica no contêiner (box-shadow na cor de destaque); o contorno nativo sai. */
+.aurora .pf-v5-c-form-control input:focus,
+.aurora .pf-v5-c-form-control input:focus-visible { outline: none; }
+.aurora .pf-v5-c-form-control:not(:focus-within)::before { border-color: var(--line); }
+.aurora .pf-v5-c-helper-text__item.pf-m-error,
+.aurora .pf-v5-c-helper-text__item.pf-m-error .pf-v5-c-helper-text__item-text { color: var(--danger-soft); }
+.aurora .pf-v5-c-form-control.pf-m-error::before { border-color: var(--danger); }
