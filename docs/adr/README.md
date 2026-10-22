@@ -16,3 +16,4 @@ gera um novo ADR que o substitui.
 | [0009](0009-trilha-de-auditoria.md) | Trilha de auditoria encadeada por HMAC | Aceito |
 | [0010](0010-biblioteca-de-componentes.md) | Angular Material como base dos componentes de interface | Aceito |
 | [0011](0011-gestao-de-usuarios-no-provedor.md) | Gestão de usuários pela Admin API do provedor de identidade | Aceito |
+| [0012](0012-hierarquia-de-unidades.md) | Hierarquia de unidades e caminho ltree | Aceito |
