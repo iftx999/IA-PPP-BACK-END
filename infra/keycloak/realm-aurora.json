@@ -54,6 +54,17 @@
         }
       ],
       "fullScopeAllowed": false
+    },
+    {
+      "clientId": "aurora-api-admin",
+      "name": "Aurora API (administração de usuários)",
+      "publicClient": false,
+      "secret": "api-admin-dev",
+      "serviceAccountsEnabled": true,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "implicitFlowEnabled": false,
+      "fullScopeAllowed": true
     }
   ],
   "users": [
@@ -136,8 +147,21 @@
         }
       ],
       "id": "b67a7d80-0e63-5fde-9143-1c31be32a4ec"
+    },
+    {
+      "username": "service-account-aurora-api-admin",
+      "enabled": true,
+      "serviceAccountClientId": "aurora-api-admin",
+      "clientRoles": {
+        "realm-management": [
+          "manage-users",
+          "view-users",
+          "query-users"
+        ]
+      }
     }
   ],
   "loginTheme": "aurora",
-  "emailTheme": "keycloak"
+  "emailTheme": "keycloak",
+  "actionTokenGeneratedByAdminLifespan": 259200
 }

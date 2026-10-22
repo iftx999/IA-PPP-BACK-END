@@ -182,7 +182,9 @@ public class KeycloakProvedorIdentidade implements ProvedorIdentidade {
 			return chamada.get();
 		}
 		catch (HttpClientErrorException erro) {
-			if (erro.getStatusCode() == HttpStatus.UNAUTHORIZED) {
+			if (erro.getStatusCode() == HttpStatus.UNAUTHORIZED || erro.getStatusCode() == HttpStatus.FORBIDDEN) {
+				// Token revogado ou com papéis desatualizados: a próxima chamada pede
+				// outro.
 				tokens.clear();
 			}
 			LOG.error("Provedor de identidade recusou a chamada: {}", erro.getStatusCode());

@@ -51,7 +51,7 @@ Se o `ng serve` mostrar tela antiga ou erro 500 do Vite depois de trocar depend�
 4200, apague `.angular/cache` e suba de novo.
 
 ### Próximos passos (ordem sugerida)
-1. ~~Usuários~~ (feito em 22/10; falta o client do Keycloak, ver abaixo).
+1. ~~Usuários~~ (feito em 22/10).
 2. **Unidades**: árvore, criar/editar/mover/inativar com recálculo do caminho ltree.
 3. Permissão por unidade (hoje as permissões valem em todo o escopo do usuário; o banco concede perfil por unidade).
 4. Marco 2: contratos + IA (upload, extração com Claude, revisão e aprovação).
@@ -83,11 +83,11 @@ Se o `ng serve` mostrar tela antiga ou erro 500 do Vite depois de trocar depend�
 - Correção transversal: diálogos do Material cortavam em 560px (Perfis inclusive) → `MAT_DIALOG_DEFAULT_OPTIONS`.
 - Testes: back-end 75 (inclui `UsuariosApiTest` e `KeycloakProvedorIdentidadeTest`); front 16 unitários e 10 E2E.
 
-### ⚠️ Pré-requisito pendente (precisa de aprovação)
-O realm precisa do client `aurora-api-admin` (conta de serviço com `manage-users`, `view-users`,
-`query-users` de `realm-management`, segredo de dev `api-admin-dev`). Sem ele, convidar, reenviar convite,
-desativar e redefinir senha respondem 503; listar e editar acesso funcionam. Falta: incluir o client em
-`infra/keycloak/realm-aurora.json` e criá-lo no Keycloak em execução.
+### Keycloak: client de administração
+Client `aurora-api-admin` (conta de serviço com `manage-users`, `view-users`, `query-users`; segredo de dev
+`api-admin-dev`) no `realm-aurora.json` e no Keycloak local. Precisa de `fullScopeAllowed: true`; sem isso o
+token não leva os papéis de `realm-management` e a Admin API responde 403. Fluxo validado no E2E
+`e2e/convite.spec.ts`: convite → e-mail no Mailpit → criação de senha → primeiro acesso → desativação.
 
 ### Pendências conhecidas
 - Pendências de produto do doc 06 (regra factível × cortado, aditivos, OCR).
