@@ -27,7 +27,7 @@
 | Trilha de auditoria encadeada por HMAC (verificação de adulteração) | ✅ | — |
 | Perfis e permissões (H6) | ✅ | ✅ |
 | Usuários: convite, ativar/desativar, escopo (H2, H7, H8) | ✅ | ✅ |
-| Cadastro de unidades (H1) | ⏳ | ⏳ |
+| Cadastro de unidades (H1) | ✅ | ✅ |
 
 **Interface (pedido do usuário):** tela de login refeita (tema Keycloak `infra/keycloak/temas/aurora`) e
 componentes modernos com Angular Material tematizado (ADR 0010). PrimeNG descartado por exigir licença paga.
@@ -52,7 +52,7 @@ Se o `ng serve` mostrar tela antiga ou erro 500 do Vite depois de trocar depend�
 
 ### Próximos passos (ordem sugerida)
 1. ~~Usuários~~ (feito em 22/10).
-2. **Unidades**: árvore, criar/editar/mover/inativar com recálculo do caminho ltree.
+2. ~~Unidades~~ (feito em 22/10).
 3. Permissão por unidade (hoje as permissões valem em todo o escopo do usuário; o banco concede perfil por unidade).
 4. Marco 2: contratos + IA (upload, extração com Claude, revisão e aprovação).
 
@@ -88,6 +88,19 @@ Client `aurora-api-admin` (conta de serviço com `manage-users`, `view-users`, `
 `api-admin-dev`) no `realm-aurora.json` e no Keycloak local. Precisa de `fullScopeAllowed: true`; sem isso o
 token não leva os papéis de `realm-management` e a Admin API responde 403. Fluxo validado no E2E
 `e2e/convite.spec.ts`: convite → e-mail no Mailpit → criação de senha → primeiro acesso → desativação.
+
+### Unidades (H1) — mesma sessão
+- **API**: `GET /unidades/arvore` (com inativas, filhas ativas e concessões de acesso), `GET /unidades/tipos`
+  (hierarquia), `POST /unidades`, `PUT /unidades/{id}`, `PUT /unidades/{id}/pai` (mover), `PUT /unidades/{id}/situacao`.
+  Regras e caminho ltree no ADR 0012. Tudo dentro do escopo de quem opera.
+- **Tela** `/admin/unidades`: árvore com busca e teclado, painel de detalhes, diálogos de nova/editar/mover/inativar.
+- Testes: back-end 83; front 19 unitários e 14 E2E.
+
+### Observações de teste
+- Os E2E de Unidades deixam setores "Setor de Teste Renomeado" (inativos, sob a Cidade A) no banco de dev, como os
+  de Perfis deixam perfis "Teste E2E …" se falharem no meio. O de convite cria usuários `convite.e2e.*` (desativados).
+- Uma vez, depois do login, o E2E caiu no Painel em vez da rota pedida; não se repetiu em 4 execuções da suíte.
+  Se voltar, investigar a restauração de rota do `angular-auth-oidc-client`.
 
 ### Pendências conhecidas
 - Pendências de produto do doc 06 (regra factível × cortado, aditivos, OCR).
