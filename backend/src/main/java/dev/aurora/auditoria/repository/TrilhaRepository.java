@@ -5,8 +5,15 @@ import java.time.Instant;
 import java.util.UUID;
 import java.util.function.Consumer;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.List;
+
+import dev.aurora.auditoria.model.Autor;
 import dev.aurora.auditoria.model.Elo;
+import dev.aurora.auditoria.model.EventoConsultado;
 import dev.aurora.auditoria.model.EventoGravado;
+import dev.aurora.auditoria.model.FiltroAuditoria;
 import org.jspecify.annotations.Nullable;
 
 import org.springframework.jdbc.core.simple.JdbcClient;
@@ -18,6 +25,38 @@ import org.springframework.stereotype.Repository;
  */
 @Repository
 public class TrilhaRepository {
+
+	/**
+	 * Unidade relacionada ao evento: a própria (recurso unidade/x), a da meta (meta/x) ou
+	 * a citada nos detalhes ("unidade"). Os filtros usam o caminho dela (subárvore).
+	 */
+	private static final String CONSULTA = """
+			SELECT e.sequencia, e.ocorrido_em, e.tipo, e.recurso, e.usuario_id, host(e.ip_origem) AS ip,
+			       e.detalhes::text AS detalhes, u.nome AS usuario_nome, u.email AS usuario_email,
+			       un.id AS unidade_id, un.nome AS unidade_nome,
+			       CASE split_part(e.recurso, '/', 1)
+			            WHEN 'usuario' THEN (SELECT x.nome FROM usuario x WHERE x.id::text = split_part(e.recurso, '/', 2))
+			            WHEN 'perfil' THEN (SELECT x.nome FROM perfil x WHERE x.id::text = split_part(e.recurso, '/', 2))
+			            WHEN 'unidade' THEN un.nome
+			            WHEN 'meta' THEN 'Meta de ' || un.nome
+			       END AS recurso_nome
+			  FROM evento_auditoria e
+			  LEFT JOIN usuario u ON u.id = e.usuario_id
+			  LEFT JOIN LATERAL (
+			       SELECT x.id, x.nome, x.caminho FROM unidade x
+			        WHERE x.id::text = CASE
+			              WHEN e.recurso LIKE 'unidade/%' THEN split_part(e.recurso, '/', 2)
+			              WHEN e.recurso LIKE 'meta/%' THEN (SELECT m.unidade_id::text FROM meta m
+			                                                  WHERE m.id::text = split_part(e.recurso, '/', 2))
+			              ELSE e.detalhes ->> 'unidade' END) un ON true
+			 WHERE (CAST(:usuario AS uuid) IS NULL OR e.usuario_id = CAST(:usuario AS uuid))
+			   AND (cardinality(CAST(:tipos AS text[])) = 0 OR e.tipo = ANY (CAST(:tipos AS text[])))
+			   AND (CAST(:de AS timestamptz) IS NULL OR e.ocorrido_em >= CAST(:de AS timestamptz))
+			   AND (CAST(:ate AS timestamptz) IS NULL OR e.ocorrido_em < CAST(:ate AS timestamptz))
+			   AND (CAST(:unidade AS uuid) IS NULL
+			        OR un.caminho <@ (SELECT r.caminho FROM unidade r WHERE r.id = CAST(:unidade AS uuid)))
+			   AND (CAST(:antes AS bigint) IS NULL OR e.sequencia < CAST(:antes AS bigint))
+			 ORDER BY e.sequencia DESC""";
 
 	private final JdbcClient jdbc;
 
@@ -81,6 +120,46 @@ public class TrilhaRepository {
 			.stream()) {
 			eventos.forEach(consumidor);
 		}
+	}
+
+	/** Página da trilha do tenant, do mais recente para o mais antigo. */
+	public List<EventoConsultado> consultar(FiltroAuditoria filtro, @Nullable Long antesDe, int limite) {
+		return parametros(jdbc.sql(CONSULTA + " LIMIT :limite"), filtro, antesDe).param("limite", limite)
+			.query((r, n) -> consultado(r))
+			.list();
+	}
+
+	/** Todos os eventos do filtro, em fluxo (exportação). */
+	public void percorrer(FiltroAuditoria filtro, Consumer<EventoConsultado> consumidor) {
+		try (var eventos = parametros(jdbc.sql(CONSULTA), filtro, null).query((r, n) -> consultado(r)).stream()) {
+			eventos.forEach(consumidor);
+		}
+	}
+
+	/** Quem aparece na trilha (para o filtro por pessoa). */
+	public List<Autor> listarAutores() {
+		return jdbc.sql("""
+				SELECT u.id, u.nome, u.email FROM usuario u
+				 WHERE EXISTS (SELECT 1 FROM evento_auditoria e WHERE e.usuario_id = u.id)
+				 ORDER BY lower(u.nome)""").query(Autor.class).list();
+	}
+
+	private static JdbcClient.StatementSpec parametros(JdbcClient.StatementSpec sql, FiltroAuditoria filtro,
+			@Nullable Long antesDe) {
+		return sql.param("usuario", filtro.usuarioId())
+			.param("tipos", filtro.tipos().toArray(String[]::new))
+			.param("de", filtro.de() == null ? null : Timestamp.from(filtro.de()))
+			.param("ate", filtro.ate() == null ? null : Timestamp.from(filtro.ate()))
+			.param("unidade", filtro.unidadeId())
+			.param("antes", antesDe);
+	}
+
+	private static EventoConsultado consultado(ResultSet r) throws SQLException {
+		return new EventoConsultado(r.getLong("sequencia"), r.getTimestamp("ocorrido_em").toInstant(),
+				r.getString("tipo"), r.getString("recurso"), r.getString("recurso_nome"),
+				r.getObject("usuario_id", UUID.class), r.getString("usuario_nome"), r.getString("usuario_email"),
+				r.getString("ip"), r.getObject("unidade_id", UUID.class), r.getString("unidade_nome"),
+				r.getString("detalhes"));
 	}
 
 }
