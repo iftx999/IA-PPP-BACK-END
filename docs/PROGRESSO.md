@@ -53,8 +53,10 @@ Se o `ng serve` mostrar tela antiga ou erro 500 do Vite depois de trocar depend�
 ### Próximos passos (ordem sugerida)
 1. ~~Usuários~~ (feito em 22/10).
 2. ~~Unidades~~ (feito em 22/10).
-3. Permissão por unidade (hoje as permissões valem em todo o escopo do usuário; o banco concede perfil por unidade).
-4. Marco 2: contratos + IA (upload, extração com Claude, revisão e aprovação).
+3. ~~Permissão por unidade~~ (feito em 22/10, ADR 0013).
+4. Tela de consulta da auditoria (S8, P0): filtros por usuário, ação, período e unidade; exportação; verificação
+   da cadeia (a API de verificação já existe). Fecha o Marco 1.
+5. Marco 2: contratos + IA (upload, extração com Claude, revisão e aprovação).
 
 ## Sessão de 22/10/2026
 
@@ -95,6 +97,13 @@ token não leva os papéis de `realm-management` e a Admin API responde 403. Flu
   Regras e caminho ltree no ADR 0012. Tudo dentro do escopo de quem opera.
 - **Tela** `/admin/unidades`: árvore com busca e teclado, painel de detalhes, diálogos de nova/editar/mover/inativar.
 - Testes: back-end 83; front 19 unitários e 14 E2E.
+
+### Permissão por unidade (RN-13) — mesma sessão
+- Corrigida falha de segurança: permissões de todas as concessões se somavam em todo o escopo. Agora cada
+  permissão vale só nas unidades onde foi concedida: `@ExigePermissao` (substitui `@PreAuthorize`) restringe o
+  escopo da requisição e, com ele, `app_escopos()`/RLS. Matrícula sem máscara exige `dados_pessoais:ler` na
+  unidade consultada. ADR 0013; teste `PermissaoPorUnidadeApiTest`. Back-end: 90 testes.
+- **Novos endpoints devem usar `@ExigePermissao`**; sem a anotação, a requisição usa a união das concessões.
 
 ### Observações de teste
 - Os E2E de Unidades deixam setores "Setor de Teste Renomeado" (inativos, sob a Cidade A) no banco de dev, como os
