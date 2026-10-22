@@ -1,5 +1,6 @@
 package dev.aurora.acesso.repository;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -37,6 +38,20 @@ public class TenantRepository {
 			.param(tenantId)
 			.query(String.class)
 			.optional();
+	}
+
+	/**
+	 * Tenants com emissor cadastrado (tabela sem RLS: lida antes de existir contexto).
+	 */
+	public List<UUID> listarComEmissor() {
+		return jdbc.sql("SELECT DISTINCT tenant_id FROM tenant_emissor ORDER BY tenant_id").query(UUID.class).list();
+	}
+
+	/** Caminhos das unidades raiz do tenant atual (escopo do tenant inteiro). */
+	public List<String> listarRaizes() {
+		return jdbc.sql("SELECT caminho::text FROM unidade WHERE nlevel(caminho) = 1 AND ativo")
+			.query(String.class)
+			.list();
 	}
 
 }

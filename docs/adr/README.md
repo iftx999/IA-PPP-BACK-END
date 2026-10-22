@@ -19,3 +19,4 @@ gera um novo ADR que o substitui.
 | [0012](0012-hierarquia-de-unidades.md) | Hierarquia de unidades e caminho ltree | Aceito |
 | [0013](0013-permissao-por-unidade.md) | Permissão vale só na unidade onde foi concedida | Aceito |
 | [0014](0014-extracao-de-contratos-com-ia.md) | Extração de itens contratuais com o Claude e revisão humana obrigatória | Aceito |
+| [0015](0015-alertas-e-tarefas-agendadas.md) | Alertas por sincronização de condições e tarefas agendadas com trava no banco | Aceito |

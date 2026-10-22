@@ -9,6 +9,7 @@ import java.util.UUID;
 import dev.aurora.contexto.ContextoAcesso;
 import dev.aurora.auditoria.Auditoria;
 import dev.aurora.auditoria.TipoEvento;
+import dev.aurora.auditoria.VerificacaoDaTrilha;
 import dev.aurora.auditoria.model.ResultadoVerificacao;
 import dev.aurora.auditoria.repository.TrilhaRepository;
 import jakarta.servlet.http.HttpServletRequest;
@@ -22,7 +23,7 @@ import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
 @Service
-public class AuditoriaService implements Auditoria {
+public class AuditoriaService implements Auditoria, VerificacaoDaTrilha {
 
 	private final TrilhaRepository trilha;
 
@@ -94,6 +95,12 @@ public class AuditoriaService implements Auditoria {
 			estado.hashAnterior = evento.hash();
 		});
 		return new ResultadoVerificacao(estado.eventos, estado.verificados, estado.legados, estado.quebra);
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public @Nullable Long primeiraQuebra() {
+		return verificar().primeiraQuebra();
 	}
 
 	private static @Nullable String ipDaRequisicao() {

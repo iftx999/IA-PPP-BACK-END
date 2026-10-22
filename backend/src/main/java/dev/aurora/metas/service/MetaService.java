@@ -16,6 +16,7 @@ import dev.aurora.comum.RegraVioladaException;
 import dev.aurora.metas.model.LinhaMeta;
 import dev.aurora.metas.MetaDoContrato;
 import dev.aurora.metas.Metas;
+import dev.aurora.metas.SituacaoDaUnidade;
 import dev.aurora.metas.model.NovaMeta;
 import dev.aurora.metas.model.ResumoMetas;
 import dev.aurora.metas.repository.MetaRepository;
@@ -71,6 +72,17 @@ public class MetaService implements Metas {
 	@Transactional
 	public UUID criar(NovaMeta meta) {
 		return criar(meta, null, null);
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public List<SituacaoDaUnidade> situacoes() {
+		return arvore().linhas().stream().map(l -> {
+			var valor = l.propria() != null ? l.propria().valor() : l.herdada() != null ? l.herdada().valor() : null;
+			var alerta = l.propria() != null ? l.propria().alerta() : l.herdada() != null ? l.herdada().alerta() : null;
+			return new SituacaoDaUnidade(l.unidadeId(), l.unidadeNome(), l.tipo(), l.adesao(), l.competenciaAdesao(),
+					valor, alerta, l.propria() != null, l.situacao());
+		}).toList();
 	}
 
 	@Override

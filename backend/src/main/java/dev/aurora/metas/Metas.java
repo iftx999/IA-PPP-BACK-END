@@ -1,5 +1,6 @@
 package dev.aurora.metas;
 
+import java.util.List;
 import java.util.UUID;
 
 /** API do módulo de metas para os demais módulos. */
@@ -12,5 +13,11 @@ public interface Metas {
 	 * @return id da meta criada
 	 */
 	UUID definirDoContrato(MetaDoContrato meta);
+
+	/**
+	 * Situação de cada unidade do escopo hoje (unidades sem meta incluídas, como
+	 * SEM_META).
+	 */
+	List<SituacaoDaUnidade> situacoes();
 
 }
