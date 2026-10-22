@@ -56,7 +56,9 @@ Se o `ng serve` mostrar tela antiga ou erro 500 do Vite depois de trocar depend�
 3. ~~Permissão por unidade~~ (feito em 22/10, ADR 0013).
 4. ~~Auditoria (S8)~~ (feito em 22/10). Marco 1 concluído.
 5. ~~Marco 2~~ (feito em 22/10; falta validar com a chave real da API e OCR).
-6. Próximo: Marco 3 — Operação (alertas a cada 15 min, integrações/cargas e atraso de fonte, RN-07/RN-08).
+6. ~~Marco 3~~ (feito em 22/10; falta a ingestão de cargas).
+7. Próximo: ingestão de cargas (API do agente com a credencial + upload de arquivo), depois Marco 4 (assistente
+   com fontes) e Marco 5 (mapa/GIS).
 
 ## Sessão de 22/10/2026
 
@@ -132,11 +134,25 @@ token não leva os papéis de `realm-management` e a Admin API responde 403. Flu
 - Pendentes do épico A: OCR de PDF digitalizado (hoje `SEM_TEXTO` com orientação); aditivos (A5) são aceitos como
   tipo de documento, mas a regra de substituir metas por aditivo ainda não existe (pendência do doc 06).
 
+### Marco 3 — Operação (F1–F3, H3, RN-07/08) — mesma sessão
+- **Back-end** (ADR 0015): módulo `alertas` (adesão crítico/atenção, fonte atrasada, trilha alterada; avaliação a
+  cada 15 min e verificação da trilha a cada 24 h por tenant, num contexto de sistema, com trava em
+  `tarefa_agendada`; abre/atualiza/resolve sem duplicar; reconhecer auditado; `POST /alertas/avaliacao` reavalia
+  na hora) e módulo `integracoes` (fontes com atraso máximo, última carga, histórico; credenciais do Agente Aurora
+  com SHA-256, mostradas uma vez, revogáveis). `aurora.tarefas.habilitadas=false` desliga o agendamento.
+- **Front**: `/alertas`, sino com contador, contador no menu, rodapé "Dados de <mês> · N fontes atrasadas",
+  `/admin/integracoes`.
+- **Correção importante**: após o login a pessoa podia cair no Painel em vez da tela pedida (a biblioteca OIDC
+  reescrevia o endereço para "/" e navegava para `postLoginRoute` "/"). Retorno agora em `/entrar`, com o endereço
+  pedido capturado no carregamento e guard próprio (`exigirLogin`). Os E2E conferem a rota após o login.
+- Testes: back-end 115; front 29 unitários e 20 E2E (3 execuções seguidas sem falha).
+- Ainda falta: **ingestão de cargas** (o agente/arquivo enviar dados e registrar `execucao_sincronizacao`), alertas
+  de ritmo e de prazo contratual, notificação por e-mail.
+
 ### Observações de teste
 - Os E2E de Unidades deixam setores "Setor de Teste Renomeado" (inativos, sob a Cidade A) no banco de dev, como os
   de Perfis deixam perfis "Teste E2E …" se falharem no meio. O de convite cria usuários `convite.e2e.*` (desativados).
-- Uma vez, depois do login, o E2E caiu no Painel em vez da rota pedida; não se repetiu em 4 execuções da suíte.
-  Se voltar, investigar a restauração de rota do `angular-auth-oidc-client`.
+- Os E2E de integrações deixam fontes "Agente E2E …" inativas (não geram alerta).
 
 ### Pendências conhecidas
 - Pendências de produto do doc 06 (regra factível × cortado, aditivos, OCR).
