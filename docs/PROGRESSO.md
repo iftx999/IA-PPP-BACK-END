@@ -24,7 +24,7 @@
 | Painel de adesão (B1–B5, B7) com projeção no ritmo | ✅ | ✅ |
 | Imóveis sem ligação (D1–D3), matrícula mascarada (LGPD), CSV auditado | ✅ | ✅ |
 | Metas (C1–C4): árvore, herança, meta própria, encerramento | ✅ | ✅ |
-| Trilha de auditoria encadeada por HMAC (verificação de adulteração) | ✅ | — |
+| Trilha de auditoria encadeada por HMAC (verificação de adulteração) | ✅ | ✅ |
 | Perfis e permissões (H6) | ✅ | ✅ |
 | Usuários: convite, ativar/desativar, escopo (H2, H7, H8) | ✅ | ✅ |
 | Cadastro de unidades (H1) | ✅ | ✅ |
@@ -54,8 +54,7 @@ Se o `ng serve` mostrar tela antiga ou erro 500 do Vite depois de trocar depend�
 1. ~~Usuários~~ (feito em 22/10).
 2. ~~Unidades~~ (feito em 22/10).
 3. ~~Permissão por unidade~~ (feito em 22/10, ADR 0013).
-4. Tela de consulta da auditoria (S8, P0): filtros por usuário, ação, período e unidade; exportação; verificação
-   da cadeia (a API de verificação já existe). Fecha o Marco 1.
+4. ~~Auditoria (S8)~~ (feito em 22/10). Marco 1 concluído.
 5. Marco 2: contratos + IA (upload, extração com Claude, revisão e aprovação).
 
 ## Sessão de 22/10/2026
@@ -104,6 +103,16 @@ token não leva os papéis de `realm-management` e a Admin API responde 403. Flu
   escopo da requisição e, com ele, `app_escopos()`/RLS. Matrícula sem máscara exige `dados_pessoais:ler` na
   unidade consultada. ADR 0013; teste `PermissaoPorUnidadeApiTest`. Back-end: 90 testes.
 - **Novos endpoints devem usar `@ExigePermissao`**; sem a anotação, a requisição usa a união das concessões.
+
+### Auditoria (S8) — mesma sessão
+- **API** `/api/v1/auditoria`: `eventos` (filtros pessoa/tipos/período/unidade com subárvore, cursor cifrado,
+  nomes legíveis), `eventos/exportacao.csv` (auditada, exige também `relatorio:exportar`), `tipos`, `autores`,
+  `verificacao`. Exige `auditoria:ler` na unidade raiz. Índices V15.
+- **Tela** `/admin/auditoria` (menu Administração). No banco herdado só o perfil **Auditor** tem `auditoria:ler`
+  (o administrador não consulta a trilha): segregação de funções mantida; o E2E usa `auditoria@exemplo.dev`.
+- Correção: diálogo "Encerrar meta" recarregava a página ao enviar (form sem `[formGroup]`). O `npm run lint`
+  (e o CI) agora falha em qualquer `<form>` sem `[formGroup]`.
+- Testes: back-end 93; front 22 unitários e 16 E2E. **Marco 1 concluído.**
 
 ### Observações de teste
 - Os E2E de Unidades deixam setores "Setor de Teste Renomeado" (inativos, sob a Cidade A) no banco de dev, como os
