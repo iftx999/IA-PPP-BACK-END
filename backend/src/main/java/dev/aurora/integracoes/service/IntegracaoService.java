@@ -63,6 +63,11 @@ public class IntegracaoService implements Fontes {
 		return fontes.listar();
 	}
 
+	@Transactional(readOnly = true)
+	public FonteDados buscar(UUID id) {
+		return fontes.buscar(id).orElseThrow(RecursoNaoEncontradoException::new);
+	}
+
 	@Override
 	@Transactional(readOnly = true)
 	public List<FonteAtrasada> atrasadas() {

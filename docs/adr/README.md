@@ -20,3 +20,4 @@ gera um novo ADR que o substitui.
 | [0013](0013-permissao-por-unidade.md) | Permissão vale só na unidade onde foi concedida | Aceito |
 | [0014](0014-extracao-de-contratos-com-ia.md) | Extração de itens contratuais com o Claude e revisão humana obrigatória | Aceito |
 | [0015](0015-alertas-e-tarefas-agendadas.md) | Alertas por sincronização de condições e tarefas agendadas com trava no banco | Aceito |
+| [0016](0016-ingestao-de-cargas.md) | Ingestão de cargas pelo Agente Aurora e por arquivo | Aceito |

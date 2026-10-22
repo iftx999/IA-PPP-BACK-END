@@ -77,6 +77,11 @@ public class MetaService implements Metas {
 	@Override
 	@Transactional(readOnly = true)
 	public List<SituacaoDaUnidade> situacoes() {
+		// Cliente sem indicador de adesão ainda (nenhuma carga): não há situação a
+		// avaliar.
+		if (metas.buscarIndicadorAdesao().isEmpty()) {
+			return List.of();
+		}
 		return arvore().linhas().stream().map(l -> {
 			var valor = l.propria() != null ? l.propria().valor() : l.herdada() != null ? l.herdada().valor() : null;
 			var alerta = l.propria() != null ? l.propria().alerta() : l.herdada() != null ? l.herdada().alerta() : null;

@@ -1,9 +1,11 @@
 package dev.aurora.integracoes.controller;
 
+import java.io.IOException;
 import java.net.URI;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.util.List;
 import java.util.UUID;
 
@@ -12,7 +14,9 @@ import dev.aurora.integracoes.model.Credencial;
 import dev.aurora.integracoes.model.DadosFonte;
 import dev.aurora.integracoes.model.Execucao;
 import dev.aurora.integracoes.model.FonteDados;
+import dev.aurora.integracoes.model.Rejeicao;
 import dev.aurora.integracoes.model.TipoAdaptador;
+import dev.aurora.integracoes.service.CargaService;
 import dev.aurora.integracoes.service.IntegracaoService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
@@ -23,6 +27,7 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import org.jspecify.annotations.Nullable;
 
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -31,7 +36,9 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 /** Integrações e cargas (H3, S11). */
 @RestController
@@ -77,12 +84,19 @@ class IntegracaoController {
 	record FonteCriada(UUID id) {
 	}
 
+	record CargaResponse(UUID execucao, YearMonth competencia, long lidos, long novos, long atualizados,
+			long inalterados, long rejeitados, List<Rejeicao> rejeicoes, int medicoesRecalculadas) {
+	}
+
 	private final IntegracaoService integracoes;
+
+	private final CargaService cargas;
 
 	private final java.time.Clock relogio;
 
-	IntegracaoController(IntegracaoService integracoes, java.time.Clock relogio) {
+	IntegracaoController(IntegracaoService integracoes, CargaService cargas, java.time.Clock relogio) {
 		this.integracoes = integracoes;
+		this.cargas = cargas;
 		this.relogio = relogio;
 	}
 
@@ -119,6 +133,17 @@ class IntegracaoController {
 	CredencialGeradaResponse gerarCredencial(@PathVariable UUID id) {
 		var gerada = integracoes.gerarCredencial(id);
 		return new CredencialGeradaResponse(gerada.prefixo(), gerada.chave());
+	}
+
+	/** Carga por arquivo CSV (matricula;unidade;situacao) da competência informada. */
+	@PostMapping(path = "/fontes/{id}/cargas", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+	CargaResponse carregar(@PathVariable UUID id, @RequestParam YearMonth competencia,
+			@RequestPart("arquivo") MultipartFile arquivo) throws IOException {
+		try (var conteudo = arquivo.getInputStream()) {
+			var r = cargas.carregarArquivo(id, competencia, conteudo);
+			return new CargaResponse(r.execucaoId(), r.competencia(), r.lidos(), r.novos(), r.atualizados(),
+					r.inalterados(), r.rejeitados(), r.rejeicoes(), r.medicoes());
+		}
 	}
 
 	@PostMapping("/credenciais/{prefixo}/revogacao")

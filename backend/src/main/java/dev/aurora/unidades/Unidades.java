@@ -28,4 +28,7 @@ public interface Unidades {
 	/** A unidade e as ativas abaixo dela, dentro do escopo (vazio se ela está fora). */
 	List<Unidade> subarvore(UUID raiz);
 
+	/** Unidades ativas do escopo (ex.: resolver os códigos de unidade de uma carga). */
+	List<Unidade> doEscopo();
+
 }

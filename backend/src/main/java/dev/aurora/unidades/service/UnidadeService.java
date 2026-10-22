@@ -66,6 +66,11 @@ public class UnidadeService implements Unidades {
 	}
 
 	@Override
+	public List<Unidade> doEscopo() {
+		return unidades.listarNoEscopo();
+	}
+
+	@Override
 	public List<Unidade> subarvore(UUID raiz) {
 		return unidades.listarSubarvore(raiz);
 	}
