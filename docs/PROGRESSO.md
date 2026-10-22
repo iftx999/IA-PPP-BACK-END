@@ -57,8 +57,10 @@ Se o `ng serve` mostrar tela antiga ou erro 500 do Vite depois de trocar depend�
 4. ~~Auditoria (S8)~~ (feito em 22/10). Marco 1 concluído.
 5. ~~Marco 2~~ (feito em 22/10; falta validar com a chave real da API e OCR).
 6. ~~Marco 3~~ (feito em 22/10; falta a ingestão de cargas).
-7. Próximo: ingestão de cargas (API do agente com a credencial + upload de arquivo), depois Marco 4 (assistente
-   com fontes) e Marco 5 (mapa/GIS).
+7. ~~Ingestão de cargas~~ (feito em 22/10).
+8. Próximo: Marco 5 (mapa/GIS: localização dos imóveis pelo agente, camadas, marcações, exportação da área) e
+   Marco 4 (assistente com fontes; precisa da chave da API do Claude para validar de verdade).
+- O E2E de integrações grava uma carga idempotente (matrículas `E2E-000x`) na competência mais antiga da lista.
 
 ## Sessão de 22/10/2026
 
@@ -146,8 +148,15 @@ token não leva os papéis de `realm-management` e a Admin API responde 403. Flu
   reescrevia o endereço para "/" e navegava para `postLoginRoute` "/"). Retorno agora em `/entrar`, com o endereço
   pedido capturado no carregamento e guard próprio (`exigirLogin`). Os E2E conferem a rota após o login.
 - Testes: back-end 115; front 29 unitários e 20 E2E (3 execuções seguidas sem falha).
-- Ainda falta: **ingestão de cargas** (o agente/arquivo enviar dados e registrar `execucao_sincronizacao`), alertas
-  de ritmo e de prazo contratual, notificação por e-mail.
+- Ainda falta: alertas de ritmo e de prazo contratual, notificação por e-mail.
+
+### Ingestão de cargas (H3, RN-01/08/09) — mesma sessão
+- API do Agente Aurora (`/api/agente/v1/situacao` e `/cargas`, cadeia de segurança própria, credencial SHA-256,
+  60 req/min) e carga por CSV na tela de Integrações. Validação por linha com recusas detalhadas, gravação em lote,
+  recálculo das medições de adesão por subárvore, evento `CargaConcluida` → alertas reavaliados. ADR 0016;
+  guia para quem instala o agente em `docs/integracao-agente.md`.
+- Correção: alertas e resumo do sino quebravam em cliente ainda sem indicador de adesão.
+- Testes: back-end 121; front 30 unitários e 20 E2E.
 
 ### Observações de teste
 - Os E2E de Unidades deixam setores "Setor de Teste Renomeado" (inativos, sob a Cidade A) no banco de dev, como os
