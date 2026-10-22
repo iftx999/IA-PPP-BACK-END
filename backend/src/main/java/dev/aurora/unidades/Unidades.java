@@ -18,4 +18,10 @@ public interface Unidades {
 	/** Unidade mais alta do escopo, preferindo a concessão ao grupo econômico. */
 	Optional<Unidade> principalDoEscopo();
 
+	/**
+	 * Caminho ltree da unidade ativa do escopo, para conferir onde uma permissão vale
+	 * ({@code ContextoAcesso.podeEm}).
+	 */
+	Optional<String> caminhoNoEscopo(UUID id);
+
 }

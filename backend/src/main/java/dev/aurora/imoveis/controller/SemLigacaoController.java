@@ -7,6 +7,7 @@ import java.time.YearMonth;
 import java.util.Optional;
 import java.util.UUID;
 
+import dev.aurora.contexto.ExigePermissao;
 import dev.aurora.imoveis.model.SituacaoImovel;
 import dev.aurora.imoveis.service.SemLigacaoService;
 import jakarta.validation.constraints.Max;
@@ -20,7 +21,6 @@ import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -44,7 +44,7 @@ class SemLigacaoController {
 	 * @param cursor valor de {@code proximo} da página anterior
 	 */
 	@GetMapping
-	@PreAuthorize("hasAuthority('indicador:ler')")
+	@ExigePermissao("indicador:ler")
 	SemLigacaoResponse listar(@RequestParam Optional<UUID> unidade,
 			@RequestParam @DateTimeFormat(pattern = "yyyy-MM") Optional<YearMonth> competencia,
 			@RequestParam Optional<SituacaoImovel> situacao,
@@ -58,7 +58,7 @@ class SemLigacaoController {
 	 * se o arquivo ficou completo) e apagado assim que é enviado.
 	 */
 	@GetMapping("/exportacao.csv")
-	@PreAuthorize("hasAuthority('relatorio:exportar')")
+	@ExigePermissao("relatorio:exportar")
 	ResponseEntity<Resource> exportar(@RequestParam UUID unidade,
 			@RequestParam @DateTimeFormat(pattern = "yyyy-MM") Optional<YearMonth> competencia,
 			@RequestParam Optional<SituacaoImovel> situacao) throws IOException {

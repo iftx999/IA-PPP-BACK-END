@@ -3,7 +3,8 @@ package dev.aurora.acesso.service;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
-import java.util.TreeSet;
+import java.util.Set;
+import java.util.TreeMap;
 import java.util.UUID;
 
 import dev.aurora.contexto.ContextoAcesso;
@@ -56,14 +57,19 @@ public class ContextoAcessoService {
 			return Optional.empty();
 		}
 
-		var permissoes = new TreeSet<String>();
+		// Onde cada permissão vale; o escopo inicial é a união (restringido por
+		// @Permissao).
+		var concessoes = new TreeMap<String, Set<String>>();
 		var escopos = new LinkedHashSet<String>();
 		for (Concessao concessao : usuarios.listarConcessoesVigentes(usuarioId.get())) {
-			permissoes.add(concessao.permissao());
+			concessoes.computeIfAbsent(concessao.permissao(), p -> new LinkedHashSet<>())
+				.add(concessao.caminhoUnidade());
 			escopos.add(concessao.caminhoUnidade());
 		}
 		usuarios.registrarAcesso(usuarioId.get());
-		return Optional.of(new ContextoAcesso(tenantId, usuarioId.get(), permissoes, List.copyOf(escopos)));
+		var porPermissao = new TreeMap<String, List<String>>();
+		concessoes.forEach((permissao, caminhos) -> porPermissao.put(permissao, List.copyOf(caminhos)));
+		return Optional.of(new ContextoAcesso(tenantId, usuarioId.get(), porPermissao, List.copyOf(escopos)));
 	}
 
 	/**

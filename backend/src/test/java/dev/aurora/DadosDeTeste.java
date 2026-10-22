@@ -86,6 +86,16 @@ public final class DadosDeTeste {
 		return id;
 	}
 
+	/** Concede mais um perfil ao usuário, em outra unidade. */
+	public static void conceder(Tenant t, UUID usuario, UUID perfil, UUID unidade) throws SQLException {
+		try (var c = BancoDeTeste.comoSuperusuario()) {
+			executar(c, """
+					INSERT INTO usuario_perfil_escopo (id, tenant_id, usuario_id, perfil_id, unidade_id)
+					VALUES (?::uuid, ?::uuid, ?::uuid, ?::uuid, ?::uuid)""", UUID.randomUUID(), t.id(), usuario, perfil,
+					unidade);
+		}
+	}
+
 	/**
 	 * Medições de adesão de jul e ago/2026 (números do demo) e metas: concessão 80/75 até
 	 * dez/2026 (do contrato), Cidade A 85/80 e Cidade B 75/70 sem fim. O setor A1 não tem

@@ -5,6 +5,7 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 
+import dev.aurora.contexto.ExigePermissao;
 import dev.aurora.acesso.model.ConcessaoDoUsuario;
 import dev.aurora.acesso.model.NovaConcessao;
 import dev.aurora.acesso.model.SituacaoUsuario;
@@ -18,7 +19,6 @@ import jakarta.validation.constraints.Size;
 import org.jspecify.annotations.Nullable;
 
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -30,7 +30,7 @@ import org.springframework.web.bind.annotation.RestController;
 /** Administração de usuários do tenant (H2, H7, H8). */
 @RestController
 @RequestMapping("/api/v1/usuarios")
-@PreAuthorize("hasAuthority('usuario:gerenciar')")
+@ExigePermissao("usuario:gerenciar")
 class UsuarioController {
 
 	record ConcessaoResponse(UUID id, UUID perfilId, String perfil, UUID unidadeId, String unidade,

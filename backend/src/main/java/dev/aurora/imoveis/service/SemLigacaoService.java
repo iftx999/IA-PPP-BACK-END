@@ -78,7 +78,7 @@ public class SemLigacaoService {
 			proximo = cursores.cifrar(itens.getLast().matricula());
 		}
 
-		boolean visiveis = podeVerDadosPessoais();
+		boolean visiveis = podeVerDadosPessoais(unidade.id());
 		if (visiveis && !itens.isEmpty()) {
 			var detalhes = detalhes(filtro);
 			detalhes.put("quantidade", itens.size());
@@ -101,7 +101,7 @@ public class SemLigacaoService {
 			Optional<SituacaoImovel> situacao, OutputStream destino) {
 		var unidade = unidades.buscarNoEscopo(unidadeId).orElseThrow(RecursoNaoEncontradoException::new);
 		var filtro = new FiltroSemLigacao(unidade.id(), competencia(competencia), situacao.orElse(null), null);
-		boolean visiveis = podeVerDadosPessoais();
+		boolean visiveis = podeVerDadosPessoais(unidade.id());
 
 		var resumo = sha256();
 		var linhas = new long[1];
@@ -129,8 +129,15 @@ public class SemLigacaoService {
 		return pedida.or(imoveis::buscarUltimaCompetencia).orElseThrow(RecursoNaoEncontradoException::new);
 	}
 
-	private static boolean podeVerDadosPessoais() {
-		return ContextoAcesso.exigir().permissoes().contains(PERMISSAO_DADOS_PESSOAIS);
+	/**
+	 * Matrícula completa só se a permissão vale na unidade consultada: todas as linhas
+	 * estão dentro dela (RN-13, ADR 0013).
+	 */
+	private boolean podeVerDadosPessoais(UUID unidade) {
+		var contexto = ContextoAcesso.exigir();
+		return unidades.caminhoNoEscopo(unidade)
+			.map(caminho -> contexto.podeEm(PERMISSAO_DADOS_PESSOAIS, caminho))
+			.orElse(false);
 	}
 
 	private static Map<String, @Nullable Object> detalhes(FiltroSemLigacao filtro) {

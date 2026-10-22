@@ -65,6 +65,11 @@ public class UnidadeService implements Unidades {
 		return unidades.buscarPrincipalDoEscopo();
 	}
 
+	@Override
+	public Optional<String> caminhoNoEscopo(UUID id) {
+		return unidades.buscarCaminhoNoEscopo(id);
+	}
+
 	/** Árvore do escopo para a administração, com as inativas. */
 	@Transactional(readOnly = true)
 	public List<UnidadeAdministrada> arvore() {

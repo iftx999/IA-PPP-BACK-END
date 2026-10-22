@@ -6,6 +6,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
+import dev.aurora.contexto.ExigePermissao;
 import dev.aurora.unidades.Unidade;
 import dev.aurora.unidades.model.DadosUnidade;
 import dev.aurora.unidades.model.TipoUnidade;
@@ -20,7 +21,6 @@ import jakarta.validation.constraints.Size;
 import org.jspecify.annotations.Nullable;
 
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -89,13 +89,13 @@ class UnidadeController {
 	}
 
 	@GetMapping
-	@PreAuthorize("hasAuthority('unidade:ler')")
+	@ExigePermissao("unidade:ler")
 	List<UnidadeResponse> listar() {
 		return unidades.listar().stream().map(UnidadeResponse::de).toList();
 	}
 
 	@GetMapping("/{id}")
-	@PreAuthorize("hasAuthority('unidade:ler')")
+	@ExigePermissao("unidade:ler")
 	UnidadeResponse detalhar(@PathVariable UUID id) {
 		return UnidadeResponse.de(unidades.buscar(id));
 	}
@@ -104,41 +104,41 @@ class UnidadeController {
 	 * Árvore do escopo, com inativas e o que prende cada unidade (para a administração).
 	 */
 	@GetMapping("/arvore")
-	@PreAuthorize("hasAuthority('unidade:gerenciar')")
+	@ExigePermissao("unidade:gerenciar")
 	List<NoArvoreResponse> arvore() {
 		return unidades.arvore().stream().map(NoArvoreResponse::de).toList();
 	}
 
 	/** Tipos e a hierarquia permitida (quem pode ficar abaixo de quem). */
 	@GetMapping("/tipos")
-	@PreAuthorize("hasAuthority('unidade:ler')")
+	@ExigePermissao("unidade:ler")
 	List<TipoUnidadeResponse> tipos() {
 		return Arrays.stream(TipoUnidade.values()).map(TipoUnidadeResponse::de).toList();
 	}
 
 	@PostMapping
-	@PreAuthorize("hasAuthority('unidade:gerenciar')")
+	@ExigePermissao("unidade:gerenciar")
 	ResponseEntity<UnidadeCriada> criar(@Valid @RequestBody NovaUnidadeRequest pedido) {
 		var id = unidades.criar(pedido.tipo(), pedido.unidadePaiId(), pedido.dados().dados());
 		return ResponseEntity.created(URI.create("/api/v1/unidades/" + id)).body(new UnidadeCriada(id));
 	}
 
 	@PutMapping("/{id}")
-	@PreAuthorize("hasAuthority('unidade:gerenciar')")
+	@ExigePermissao("unidade:gerenciar")
 	ResponseEntity<Void> alterar(@PathVariable UUID id, @Valid @RequestBody DadosUnidadeRequest pedido) {
 		unidades.alterar(id, pedido.dados());
 		return ResponseEntity.noContent().build();
 	}
 
 	@PutMapping("/{id}/pai")
-	@PreAuthorize("hasAuthority('unidade:gerenciar')")
+	@ExigePermissao("unidade:gerenciar")
 	ResponseEntity<Void> mover(@PathVariable UUID id, @Valid @RequestBody MoverUnidadeRequest pedido) {
 		unidades.mover(id, pedido.unidadePaiId());
 		return ResponseEntity.noContent().build();
 	}
 
 	@PutMapping("/{id}/situacao")
-	@PreAuthorize("hasAuthority('unidade:gerenciar')")
+	@ExigePermissao("unidade:gerenciar")
 	ResponseEntity<Void> definirSituacao(@PathVariable UUID id, @RequestBody SituacaoUnidadeRequest pedido) {
 		unidades.definirAtiva(id, pedido.ativo());
 		return ResponseEntity.noContent().build();

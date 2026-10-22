@@ -5,6 +5,7 @@ import java.net.URI;
 import java.time.LocalDate;
 import java.util.UUID;
 
+import dev.aurora.contexto.ExigePermissao;
 import dev.aurora.metas.model.NovaMeta;
 import dev.aurora.metas.service.MetaService;
 import jakarta.validation.Valid;
@@ -15,7 +16,6 @@ import jakarta.validation.constraints.NotNull;
 import org.jspecify.annotations.Nullable;
 
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -48,13 +48,13 @@ class MetaController {
 	}
 
 	@GetMapping
-	@PreAuthorize("hasAuthority('indicador:ler')")
+	@ExigePermissao("indicador:ler")
 	MetasResponse listar() {
 		return MetasResponse.de(metas.arvore());
 	}
 
 	@PostMapping
-	@PreAuthorize("hasAuthority('indicador:gerenciar')")
+	@ExigePermissao("indicador:gerenciar")
 	ResponseEntity<MetaCriada> criar(@Valid @RequestBody NovaMetaRequest pedido) {
 		var id = metas.criar(new NovaMeta(pedido.unidadeId(), pedido.valor(), pedido.alerta(), pedido.vigenciaInicio(),
 				pedido.vigenciaFim()));
@@ -62,7 +62,7 @@ class MetaController {
 	}
 
 	@PostMapping("/{id}/encerramento")
-	@PreAuthorize("hasAuthority('indicador:gerenciar')")
+	@ExigePermissao("indicador:gerenciar")
 	ResponseEntity<Void> encerrar(@PathVariable UUID id, @Valid @RequestBody EncerramentoRequest pedido) {
 		metas.encerrar(id, pedido.fim());
 		return ResponseEntity.noContent().build();

@@ -4,10 +4,10 @@ import java.time.YearMonth;
 import java.util.Optional;
 import java.util.UUID;
 
+import dev.aurora.contexto.ExigePermissao;
 import dev.aurora.adesao.service.PainelService;
 
 import org.springframework.format.annotation.DateTimeFormat;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -28,7 +28,7 @@ class PainelController {
 	 * @param competencia mês no formato yyyy-MM (padrão: o mais recente com medição)
 	 */
 	@GetMapping
-	@PreAuthorize("hasAuthority('indicador:ler')")
+	@ExigePermissao("indicador:ler")
 	PainelResponse painel(@RequestParam Optional<UUID> unidade,
 			@RequestParam @DateTimeFormat(pattern = "yyyy-MM") Optional<YearMonth> competencia) {
 		return PainelResponse.de(painel.montar(unidade, competencia));
