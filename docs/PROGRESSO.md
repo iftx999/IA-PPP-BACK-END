@@ -5,8 +5,8 @@
 ## Sessão de 21/10/2026
 
 ### Repositórios
-- **Back-end, infra e docs:** `~/aurora` → github.com/iftx999/IA-PPP-BACK-END
-- **Front-end:** `~/aurora-frontend` → github.com/iftx999/IA-PPP-FRONT-END-
+- **Back-end, infra e docs:** `~/Iapp/aurora` → github.com/iftx999/IA-PPP-BACK-END
+- **Front-end:** `~/Iapp/aurora-frontend` → github.com/iftx999/IA-PPP-FRONT-END-
 
 ### Entregue
 
@@ -25,7 +25,7 @@
 | Imóveis sem ligação (D1–D3), matrícula mascarada (LGPD), CSV auditado | ✅ | ✅ |
 | Metas (C1–C4): árvore, herança, meta própria, encerramento | ✅ | ✅ |
 | Trilha de auditoria encadeada por HMAC (verificação de adulteração) | ✅ | — |
-| Perfis e permissões (H6) | ✅ | ⏳ tela |
+| Perfis e permissões (H6) | ✅ | ✅ |
 | Usuários: convite, ativar/desativar, escopo (H2, H7, H8) | ⏳ | ⏳ |
 | Cadastro de unidades (H1) | ⏳ | ⏳ |
 
@@ -40,9 +40,9 @@ componentes modernos com Angular Material tematizado (ADR 0010). PrimeNG descart
 
 ### Como subir o ambiente
 ```bash
-docker compose -f ~/aurora/infra/compose.yaml up -d
-cd ~/aurora/backend && ./mvnw spring-boot:run          # API :8080 (Swagger: /swagger-ui.html)
-cd ~/aurora-frontend && npx ng serve --port 4200       # http://localhost:4200
+docker compose -f ~/Iapp/aurora/infra/compose.yaml up -d
+cd ~/Iapp/aurora/backend && ./mvnw spring-boot:run          # API :8080 (Swagger: /swagger-ui.html)
+cd ~/Iapp/aurora-frontend && npx ng serve --port 4200       # http://localhost:4200
 ```
 Usuários (senha `aurora-dev`): `admin@exemplo.dev`, `diretoria@exemplo.dev`, `comercial.cidadea@exemplo.dev`,
 `auditoria@exemplo.dev`. Console do Keycloak: `admin` / `admin-dev`.
@@ -51,12 +51,28 @@ Se o `ng serve` mostrar tela antiga ou erro 500 do Vite depois de trocar depend�
 4200, apague `.angular/cache` e suba de novo.
 
 ### Próximos passos (ordem sugerida)
-1. Tela de **Perfis** (matriz de permissões por área) sobre a API já pronta.
-2. **Usuários**: listar, convidar (Keycloak admin API + e-mail via Mailpit), ativar/desativar, concessões
+1. **Usuários**: listar, convidar (Keycloak admin API + e-mail via Mailpit), ativar/desativar, concessões
    perfil+unidade, regra do último administrador (já existe a consulta em `PerfilRepository`).
-3. **Unidades**: árvore, criar/editar/mover/inativar com recálculo do caminho ltree.
-4. Permissão por unidade (hoje as permissões valem em todo o escopo do usuário; o banco concede perfil por unidade).
-5. Marco 2: contratos + IA (upload, extração com Claude, revisão e aprovação).
+2. **Unidades**: árvore, criar/editar/mover/inativar com recálculo do caminho ltree.
+3. Permissão por unidade (hoje as permissões valem em todo o escopo do usuário; o banco concede perfil por unidade).
+4. Marco 2: contratos + IA (upload, extração com Claude, revisão e aprovação).
+
+## Sessão de 22/10/2026
+
+### Entregue
+- **Tela de Perfis (H6)** em `/admin/perfis` (`src/app/paginas/perfis/`):
+  - Matriz perfis × permissões agrupada por área (cabeçalho e 1ª coluna fixos), com contagem por área.
+  - Perfis do sistema abrem só para leitura, com "Duplicar" (caminho para personalizar).
+  - Editor com caixa por área (todas/algumas/nenhuma) e por permissão; criar, editar, duplicar, remover
+    (remoção bloqueada com usuários vinculados). Erros 409 da API (último administrador, nome repetido) aparecem
+    no diálogo. Depois de salvar, recarrega `/eu` (a pessoa pode ter mudado o próprio perfil).
+  - Sem `usuario:gerenciar`, a tela explica e não chama a API.
+- Tipos da OpenAPI regenerados (`npm run api:gerar`) com os DTOs de perfis.
+- Testes: unitários `perfis.spec.ts` (agrupamento e matriz) e E2E `e2e/perfis.spec.ts` (ciclo completo e
+  acesso negado). Suíte: 13 unitários e 8 E2E passando.
+
+### Observação
+- Se um E2E de perfis falhar no meio, pode sobrar um perfil "Teste E2E …" no banco de desenvolvimento.
 
 ### Pendências conhecidas
 - Pendências de produto do doc 06 (regra factível × cortado, aditivos, OCR).
