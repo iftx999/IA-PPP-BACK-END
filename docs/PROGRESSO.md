@@ -55,7 +55,8 @@ Se o `ng serve` mostrar tela antiga ou erro 500 do Vite depois de trocar depend�
 2. ~~Unidades~~ (feito em 22/10).
 3. ~~Permissão por unidade~~ (feito em 22/10, ADR 0013).
 4. ~~Auditoria (S8)~~ (feito em 22/10). Marco 1 concluído.
-5. Marco 2: contratos + IA (upload, extração com Claude, revisão e aprovação).
+5. ~~Marco 2~~ (feito em 22/10; falta validar com a chave real da API e OCR).
+6. Próximo: Marco 3 — Operação (alertas a cada 15 min, integrações/cargas e atraso de fonte, RN-07/RN-08).
 
 ## Sessão de 22/10/2026
 
@@ -113,6 +114,23 @@ token não leva os papéis de `realm-management` e a Admin API responde 403. Flu
 - Correção: diálogo "Encerrar meta" recarregava a página ao enviar (form sem `[formGroup]`). O `npm run lint`
   (e o CI) agora falha em qualquer `<form>` sem `[formGroup]`.
 - Testes: back-end 93; front 22 unitários e 16 E2E. **Marco 1 concluído.**
+
+### Marco 2 — Contratos + IA (A1–A4) — mesma sessão
+- **Back-end** (módulo `contratos`, ADR 0014, V16): contratos; envio de PDF (validação, SHA-256, PDFBox);
+  processamento assíncrono no contexto de quem enviou (texto por página → cláusulas → Claude → validação do trecho
+  literal → itens `PROPOSTO`); reprocessar; itens manuais; editar preservando a proposta da IA; aprovar (META vira
+  meta oficial com origem "Contrato N, cláusula X, p. Y" via `Metas.definirDoContrato`); rejeitar com motivo.
+- **IA**: SDK oficial `anthropic-java` 2.34, `claude-opus-5-5`, saída estruturada, esforço `high`, cache do prompt,
+  fallback de recusa. **Para ligar:** `export AURORA_IA_CHAVE=<chave da API>` antes de subir a API (sem ela, o
+  texto é lido e os itens são cadastrados à mão; a tela avisa). Testado com API simulada (`ExtratorClaudeTest`);
+  ainda não rodou contra a API real.
+- **Front**: `/contratos` (lista, novo) e `/contratos/:id` (documentos com acompanhamento ao vivo, itens, revisão
+  lado a lado com o PDF desenhado pelo pdf.js na página citada e o trecho destacado).
+- Contrato fictício: `aurora-frontend/e2e/exemplos/contrato-exemplo.pdf` (gerado por
+  `node scripts/gerar-contrato-exemplo.mjs`).
+- Testes: back-end 106; front 26 unitários e 18 E2E.
+- Pendentes do épico A: OCR de PDF digitalizado (hoje `SEM_TEXTO` com orientação); aditivos (A5) são aceitos como
+  tipo de documento, mas a regra de substituir metas por aditivo ainda não existe (pendência do doc 06).
 
 ### Observações de teste
 - Os E2E de Unidades deixam setores "Setor de Teste Renomeado" (inativos, sob a Cidade A) no banco de dev, como os
