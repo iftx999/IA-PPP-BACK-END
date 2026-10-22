@@ -10,11 +10,14 @@ import java.util.Map;
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
+import io.swagger.v3.oas.models.media.ObjectSchema;
 import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
 import org.jspecify.annotations.Nullable;
 import org.springdoc.core.customizers.OpenApiCustomizer;
+import org.springdoc.core.utils.SpringDocUtils;
+import tools.jackson.databind.JsonNode;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ClassPathScanningCandidateComponentProvider;
@@ -24,6 +27,15 @@ import org.springframework.util.ClassUtils;
 /** Documentação OpenAPI 3.1 da API (desligada no perfil prod). */
 @Configuration(proxyBeanMethods = false)
 class ConfiguracaoOpenApi {
+
+	static {
+		// Campos JsonNode (detalhes da auditoria, proposta da IA) são JSON livre; sem
+		// isto a documentação
+		// expõe a estrutura interna do Jackson.
+		SpringDocUtils.getConfig()
+			.replaceWithSchema(JsonNode.class,
+					new ObjectSchema().additionalProperties(true).description("Objeto JSON livre"));
+	}
 
 	@Bean
 	OpenAPI documentacao() {
