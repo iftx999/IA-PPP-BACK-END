@@ -1,5 +1,6 @@
 package dev.aurora.unidades;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -23,5 +24,8 @@ public interface Unidades {
 	 * ({@code ContextoAcesso.podeEm}).
 	 */
 	Optional<String> caminhoNoEscopo(UUID id);
+
+	/** A unidade e as ativas abaixo dela, dentro do escopo (vazio se ela está fora). */
+	List<Unidade> subarvore(UUID raiz);
 
 }

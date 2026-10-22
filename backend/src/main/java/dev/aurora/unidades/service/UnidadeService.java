@@ -66,6 +66,11 @@ public class UnidadeService implements Unidades {
 	}
 
 	@Override
+	public List<Unidade> subarvore(UUID raiz) {
+		return unidades.listarSubarvore(raiz);
+	}
+
+	@Override
 	public Optional<String> caminhoNoEscopo(UUID id) {
 		return unidades.buscarCaminhoNoEscopo(id);
 	}

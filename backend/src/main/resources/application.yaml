@@ -26,6 +26,10 @@ spring:
   mvc:
     problemdetails:
       enabled: true
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 51MB
 
 server:
   shutdown: graceful
@@ -40,6 +44,14 @@ aurora:
     chave-cursor: ${AURORA_CHAVE_CURSOR}
   cors:
     origens: ${AURORA_CORS_ORIGENS}
+  contratos:
+    # Maior PDF aceito (A1).
+    tamanho-maximo-bytes: 52428800
+  ia:
+    # Extração de itens contratuais com o Claude (ADR 0014). Sem chave, os itens são cadastrados à mão.
+    chave: ${AURORA_IA_CHAVE:}
+    modelo: claude-opus-5-5
+    url-base: ${AURORA_IA_URL:}
   identidade:
     # Client com conta de serviço (manage-users, view-users) em cada realm de tenant (ADR 0011).
     cliente-id: aurora-api-admin

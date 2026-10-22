@@ -87,15 +87,16 @@ public class MetaRepository {
 			.single();
 	}
 
-	public UUID inserir(UUID indicador, NovaMeta meta, @Nullable UUID definidoPor) {
+	public UUID inserir(UUID indicador, NovaMeta meta, @Nullable UUID definidoPor, @Nullable UUID itemContratual,
+			@Nullable String origem) {
 		var id = UUID.randomUUID();
 		jdbc.sql("""
 				INSERT INTO meta (id, tenant_id, indicador_id, unidade_id, vigencia_inicio, vigencia_fim, valor_meta,
-				                  valor_alerta, definido_por)
-				VALUES (?, app_tenant(), ?, ?, ?, ?, ?, ?, ?)""")
+				                  valor_alerta, definido_por, item_contratual_id, origem)
+				VALUES (?, app_tenant(), ?, ?, ?, ?, ?, ?, ?, ?, ?)""")
 			.params(id, indicador, meta.unidadeId(), Date.valueOf(meta.vigenciaInicio()),
 					meta.vigenciaFim() == null ? null : Date.valueOf(meta.vigenciaFim()), meta.valor(), meta.alerta(),
-					definidoPor)
+					definidoPor, itemContratual, origem)
 			.update();
 		return id;
 	}

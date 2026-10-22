@@ -57,6 +57,13 @@ public class UnidadeRepository {
 		return jdbc.sql(SELECAO + " AND id = ?").param(id).query(Unidade.class).optional();
 	}
 
+	public List<Unidade> listarSubarvore(UUID raiz) {
+		return jdbc.sql(SELECAO + " AND caminho <@ (SELECT r.caminho FROM unidade r WHERE r.id = ?) ORDER BY caminho")
+			.param(raiz)
+			.query(Unidade.class)
+			.list();
+	}
+
 	public Optional<String> buscarCaminhoNoEscopo(UUID id) {
 		return jdbc.sql("SELECT caminho::text FROM unidade WHERE id = ? AND ativo AND caminho <@ ANY (app_escopos())")
 			.param(id)

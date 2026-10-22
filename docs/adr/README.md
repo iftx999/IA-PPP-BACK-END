@@ -18,3 +18,4 @@ gera um novo ADR que o substitui.
 | [0011](0011-gestao-de-usuarios-no-provedor.md) | Gestão de usuários pela Admin API do provedor de identidade | Aceito |
 | [0012](0012-hierarquia-de-unidades.md) | Hierarquia de unidades e caminho ltree | Aceito |
 | [0013](0013-permissao-por-unidade.md) | Permissão vale só na unidade onde foi concedida | Aceito |
+| [0014](0014-extracao-de-contratos-com-ia.md) | Extração de itens contratuais com o Claude e revisão humana obrigatória | Aceito |

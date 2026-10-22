@@ -14,6 +14,8 @@ import dev.aurora.comum.ConflitoException;
 import dev.aurora.comum.RecursoNaoEncontradoException;
 import dev.aurora.comum.RegraVioladaException;
 import dev.aurora.metas.model.LinhaMeta;
+import dev.aurora.metas.MetaDoContrato;
+import dev.aurora.metas.Metas;
 import dev.aurora.metas.model.NovaMeta;
 import dev.aurora.metas.model.ResumoMetas;
 import dev.aurora.metas.repository.MetaRepository;
@@ -26,7 +28,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 /** Metas de adesão por unidade e vigência (épico C, RN-06). */
 @Service
-public class MetaService {
+public class MetaService implements Metas {
 
 	/** SQLSTATE de violação de exclusion constraint (vigências sobrepostas). */
 	private static final String VIOLACAO_DE_EXCLUSAO = "23P01";
@@ -68,6 +70,18 @@ public class MetaService {
 	 */
 	@Transactional
 	public UUID criar(NovaMeta meta) {
+		return criar(meta, null, null);
+	}
+
+	@Override
+	@Transactional
+	public UUID definirDoContrato(MetaDoContrato meta) {
+		return criar(
+				new NovaMeta(meta.unidadeId(), meta.valor(), meta.alerta(), meta.vigenciaInicio(), meta.vigenciaFim()),
+				meta.itemContratualId(), meta.origem());
+	}
+
+	private UUID criar(NovaMeta meta, @Nullable UUID itemContratual, @Nullable String origem) {
 		validar(meta);
 		var unidade = unidades.buscarNoEscopo(meta.unidadeId()).orElseThrow(RecursoNaoEncontradoException::new);
 		if (unidade.tipo().equals("ETE") || unidade.tipo().equals("EEE")) {
@@ -75,7 +89,7 @@ public class MetaService {
 		}
 		UUID id;
 		try {
-			id = metas.inserir(indicador(), meta, ContextoAcesso.exigir().usuarioId());
+			id = metas.inserir(indicador(), meta, ContextoAcesso.exigir().usuarioId(), itemContratual, origem);
 		}
 		catch (DataIntegrityViolationException erro) {
 			if (violouExclusao(erro)) {
@@ -89,6 +103,9 @@ public class MetaService {
 		detalhes.put("alerta", meta.alerta());
 		detalhes.put("vigenciaInicio", meta.vigenciaInicio().toString());
 		detalhes.put("vigenciaFim", meta.vigenciaFim() == null ? null : meta.vigenciaFim().toString());
+		if (itemContratual != null) {
+			detalhes.put("itemContratual", itemContratual.toString());
+		}
 		auditoria.registrar(TipoEvento.META_DEFINIDA, RECURSO + id, detalhes);
 		return id;
 	}

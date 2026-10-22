@@ -19,6 +19,8 @@
 		<springdoc.version>3.1.1</springdoc.version>
 		<spring-javaformat.version>0.0.48</spring-javaformat.version>
 		<jacoco.version>0.8.15</jacoco.version>
+		<pdfbox.version>3.0.5</pdfbox.version>
+		<anthropic.version>2.34.0</anthropic.version>
 		<!-- Piso de cobertura de linhas; sobe conforme os módulos amadurecem. -->
 		<cobertura.minima>0.85</cobertura.minima>
 	</properties>
@@ -70,6 +72,18 @@
 			<version>${springdoc.version}</version>
 		</dependency>
 
+		<!-- Texto por página dos PDFs de contrato (Apache 2.0). -->
+		<dependency>
+			<groupId>org.apache.pdfbox</groupId>
+			<artifactId>pdfbox</artifactId>
+			<version>${pdfbox.version}</version>
+		</dependency>
+		<!-- SDK oficial da API do Claude, para a extração de itens contratuais (MIT). -->
+		<dependency>
+			<groupId>com.anthropic</groupId>
+			<artifactId>anthropic-java</artifactId>
+			<version>${anthropic.version}</version>
+		</dependency>
 		<dependency>
 			<groupId>org.postgresql</groupId>
 			<artifactId>postgresql</artifactId>
