@@ -24,4 +24,9 @@ class TratadorDeErros {
 		return ProblemDetail.forStatusAndDetail(HttpStatus.UNPROCESSABLE_CONTENT, erro.getMessage());
 	}
 
+	@ExceptionHandler(ServicoExternoIndisponivelException.class)
+	ProblemDetail servicoExternoIndisponivel(ServicoExternoIndisponivelException erro) {
+		return ProblemDetail.forStatusAndDetail(HttpStatus.SERVICE_UNAVAILABLE, erro.getMessage());
+	}
+
 }

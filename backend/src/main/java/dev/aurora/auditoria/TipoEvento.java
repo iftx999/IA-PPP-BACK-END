@@ -8,6 +8,11 @@ public enum TipoEvento {
 
 	LOGIN, ACESSO_CONCEDIDO, USUARIO_CONVIDADO, CONVITE_ACEITO,
 
+	/**
+	 * Gestão de usuários (H8, RN-16): concessões perfil × unidade, ciclo de vida e senha.
+	 */
+	ACESSO_ALTERADO, CONVITE_REENVIADO, USUARIO_DESATIVADO, USUARIO_REATIVADO, REDEFINICAO_SENHA_ENVIADA,
+
 	/** Exibição de dado pessoal sem máscara (ex.: matrícula completa). */
 	ACESSO_DADO_PESSOAL,
 

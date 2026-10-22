@@ -40,6 +40,14 @@ aurora:
     chave-cursor: ${AURORA_CHAVE_CURSOR}
   cors:
     origens: ${AURORA_CORS_ORIGENS}
+  identidade:
+    # Client com conta de serviço (manage-users, view-users) em cada realm de tenant (ADR 0011).
+    cliente-id: aurora-api-admin
+    segredo: ${AURORA_IDENTIDADE_SEGREDO}
+    cliente-web: aurora-web
+    url-retorno: ${AURORA_URL_FRONT}
+    # Prazo dos links de convite e de redefinição de senha (uso único).
+    validade-convite: 72h
   auditoria:
     # Chave do HMAC da trilha (>= 32 bytes). Guardar em cofre de segredos; trocar exige nova cadeia (ADR 0009).
     chave: ${AURORA_AUDITORIA_CHAVE}

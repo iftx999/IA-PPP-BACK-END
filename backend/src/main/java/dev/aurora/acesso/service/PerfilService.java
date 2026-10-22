@@ -7,7 +7,6 @@ import java.util.TreeSet;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import dev.aurora.contexto.ContextoAcesso;
 import dev.aurora.acesso.model.Perfil;
 import dev.aurora.acesso.model.Permissao;
 import dev.aurora.acesso.repository.PerfilRepository;
@@ -19,7 +18,6 @@ import dev.aurora.comum.RegraVioladaException;
 import org.jspecify.annotations.Nullable;
 
 import org.springframework.dao.DuplicateKeyException;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -53,7 +51,7 @@ public class PerfilService {
 
 	@Transactional
 	public UUID criar(DadosPerfil dados) {
-		exigirEscopoDoTenant();
+		EscopoAdministrativo.exigirTenantInteiro();
 		validarPermissoes(dados.permissoes());
 		var id = UUID.randomUUID();
 		try {
@@ -70,7 +68,7 @@ public class PerfilService {
 
 	@Transactional
 	public void alterar(UUID id, DadosPerfil dados) {
-		exigirEscopoDoTenant();
+		EscopoAdministrativo.exigirTenantInteiro();
 		var atual = perfis.travar(id).orElseThrow(RecursoNaoEncontradoException::new);
 		if (atual.sistema()) {
 			throw new ConflitoException("Perfis do sistema não podem ser alterados. Duplique-o para personalizar.");
@@ -94,7 +92,7 @@ public class PerfilService {
 
 	@Transactional
 	public void remover(UUID id) {
-		exigirEscopoDoTenant();
+		EscopoAdministrativo.exigirTenantInteiro();
 		var atual = perfis.travar(id).orElseThrow(RecursoNaoEncontradoException::new);
 		if (atual.sistema()) {
 			throw new ConflitoException("Perfis do sistema não podem ser removidos.");
@@ -106,13 +104,6 @@ public class PerfilService {
 		}
 		perfis.remover(id);
 		auditoria.registrar(TipoEvento.PERFIL_REMOVIDO, RECURSO + id, Map.of("nome", atual.nome()));
-	}
-
-	/** Perfis afetam o tenant inteiro: só quem atua na unidade raiz pode geri-los. */
-	private static void exigirEscopoDoTenant() {
-		if (!ContextoAcesso.exigir().abrangeTenantInteiro()) {
-			throw new AccessDeniedException("Gestão de perfis exige escopo no tenant inteiro.");
-		}
 	}
 
 	private void validarPermissoes(Set<String> pedidas) {

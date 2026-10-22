@@ -13,3 +13,6 @@ aurora:
     chave: ${AURORA_AUDITORIA_CHAVE:chave-de-desenvolvimento-nao-usar-em-producao}
   cors:
     origens: ${AURORA_CORS_ORIGENS:http://localhost:4200}
+  identidade:
+    segredo: ${AURORA_IDENTIDADE_SEGREDO:api-admin-dev}
+    url-retorno: ${AURORA_URL_FRONT:http://localhost:4200/}
