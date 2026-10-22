@@ -26,7 +26,7 @@
 | Metas (C1–C4): árvore, herança, meta própria, encerramento | ✅ | ✅ |
 | Trilha de auditoria encadeada por HMAC (verificação de adulteração) | ✅ | — |
 | Perfis e permissões (H6) | ✅ | ✅ |
-| Usuários: convite, ativar/desativar, escopo (H2, H7, H8) | ⏳ | ⏳ |
+| Usuários: convite, ativar/desativar, escopo (H2, H7, H8) | ✅ | ✅ |
 | Cadastro de unidades (H1) | ⏳ | ⏳ |
 
 **Interface (pedido do usuário):** tela de login refeita (tema Keycloak `infra/keycloak/temas/aurora`) e
@@ -51,8 +51,7 @@ Se o `ng serve` mostrar tela antiga ou erro 500 do Vite depois de trocar depend�
 4200, apague `.angular/cache` e suba de novo.
 
 ### Próximos passos (ordem sugerida)
-1. **Usuários**: listar, convidar (Keycloak admin API + e-mail via Mailpit), ativar/desativar, concessões
-   perfil+unidade, regra do último administrador (já existe a consulta em `PerfilRepository`).
+1. ~~Usuários~~ (feito em 22/10; falta o client do Keycloak, ver abaixo).
 2. **Unidades**: árvore, criar/editar/mover/inativar com recálculo do caminho ltree.
 3. Permissão por unidade (hoje as permissões valem em todo o escopo do usuário; o banco concede perfil por unidade).
 4. Marco 2: contratos + IA (upload, extração com Claude, revisão e aprovação).
@@ -73,6 +72,22 @@ Se o `ng serve` mostrar tela antiga ou erro 500 do Vite depois de trocar depend�
 
 ### Observação
 - Se um E2E de perfis falhar no meio, pode sobrar um perfil "Teste E2E …" no banco de desenvolvimento.
+
+### Usuários (H2, H7, H8) — mesma sessão
+- **API** `/api/v1/usuarios`: listar, detalhar, convidar, reenviar convite, substituir concessões
+  (perfil × unidade, validade opcional), ativar/desativar, enviar link de nova senha. Regras: último
+  administrador, não desativar a si mesmo, e-mail único, unidade/perfil do tenant. Eventos auditados só com IDs.
+- **Keycloak** pela Admin API (ADR 0011), porta `ProvedorIdentidade`; falha do provedor → 503 sem gravar nada.
+  Migração V14 (`usuario.convidado_em`).
+- **Tela** `/admin/usuarios`: busca, filtro por situação, paginação, diálogos de convite/acesso/desativação.
+- Correção transversal: diálogos do Material cortavam em 560px (Perfis inclusive) → `MAT_DIALOG_DEFAULT_OPTIONS`.
+- Testes: back-end 75 (inclui `UsuariosApiTest` e `KeycloakProvedorIdentidadeTest`); front 16 unitários e 10 E2E.
+
+### ⚠️ Pré-requisito pendente (precisa de aprovação)
+O realm precisa do client `aurora-api-admin` (conta de serviço com `manage-users`, `view-users`,
+`query-users` de `realm-management`, segredo de dev `api-admin-dev`). Sem ele, convidar, reenviar convite,
+desativar e redefinir senha respondem 503; listar e editar acesso funcionam. Falta: incluir o client em
+`infra/keycloak/realm-aurora.json` e criá-lo no Keycloak em execução.
 
 ### Pendências conhecidas
 - Pendências de produto do doc 06 (regra factível × cortado, aditivos, OCR).
