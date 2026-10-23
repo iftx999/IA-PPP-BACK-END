@@ -59,8 +59,8 @@ Se o `ng serve` mostrar tela antiga ou erro 500 do Vite depois de trocar depend�
 6. ~~Marco 3~~ (feito em 22/10; falta a ingestão de cargas).
 7. ~~Ingestão de cargas~~ (feito em 22/10).
 8. ~~Marco 5 (mapa/GIS)~~ (feito em 23/10).
-9. Próximo: Marco 4 (assistente com fontes; precisa da chave da API do Claude para validar de verdade) e Marco 6
-   (refino: aditivos A5, histórico do assistente).
+9. ~~Marco 4 (assistente)~~ (feito em 23/10; falta validar com uma chave real de IA).
+10. Próximo: Marco 6 (refino: aditivos A5, OCR de PDF digitalizado) e pendências de produto do doc 06.
 - O E2E de integrações grava uma carga idempotente (matrículas `E2E-000x`) na competência mais antiga da lista.
 
 ## Sessão de 22/10/2026
@@ -194,3 +194,24 @@ token não leva os papéis de `realm-management` e a Admin API responde 403. Flu
 - Nas capturas do Playwright aparece um bloco escuro fixo no canto inferior direito do mapa. Os pixels do canvas
   ali estão corretos (conferido); é o compositor do Chromium headless. Conferir num navegador real.
 - O E2E de marcação cria e remove a própria marcação ("Visita E2E …").
+
+### Marco 4 — Assistente com fontes (G1–G6) — ADR 0018
+- **Back-end** (módulo `assistente`): `POST /assistente/perguntas`, `GET /assistente/conversas` (busca),
+  `GET /assistente/conversas/{id}`, `PUT /assistente/mensagens/{id}/avaliacao`, `GET /assistente/situacao`.
+  Ferramentas fixas e estritas (`consultar_adesao`, `listar_unidades`, `listar_competencias`,
+  `listar_alertas_abertos`) no escopo onde valem `assistente:usar` **e** `indicador:ler`
+  (`ContextoAcesso.restritoATodas`). Fontes numeradas pelo servidor; verificação dos números (G6) grava
+  `numeros_sem_fonte`. Conversas por pessoa (RLS), custo e limite mensal (429), auditoria só com IDs (`PERGUNTA_IA`).
+  `Medicoes.detalhar` na API de adesão (sem duplicar RN-03/RN-06). V17.
+- **Provedor configurável (ADR 0019):** `AURORA_IA_PROVEDOR=claude|openai`. Claude: `AURORA_IA_CHAVE`. OpenAI:
+  `AURORA_IA_OPENAI_CHAVE`, `AURORA_IA_OPENAI_MODELO` (obrigatório), opcionais `AURORA_IA_OPENAI_ESFORCO` e
+  `AURORA_IA_OPENAI_PRECO_ENTRADA/SAIDA/CACHE_LIDO`. Vale para o assistente e para a extração de contratos.
+- **Front** `/assistente`: histórico com busca, chips de fonte e linha de dados, aviso de números sem fonte,
+  copiar, avaliação; Ctrl+J; link "Perguntar ao assistente sobre …" no painel (G5).
+- Testes: back-end 157 (Claude e OpenAI simulados); front 40 unitários e 27 E2E.
+
+### Observações
+- A chave da OpenAI colada no chat em 23/10 deve ser revogada; a nova vai só em variável de ambiente.
+- Para ligar a IA no ambiente local: exportar as variáveis acima antes de `./mvnw spring-boot:run`.
+- O E2E do assistente simula a resposta no navegador (o ambiente local roda sem chave); o caminho no servidor é
+  coberto por `AssistenteApiTest` e `AssistenteComOpenAiApiTest`.
