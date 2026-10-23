@@ -46,7 +46,7 @@ jobs:
           cache-from: type=gha,scope=${{ matrix.nome }}
           cache-to: type=gha,mode=max,scope=${{ matrix.nome }}
       - name: Varredura de vulnerabilidades (Trivy)
-        uses: aquasecurity/trivy-action@0.33.1
+        uses: aquasecurity/trivy-action@v0.33.1
         with:
           image-ref: varredura/${{ matrix.nome }}:ci
           severity: CRITICAL
