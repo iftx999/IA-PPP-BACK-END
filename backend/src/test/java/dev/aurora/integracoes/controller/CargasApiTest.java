@@ -152,6 +152,57 @@ class CargasApiTest {
 			.with(token("sub-admin"))).andExpect(status().isUnprocessableContent());
 	}
 
+	@Test
+	void agenteEnviaLocalizacoesSemSubstituirPontoDeCampo() throws Exception {
+		var chave = gerarCredencial(criarFonte());
+		executar("""
+				INSERT INTO imovel_localizacao (tenant_id, codigo_origem, unidade_id, geom, origem, precisao)
+				VALUES ('%s', 'L-CAMPO', '%s', ST_SetSRID(ST_MakePoint(-47.5, -22.6), 4674), 'CAMPO', 'MANUAL')"""
+			.formatted(t.id(), t.setorA1()));
+		var registros = """
+				{"matricula":"L-1","unidade":"%1$s","longitude":-47.51,"latitude":-22.61,"precisao":"ENDERECO"},
+				{"matricula":"L-2","unidade":"%1$s","longitude":-47.52,"latitude":-22.62,"precisao":"bairro"},
+				{"matricula":"L-CAMPO","unidade":"%1$s","longitude":-47.0,"latitude":-22.0,"precisao":"ENDERECO"},
+				{"matricula":"L-3","unidade":"%1$s","longitude":10.0,"latitude":-22.6,"precisao":"ENDERECO"},
+				{"matricula":"L-4","unidade":"%1$s","longitude":-47.5,"latitude":-22.6,"precisao":"CEP"}"""
+			.formatted(t.setorA1());
+		localizacoes(chave, registros).andExpect(status().isOk())
+			.andExpect(jsonPath("$.lidos", is(5)))
+			.andExpect(jsonPath("$.novos", is(2)))
+			.andExpect(jsonPath("$.preservados", is(1)))
+			.andExpect(jsonPath("$.rejeitados", is(2)))
+			.andExpect(jsonPath("$.rejeicoes[0].linha", is(4)))
+			.andExpect(
+					jsonPath("$.rejeicoes[1].motivo", is("Precisão inválida (use ENDERECO, LOGRADOURO ou BAIRRO).")));
+		assertThat(contar("""
+				SELECT count(*) FROM imovel_localizacao WHERE tenant_id = '%s' AND codigo_origem = 'L-CAMPO'
+				   AND origem = 'CAMPO' AND ST_X(geom) = -47.5""".formatted(t.id()))).isEqualTo(1);
+		assertThat(contar("""
+				SELECT count(*) FROM imovel_localizacao WHERE tenant_id = '%s' AND codigo_origem = 'L-2'
+				   AND precisao = 'BAIRRO'""".formatted(t.id()))).isEqualTo(1);
+
+		// Reenvio igual não muda nada; ponto novo vira atualização.
+		localizacoes(chave,
+				"""
+						{"matricula":"L-1","unidade":"%1$s","longitude":-47.51,"latitude":-22.61,"precisao":"ENDERECO"},
+						{"matricula":"L-2","unidade":"%1$s","longitude":-47.53,"latitude":-22.62,"precisao":"ENDERECO"}"""
+					.formatted(t.setorA1()))
+			.andExpect(jsonPath("$.inalterados", is(1)))
+			.andExpect(jsonPath("$.atualizados", is(1)));
+		assertThat(contar("""
+				SELECT count(*) FROM evento_auditoria WHERE tenant_id = '%s' AND tipo = 'IMOVEIS_GEOCODIFICADOS'"""
+			.formatted(t.id()))).isEqualTo(2);
+		localizacoes(chave, """
+				{"matricula":"L-9","unidade":"NAO-EXISTE","longitude":-47.5,"latitude":-22.6,"precisao":"ENDERECO"}""")
+			.andExpect(status().isUnprocessableContent());
+	}
+
+	private ResultActions localizacoes(String chave, String registros) throws Exception {
+		return mvc.perform(post("/api/agente/v1/localizacoes").header(HttpHeaders.AUTHORIZATION, "Bearer " + chave)
+			.contentType(MediaType.APPLICATION_JSON)
+			.content("{\"registros\":[%s]}".formatted(registros)));
+	}
+
 	private ResultActions carga(String chave, String competencia, String registros) throws Exception {
 		return mvc.perform(post("/api/agente/v1/cargas").header(HttpHeaders.AUTHORIZATION, "Bearer " + chave)
 			.contentType(MediaType.APPLICATION_JSON)

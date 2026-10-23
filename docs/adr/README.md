@@ -21,3 +21,4 @@ gera um novo ADR que o substitui.
 | [0014](0014-extracao-de-contratos-com-ia.md) | Extração de itens contratuais com o Claude e revisão humana obrigatória | Aceito |
 | [0015](0015-alertas-e-tarefas-agendadas.md) | Alertas por sincronização de condições e tarefas agendadas com trava no banco | Aceito |
 | [0016](0016-ingestao-de-cargas.md) | Ingestão de cargas pelo Agente Aurora e por arquivo | Aceito |
+| [0017](0017-mapa-e-tiles-vetoriais.md) | Mapa: tiles vetoriais do PostGIS, camadas leves e exportação do visível | Aceito |

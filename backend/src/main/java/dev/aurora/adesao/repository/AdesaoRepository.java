@@ -3,7 +3,10 @@ package dev.aurora.adesao.repository;
 import java.sql.Date;
 import java.time.LocalDate;
 import java.time.YearMonth;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -167,6 +170,25 @@ public class AdesaoRepository {
 			.param(unidadeId)
 			.query(Composicao.class)
 			.single();
+	}
+
+	/** Medição da competência de cada unidade pedida que a tem (unidades do escopo). */
+	public Map<UUID, Adesao> buscarMedicoes(Collection<UUID> unidades, UUID indicadorId, YearMonth competencia) {
+		var medicoes = new HashMap<UUID, Adesao>();
+		if (unidades.isEmpty()) {
+			return medicoes;
+		}
+		jdbc.sql("""
+				SELECT unidade_id, numerador, denominador FROM medicao
+				 WHERE indicador_id = :indicador AND periodo_inicio = :competencia AND unidade_id IN (:unidades)""")
+			.param("indicador", indicadorId)
+			.param("competencia", inicio(competencia))
+			.param("unidades", List.copyOf(unidades))
+			.query(linha -> {
+				medicoes.put(linha.getObject("unidade_id", UUID.class),
+						new Adesao(linha.getLong("numerador"), linha.getLong("denominador")));
+			});
+		return medicoes;
 	}
 
 	private static Date inicio(YearMonth competencia) {

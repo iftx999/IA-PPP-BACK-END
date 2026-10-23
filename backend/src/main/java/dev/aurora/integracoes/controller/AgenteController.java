@@ -8,10 +8,13 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import dev.aurora.integracoes.config.AgenteAutenticado;
 import dev.aurora.integracoes.model.RegistroCarga;
+import dev.aurora.integracoes.model.RegistroLocalizacao;
 import dev.aurora.integracoes.model.Rejeicao;
 import dev.aurora.integracoes.model.ResultadoCarga;
+import dev.aurora.integracoes.model.ResultadoLocalizacao;
 import dev.aurora.integracoes.service.CargaService;
 import dev.aurora.integracoes.service.IntegracaoService;
+import dev.aurora.integracoes.service.LocalizacaoService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
@@ -26,7 +29,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 /**
  * API do Agente Aurora (RN-09): o agente roda na rede da concessionária e envia só
- * matrícula, unidade e situação. Autenticado pela credencial da fonte (FiltroAgente).
+ * matrícula, unidade, situação e ponto. Autenticado pela credencial da fonte
+ * (FiltroAgente).
  */
 @RestController
 @RequestMapping("/api/agente/v1")
@@ -48,6 +52,14 @@ class AgenteController {
 		}
 	}
 
+	record LocalizacaoAgente(@Nullable String matricula, @Nullable String unidade, @Nullable Double longitude,
+			@Nullable Double latitude, @Nullable String precisao) {
+	}
+
+	record LocalizacoesAgenteRequest(
+			@NotNull @Size(min = 1, max = 500_000) List<@NotNull LocalizacaoAgente> registros) {
+	}
+
 	record SituacaoAgenteResponse(UUID fonte, String nome, boolean ativa, @Nullable Instant ultimaCarga) {
 	}
 
@@ -55,9 +67,12 @@ class AgenteController {
 
 	private final IntegracaoService integracoes;
 
-	AgenteController(CargaService cargas, IntegracaoService integracoes) {
+	private final LocalizacaoService localizacoes;
+
+	AgenteController(CargaService cargas, IntegracaoService integracoes, LocalizacaoService localizacoes) {
 		this.cargas = cargas;
 		this.integracoes = integracoes;
+		this.localizacoes = localizacoes;
 	}
 
 	/** Para o agente conferir a conexão e a credencial. */
@@ -80,6 +95,23 @@ class AgenteController {
 			.toList();
 		return ResultadoCargaResponse.de(cargas.carregar(AgenteAutenticado.fonte(requisicao), pedido.competencia(),
 				registros, CargaService.Origem.AGENTE, AgenteAutenticado.prefixo(requisicao)));
+	}
+
+	/**
+	 * E6: localização dos imóveis (matrícula, ponto e precisão do geocódigo CNEFE). Ponto
+	 * corrigido em campo não é substituído.
+	 */
+	@PostMapping("/localizacoes")
+	ResultadoLocalizacao localizar(@Valid @RequestBody LocalizacoesAgenteRequest pedido,
+			HttpServletRequest requisicao) {
+		var linha = new AtomicInteger();
+		var registros = pedido.registros()
+			.stream()
+			.map(r -> new RegistroLocalizacao(linha.incrementAndGet(), r.matricula(), r.unidade(), r.longitude(),
+					r.latitude(), r.precisao()))
+			.toList();
+		return localizacoes.gravar(AgenteAutenticado.fonte(requisicao), registros,
+				AgenteAutenticado.prefixo(requisicao));
 	}
 
 }

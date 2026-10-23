@@ -18,7 +18,7 @@ import dev.aurora.comum.CursorCifrado;
 import dev.aurora.comum.EscritorCsv;
 import dev.aurora.comum.RecursoNaoEncontradoException;
 import dev.aurora.imoveis.model.FiltroSemLigacao;
-import dev.aurora.imoveis.model.Matricula;
+import dev.aurora.comum.Matricula;
 import dev.aurora.imoveis.model.PaginaSemLigacao;
 import dev.aurora.imoveis.model.ResultadoExportacao;
 import dev.aurora.imoveis.model.SituacaoImovel;

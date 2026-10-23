@@ -1,4 +1,4 @@
-package dev.aurora.imoveis.model;
+package dev.aurora.comum;
 
 /**
  * Matrícula do imóvel no sistema comercial: dado pessoal indireto (doc 09, 9.7). Sem a

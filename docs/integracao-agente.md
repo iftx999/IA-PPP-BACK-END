@@ -52,3 +52,26 @@ carga; carga sem nenhuma linha válida responde `422` e fica como falha no hist�
 
 Depois de cada carga a Aurora recalcula a adesão de todas as unidades na competência e reavalia os alertas (a
 fonte deixa de aparecer como atrasada).
+
+## Enviar a localização dos imóveis
+
+O agente cruza matrícula e endereço do sistema comercial com o CNEFE/IBGE **dentro da rede da concessionária** e
+envia à Aurora só a matrícula e o ponto. O endereço nunca é enviado.
+
+```bash
+curl -s https://<aurora>/api/agente/v1/localizacoes -H "Authorization: Bearer $AURORA_CHAVE" \
+  -H "Content-Type: application/json" -d '{
+    "registros": [
+      {"matricula": "100001", "unidade": "CA-CENTRO", "longitude": -47.4321, "latitude": -22.5612, "precisao": "ENDERECO"},
+      {"matricula": "100002", "unidade": "CA-CENTRO", "longitude": -47.4330, "latitude": -22.5620, "precisao": "BAIRRO"}
+    ]}'
+```
+
+- `longitude` e `latitude`: graus decimais em SIRGAS 2000 (o mesmo do CNEFE).
+- `precisao`: `ENDERECO` (correspondência exata), `LOGRADOURO` ou `BAIRRO`. As duas últimas aparecem no mapa como
+  "localização aproximada".
+- Até 500 mil registros por chamada. Envie de novo só o que mudou; reenvio igual não altera nada.
+- Ponto corrigido em campo ou desenhado na Aurora não é substituído pelo geocódigo (volta como `preservados`).
+
+Resposta: `lidos`, `novos`, `atualizados`, `inalterados`, `preservados`, `rejeitados` e as 100 primeiras recusas.
+Mesmos status da carga (sem a regra de competência); nenhuma linha válida responde `422`.
