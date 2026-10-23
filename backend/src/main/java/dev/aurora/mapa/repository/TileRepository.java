@@ -19,8 +19,11 @@ public class TileRepository {
 
 	public static final int ZOOM_REDE = 12;
 
-	/** Células da grade de agrupamento por lado do tile. */
-	private static final int CELULAS = 16;
+	/**
+	 * Células da grade de agrupamento por lado do tile: 4 dá células de 64 px, maiores
+	 * que o círculo do agrupamento (não se sobrepõem).
+	 */
+	private static final int CELULAS = 4;
 
 	private static final String LIMITES = """
 			WITH limites AS (

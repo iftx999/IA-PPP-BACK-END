@@ -58,8 +58,9 @@ Se o `ng serve` mostrar tela antiga ou erro 500 do Vite depois de trocar depend�
 5. ~~Marco 2~~ (feito em 22/10; falta validar com a chave real da API e OCR).
 6. ~~Marco 3~~ (feito em 22/10; falta a ingestão de cargas).
 7. ~~Ingestão de cargas~~ (feito em 22/10).
-8. Próximo: Marco 5 (mapa/GIS: localização dos imóveis pelo agente, camadas, marcações, exportação da área) e
-   Marco 4 (assistente com fontes; precisa da chave da API do Claude para validar de verdade).
+8. ~~Marco 5 (mapa/GIS)~~ (feito em 23/10).
+9. Próximo: Marco 4 (assistente com fontes; precisa da chave da API do Claude para validar de verdade) e Marco 6
+   (refino: aditivos A5, histórico do assistente).
 - O E2E de integrações grava uma carga idempotente (matrículas `E2E-000x`) na competência mais antiga da lista.
 
 ## Sessão de 22/10/2026
@@ -167,3 +168,29 @@ token não leva os papéis de `realm-management` e a Admin API responde 403. Flu
 - Pendências de produto do doc 06 (regra factível × cortado, aditivos, OCR).
 - Cadeia de auditoria importada é "legado" (algoritmo antigo desconhecido); eventos novos são verificáveis.
 - Orçamento de bundle do Angular ainda no padrão (avaliar após as telas de administração).
+
+## Sessão de 23/10/2026
+
+### Marco 5 — Mapa/GIS (E1–E6) — ADR 0017
+- **Back-end** (módulo `mapa`): `GET /mapa/camadas` (municípios com a malha do IBGE e o semáforo da adesão via
+  `Medicoes.situacaoDas`, setores, ETE/EEE, competências, enquadramento); tiles vetoriais
+  `GET /mapa/tiles/{z}/{x}/{y}.mvt` (`ST_AsMVT`; agrupamento numa grade 3×3 por tile até o zoom 14, um ponto por
+  imóvel a partir do 15, rede a partir do 12; filtros de situação e de localização aproximada na URL; sem
+  matrícula no tile); `GET /mapa/imoveis` (clique: até 10 imóveis perto, matrícula mascarada sem
+  `dados_pessoais:ler`, exibição completa auditada); marcações (`mapa:marcar`, unidade mais específica que contém o
+  ponto, só o autor remove, trilha só com IDs); `POST /mapa/exportacao` CSV/PDF do que está visível (PDF com a
+  imagem do mapa, conferida pelo cabeçalho do PNG; até 50 mil imóveis; auditoria com SHA-256).
+- **Agente (E6):** `POST /api/agente/v1/localizacoes` (matrícula, unidade, ponto, precisão); ponto corrigido em
+  campo não é substituído. Guia em `docs/integracao-agente.md`.
+- `Matricula` (máscara LGPD) passou para `dev.aurora.comum`.
+- **Front** `/mapa`: MapLibre 6.12 (BSD-3) com fundo OSM escurecido no tema escuro; municípios coloridos pela
+  adesão (destaque ao passar o mouse), setores, rede confirmada/presumida, casas coloridas por situação (contorno
+  pontilhado = aproximada), agrupamentos com contagem, ETE/EEE, marcações; painel de camadas; vista 3D; marcar local
+  (Esc cancela); exportar área (CSV/PDF); detalhe ao clicar; link direto `/mapa?lon=&lat=&zoom=`. Fundo configurável
+  pelo token `FUNDO_DO_MAPA` (produção não pode usar os tiles públicos do OSM).
+- Testes: back-end 138 (inclui `MapaApiTest`, localizações no `CargasApiTest`); front 37 unitários e 24 E2E.
+
+### Observações
+- Nas capturas do Playwright aparece um bloco escuro fixo no canto inferior direito do mapa. Os pixels do canvas
+  ali estão corretos (conferido); é o compositor do Chromium headless. Conferir num navegador real.
+- O E2E de marcação cria e remove a própria marcação ("Visita E2E …").

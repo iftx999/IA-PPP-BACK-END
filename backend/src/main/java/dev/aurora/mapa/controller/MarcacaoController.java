@@ -15,6 +15,7 @@ import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import org.jspecify.annotations.Nullable;
+import org.springdoc.core.annotations.ParameterObject;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -45,7 +46,7 @@ class MarcacaoController {
 	/** Marcações da área visível (as 500 mais recentes). */
 	@GetMapping
 	@ExigePermissao("indicador:ler")
-	List<MarcacaoDto> listar(@Valid @ModelAttribute AreaParametro area) {
+	List<MarcacaoDto> listar(@Valid @ParameterObject @ModelAttribute AreaParametro area) {
 		var usuario = ContextoAcesso.exigir().usuarioId();
 		return marcacoes.listar(area.area()).stream().map(m -> MarcacaoDto.de(m, usuario)).toList();
 	}

@@ -10,7 +10,7 @@ imóveis localizados, mas um cliente grande passa de centenas de milhares. Matr�
   GeoJSON por `GET /api/v1/mapa/camadas`. Imóveis e rede vão por **tiles vetoriais** (`ST_AsMVT`) em
   `/api/v1/mapa/tiles/{z}/{x}/{y}.mvt`: o volume depende só da área vista, e o filtro de tenant/escopo é o mesmo
   RLS das telas (H5). O MapLibre manda o token em cada tile (`transformRequest`).
-- **Agrupamento no servidor.** Até o zoom 14, os imóveis vêm agrupados numa grade de 16×16 células por tile
+- **Agrupamento no servidor.** Até o zoom 14, os imóveis vêm agrupados numa grade de 3×3 células por tile (~85 px, maiores que o círculo do agrupamento)
   (`ST_SnapToGrid` em Web Mercator), com contagem total, ligados e sem ligação. A partir do zoom 15, um ponto por
   imóvel. Rede de esgoto a partir do zoom 12 (presumida tracejada, confirmada contínua).
 - **Tiles sem matrícula.** O ponto leva só situação e se a localização é aproximada. O detalhe vem do clique
@@ -28,9 +28,13 @@ imóveis localizados, mas um cliente grande passa de centenas de milhares. Matr�
 - **Localização pelo agente (E6):** `POST /api/agente/v1/localizacoes` (matrícula, unidade, longitude, latitude,
   precisão `ENDERECO`/`LOGRADOURO`/`BAIRRO`), gravado em lote. Ponto corrigido em campo ou desenhado não é
   substituído pelo geocódigo (conta como "preservado"). Evento `IMOVEIS_GEOCODIFICADOS` (nome herdado).
-- **Fundo do mapa:** OpenStreetMap em desenvolvimento, com atribuição. Em produção o endereço do estilo/tiles de
-  fundo é configurável (`environment`): a política de uso dos tiles públicos do OSM não admite uso pesado, então a
+- **Fundo do mapa:** OpenStreetMap em desenvolvimento, com atribuição. Em produção os tiles de fundo vêm do token
+  `FUNDO_DO_MAPA` (front, `app.config`): a política de uso dos tiles públicos do OSM não admite uso pesado, então a
   empresa deve contratar um provedor ou servir os próprios tiles.
+- **Front:** MapLibre GL JS 6.12 (BSD-3), fixado na versão; worker e CSS servidos à parte (só a rota do mapa os
+  carrega). Ícones (casa, casa pontilhada para localização aproximada, pino, estação, agrupamento) desenhados em
+  canvas a partir dos tokens do tema: sem sprites nem fontes de terceiros, e o mapa acompanha o claro/escuro.
+  Vista inicial por link (`/mapa?lon=&lat=&zoom=`).
 
 **Consequências.** Tiles de imóveis custam uma consulta por tile com índice GiST; o cache do navegador
 (`private, max-age=300`) evita repetir ao navegar. Se a base crescer muito, o próximo passo é materializar os
