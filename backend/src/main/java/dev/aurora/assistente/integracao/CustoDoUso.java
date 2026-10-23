@@ -1,4 +1,4 @@
-package dev.aurora.assistente.service;
+package dev.aurora.assistente.integracao;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -8,10 +8,10 @@ import java.util.Optional;
 import dev.aurora.assistente.model.Uso;
 
 /**
- * Custo em dólares de uma pergunta, pela tabela de preços por milhão de tokens (out/2026;
- * conferir a cada troca de modelo). Gravação em cache custa 1,25 × a entrada (cache de 5
- * minutos). O fallback do servidor pode responder com outro modelo: modelo fora da tabela
- * fica "sem custo" no relatório de uso, em vez de um valor errado.
+ * Custo em dólares de uma pergunta no Claude, pela tabela de preços por milhão de tokens
+ * (out/2026; conferir a cada troca de modelo). Gravação em cache custa 1,25 × a entrada
+ * (cache de 5 minutos). O fallback do servidor pode responder com outro modelo: modelo
+ * fora da tabela fica "sem custo" no relatório de uso, em vez de um valor errado.
  */
 final class CustoDoUso {
 

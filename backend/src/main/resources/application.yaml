@@ -48,9 +48,20 @@ aurora:
     # Maior PDF aceito (A1).
     tamanho-maximo-bytes: 52428800
   ia:
-    # Extração de itens contratuais com o Claude (ADR 0014). Sem chave, os itens são cadastrados à mão.
+    # Extração de contratos (ADR 0014) e assistente (ADR 0018). Provedor claude (padrão) ou openai (ADR 0019).
+    # Sem chave, a extração vira cadastro manual e o assistente fica desligado.
+    provedor: ${AURORA_IA_PROVEDOR:claude}
     chave: ${AURORA_IA_CHAVE:}
     modelo: claude-opus-5-5
+    openai:
+      chave: ${AURORA_IA_OPENAI_CHAVE:}
+      # Sem padrão: defina o modelo contratado (ex.: AURORA_IA_OPENAI_MODELO).
+      modelo: ${AURORA_IA_OPENAI_MODELO:}
+      esforco: ${AURORA_IA_OPENAI_ESFORCO:}
+      # US$ por milhão de tokens; sem preço, o uso é contado sem custo.
+      preco-entrada: ${AURORA_IA_OPENAI_PRECO_ENTRADA:}
+      preco-saida: ${AURORA_IA_OPENAI_PRECO_SAIDA:}
+      preco-cache-lido: ${AURORA_IA_OPENAI_PRECO_CACHE_LIDO:}
     url-base: ${AURORA_IA_URL:}
   identidade:
     # Client com conta de serviço (manage-users, view-users) em cada realm de tenant (ADR 0011).

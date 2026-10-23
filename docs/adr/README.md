@@ -23,3 +23,4 @@ gera um novo ADR que o substitui.
 | [0016](0016-ingestao-de-cargas.md) | Ingestão de cargas pelo Agente Aurora e por arquivo | Aceito |
 | [0017](0017-mapa-e-tiles-vetoriais.md) | Mapa: tiles vetoriais do PostGIS, camadas leves e exportação do visível | Aceito |
 | [0018](0018-assistente-com-fontes.md) | Assistente com fontes: ferramentas fixas, fontes numeradas e verificação dos números | Aceito |
+| [0019](0019-provedor-de-ia-configuravel.md) | Provedor de IA configurável: Claude (padrão) ou OpenAI | Aceito |

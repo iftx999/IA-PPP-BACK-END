@@ -21,6 +21,7 @@
 		<jacoco.version>0.8.15</jacoco.version>
 		<pdfbox.version>3.0.5</pdfbox.version>
 		<anthropic.version>2.34.0</anthropic.version>
+		<openai.version>4.79.0</openai.version>
 		<!-- Piso de cobertura de linhas; sobe conforme os módulos amadurecem. -->
 		<cobertura.minima>0.85</cobertura.minima>
 	</properties>
@@ -77,6 +78,12 @@
 			<groupId>org.apache.pdfbox</groupId>
 			<artifactId>pdfbox</artifactId>
 			<version>${pdfbox.version}</version>
+		</dependency>
+		<!-- SDK oficial da OpenAI, provedor alternativo escolhido por configuração (ADR 0019, Apache-2.0). -->
+		<dependency>
+			<groupId>com.openai</groupId>
+			<artifactId>openai-java</artifactId>
+			<version>${openai.version}</version>
 		</dependency>
 		<!-- SDK oficial da API do Claude, para a extração de itens contratuais (MIT). -->
 		<dependency>

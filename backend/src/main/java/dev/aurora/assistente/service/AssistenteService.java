@@ -139,7 +139,7 @@ public class AssistenteService {
 		}
 		var numeros = fontes.stream().map(f -> f.numero()).toList();
 		var dados = coletor.dados().stream().filter(d -> numeros.contains(d.fonte())).toList();
-		var custo = CustoDoUso.calcular(resposta.modelo(), resposta.uso());
+		var custo = Optional.ofNullable(resposta.custoUsd());
 		var textoFinal = texto;
 		var fontesFinais = fontes;
 		var semFonteFinal = semFonte;

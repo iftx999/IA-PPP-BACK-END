@@ -3,45 +3,43 @@ package dev.aurora.contratos.integracao;
 import java.time.Duration;
 
 import com.anthropic.client.okhttp.AnthropicOkHttpClient;
+import com.openai.client.okhttp.OpenAIOkHttpClient;
+import dev.aurora.comum.PropriedadesIa;
 import dev.aurora.contratos.service.ExtratorContrato;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+/** Extrator pelo provedor de {@code aurora.ia} (ADR 0014, 0019). */
 @Configuration(proxyBeanMethods = false)
-@EnableConfigurationProperties(ConfiguracaoIa.Propriedades.class)
 class ConfiguracaoIa {
 
 	private static final Logger LOG = LoggerFactory.getLogger(ConfiguracaoIa.class);
 
-	/**
-	 * @param chave chave da API (cofre de segredos); vazia desliga a extração
-	 * @param modelo modelo do Claude usado na extração
-	 * @param urlBase endereço da API (vazio = padrão; outro valor só para testes ou
-	 * proxy)
-	 */
-	@ConfigurationProperties("aurora.ia")
-	record Propriedades(String chave, String modelo, String urlBase) {
-	}
+	private static final Duration TEMPO_MAXIMO = Duration.ofMinutes(5);
 
 	@Bean
-	ExtratorContrato extratorContrato(Propriedades propriedades) {
-		if (propriedades.chave() == null || propriedades.chave().isBlank()) {
-			LOG.warn("Extração de contratos por IA desligada: defina AURORA_IA_CHAVE para ligar.");
+	ExtratorContrato extratorContrato(PropriedadesIa ia) {
+		if (!ia.ligada()) {
+			LOG.warn("Extração de contratos por IA desligada: configure o provedor {} para ligar.", ia.usaOpenAi()
+					? "OpenAI (AURORA_IA_OPENAI_CHAVE e AURORA_IA_OPENAI_MODELO)" : "Claude (AURORA_IA_CHAVE)");
 			return new ExtratorDesligado();
 		}
-		var cliente = AnthropicOkHttpClient.builder()
-			.apiKey(propriedades.chave())
-			.timeout(Duration.ofMinutes(5))
-			.maxRetries(3);
-		if (propriedades.urlBase() != null && !propriedades.urlBase().isBlank()) {
-			cliente.baseUrl(propriedades.urlBase());
+		if (ia.usaOpenAi()) {
+			var openAi = ia.openAi();
+			var cliente = OpenAIOkHttpClient.builder().apiKey(openAi.chave()).timeout(TEMPO_MAXIMO).maxRetries(3);
+			if (PropriedadesIa.preenchido(openAi.urlBase())) {
+				cliente.baseUrl(openAi.urlBase());
+			}
+			return new ExtratorOpenAi(cliente.build(), openAi);
 		}
-		return new ExtratorClaude(cliente.build(), propriedades.modelo());
+		var cliente = AnthropicOkHttpClient.builder().apiKey(ia.chave()).timeout(TEMPO_MAXIMO).maxRetries(3);
+		if (PropriedadesIa.preenchido(ia.urlBase())) {
+			cliente.baseUrl(ia.urlBase());
+		}
+		return new ExtratorClaude(cliente.build(), ia.modelo());
 	}
 
 }
