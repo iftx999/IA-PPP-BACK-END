@@ -24,3 +24,5 @@ gera um novo ADR que o substitui.
 | [0017](0017-mapa-e-tiles-vetoriais.md) | Mapa: tiles vetoriais do PostGIS, camadas leves e exportação do visível | Aceito |
 | [0018](0018-assistente-com-fontes.md) | Assistente com fontes: ferramentas fixas, fontes numeradas e verificação dos números | Aceito |
 | [0019](0019-provedor-de-ia-configuravel.md) | Provedor de IA configurável: Claude (padrão) ou OpenAI | Aceito |
+| [0020](0020-aditivos-e-historico-de-metas.md) | Aditivo contratual substitui metas com histórico | Aceito |
+| [0021](0021-ocr-de-contratos-digitalizados.md) | OCR local de contratos digitalizados com Tesseract | Aceito |

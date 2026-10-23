@@ -15,6 +15,13 @@ public interface Metas {
 	UUID definirDoContrato(MetaDoContrato meta);
 
 	/**
+	 * A5: meta de um aditivo aprovado. Metas de contrato da unidade que cruzam a vigência
+	 * nova são encerradas na véspera (se começaram antes) ou substituídas por inteiro; a
+	 * versão anterior vai para o histórico. Meta manual sobreposta impede (409).
+	 */
+	ResultadoAditivo aditarDoContrato(MetaDoContrato meta);
+
+	/**
 	 * Situação de cada unidade do escopo hoje (unidades sem meta incluídas, como
 	 * SEM_META).
 	 */

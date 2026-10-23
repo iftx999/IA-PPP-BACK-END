@@ -78,7 +78,9 @@ Cada meta tem **percentual de meta** e **limite de alerta** (alerta ≤ meta).
 - **Herança:** unidade sem meta própria vigente usa a meta da unidade acima; a tela mostra "Segue <unidade> · <meta>".
 - **Meta própria** substitui a herdada na unidade (e é herdada pelas filhas).
 - Metas de contrato só nascem de **extração aprovada** (RN-10).
-- Vigências da mesma unidade não podem se sobrepor (a confirmar: o que fazer em aditivo).
+- Vigências da mesma unidade não podem se sobrepor. **Aditivo** aprovado encerra na véspera (ou substitui, se
+  retroativo) as metas de contrato que cruzam a vigência nova, com histórico; meta manual sobreposta impede
+  (ADR 0020).
 
 ## RN-07 · Alertas
 

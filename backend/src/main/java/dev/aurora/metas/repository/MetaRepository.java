@@ -13,6 +13,8 @@ import java.util.UUID;
 import dev.aurora.metas.model.LinhaMeta;
 import dev.aurora.metas.model.MetaDaUnidade;
 import dev.aurora.metas.model.MetaHerdada;
+import dev.aurora.metas.model.MetaNoHistorico;
+import dev.aurora.metas.model.MetaSobreposta;
 import dev.aurora.metas.model.NovaMeta;
 import dev.aurora.metas.model.ResumoMetas;
 import org.jspecify.annotations.Nullable;
@@ -121,6 +123,76 @@ public class MetaRepository {
 
 	public void encerrar(UUID id, LocalDate fim) {
 		jdbc.sql("UPDATE meta SET vigencia_fim = ? WHERE id = ?").params(Date.valueOf(fim), id).update();
+	}
+
+	/**
+	 * Metas da unidade cujo período cruza [inicio, fim] (fim nulo = sem fim), travadas
+	 * para o aditivo.
+	 */
+	public List<MetaSobreposta> travarSobrepostas(UUID indicador, UUID unidade, LocalDate inicio,
+			@Nullable LocalDate fim) {
+		return jdbc.sql("""
+				SELECT m.id, u.nome AS unidade_nome, m.vigencia_inicio, m.vigencia_fim, m.item_contratual_id
+				  FROM meta m JOIN unidade u ON u.id = m.unidade_id
+				 WHERE m.indicador_id = :indicador AND m.unidade_id = :unidade
+				   AND daterange(m.vigencia_inicio, m.vigencia_fim, '[]')
+				       && daterange(:inicio, CAST(:fim AS date), '[]')
+				 ORDER BY m.vigencia_inicio
+				   FOR UPDATE OF m""")
+			.param("indicador", indicador)
+			.param("unidade", unidade)
+			.param("inicio", Date.valueOf(inicio))
+			.param("fim", fim == null ? null : Date.valueOf(fim))
+			.query((r, n) -> new MetaSobreposta(r.getObject("id", UUID.class), r.getString("unidade_nome"),
+					r.getDate("vigencia_inicio").toLocalDate(), data(r, "vigencia_fim"),
+					r.getObject("item_contratual_id", UUID.class)))
+			.list();
+	}
+
+	/** Guarda a versão atual da meta no histórico antes de alterá-la ou removê-la. */
+	public UUID arquivar(UUID meta, String motivo, @Nullable UUID usuario) {
+		var id = UUID.randomUUID();
+		jdbc.sql("""
+				INSERT INTO meta_historico (id, tenant_id, meta_id, indicador_id, unidade_id, vigencia_inicio,
+				                            vigencia_fim, valor_meta, valor_alerta, origem, item_contratual_id, motivo,
+				                            registrado_por)
+				SELECT :id, tenant_id, id, indicador_id, unidade_id, vigencia_inicio, vigencia_fim, valor_meta,
+				       valor_alerta, origem, item_contratual_id, :motivo, :usuario
+				  FROM meta WHERE id = :meta""")
+			.param("id", id)
+			.param("motivo", motivo)
+			.param("usuario", usuario)
+			.param("meta", meta)
+			.update();
+		return id;
+	}
+
+	public void vincularHistorico(List<UUID> registros, UUID novaMeta) {
+		if (!registros.isEmpty()) {
+			jdbc.sql("UPDATE meta_historico SET substituida_por_meta = :nova WHERE id IN (:registros)")
+				.param("nova", novaMeta)
+				.param("registros", registros)
+				.update();
+		}
+	}
+
+	public void remover(UUID id) {
+		jdbc.sql("DELETE FROM meta WHERE id = ?").param(id).update();
+	}
+
+	/** Versões anteriores das metas da unidade, das mais novas às mais antigas. */
+	public List<MetaNoHistorico> listarHistorico(UUID unidade) {
+		return jdbc.sql("""
+				SELECT meta_id, vigencia_inicio, vigencia_fim, valor_meta, valor_alerta, origem, motivo,
+				       substituida_por_meta, registrado_em
+				  FROM meta_historico WHERE unidade_id = ?
+				 ORDER BY registrado_em DESC, vigencia_inicio DESC""")
+			.param(unidade)
+			.query((r, n) -> new MetaNoHistorico(r.getObject("meta_id", UUID.class),
+					r.getDate("vigencia_inicio").toLocalDate(), data(r, "vigencia_fim"), r.getBigDecimal("valor_meta"),
+					r.getBigDecimal("valor_alerta"), r.getString("origem"), r.getString("motivo"),
+					r.getObject("substituida_por_meta", UUID.class), r.getTimestamp("registrado_em").toInstant()))
+			.list();
 	}
 
 	private static LinhaMeta linha(ResultSet r, int n) throws SQLException {

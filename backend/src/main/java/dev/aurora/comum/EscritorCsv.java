@@ -6,6 +6,7 @@ import java.io.OutputStreamWriter;
 import java.io.UncheckedIOException;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
+import java.util.regex.Pattern;
 
 import org.jspecify.annotations.Nullable;
 
@@ -15,6 +16,9 @@ import org.jspecify.annotations.Nullable;
  * recebem um apóstrofo e não viram fórmula.
  */
 public final class EscritorCsv implements AutoCloseable {
+
+	/** Número puro (inclusive negativo, com vírgula ou ponto): não é fórmula. */
+	private static final Pattern NUMERO = Pattern.compile("-?\\d+([.,]\\d+)*");
 
 	private static final char SEPARADOR = ';';
 
@@ -41,7 +45,8 @@ public final class EscritorCsv implements AutoCloseable {
 			return "";
 		}
 		var texto = valor.toString();
-		if (!texto.isEmpty() && "=+-@\t\r".indexOf(texto.charAt(0)) >= 0 && !(valor instanceof Number)) {
+		if (!texto.isEmpty() && "=+-@\t\r".indexOf(texto.charAt(0)) >= 0 && !(valor instanceof Number)
+				&& !NUMERO.matcher(texto).matches()) {
 			texto = "'" + texto;
 		}
 		if (texto.indexOf(SEPARADOR) >= 0 || texto.indexOf('"') >= 0 || texto.indexOf('\n') >= 0

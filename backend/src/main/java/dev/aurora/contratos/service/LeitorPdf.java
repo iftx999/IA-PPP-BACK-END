@@ -12,6 +12,9 @@ public interface LeitorPdf {
 
 	List<Pagina> lerPaginas(byte[] pdf) throws PdfInvalidoException;
 
+	/** Imagem PNG em tons de cinza da página (1 = primeira), para o OCR. */
+	byte[] renderizarPagina(byte[] pdf, int pagina, int dpi) throws PdfInvalidoException;
+
 	class PdfInvalidoException extends Exception {
 
 		public PdfInvalidoException(String mensagem, Throwable causa) {

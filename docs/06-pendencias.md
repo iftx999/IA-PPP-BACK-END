@@ -9,11 +9,11 @@
 | 3 | Como era a tela de Contratos (lista, upload, revisão ao lado do PDF)? | Autor ou schema |
 | 4 | Esquema real do banco (tabelas, colunas, PostGIS, extração/aprovação) | `pg_dump --schema-only` do volume `aurora_postgres-dados` |
 | 5 | Regra exata de "factível" vs. "cortado" | Autor (regra do sistema comercial) |
-| 6 | Vigências sobrepostas e aditivos contratuais | Decisão de produto |
+| 6 | Vigências sobrepostas e aditivos contratuais | ✅ Resolvida (ADR 0020) |
 | 7 | Origem dos trechos de rede (OSM derivado? importados?) | Autor / schema |
 | 8 | Perfis e permissões existentes | Schema (`perfil`, `permissao`) |
 | 9 | Fonte e frequência das cargas ("Integrações") | Autor / schema |
-| 10 | PDFs escaneados: OCR ou apenas PDFs com texto? | Decisão |
+| 10 | PDFs escaneados: OCR ou apenas PDFs com texto? | ✅ OCR local com Tesseract (ADR 0021) |
 | 11 | Multi-tenant: o tenant era o grupo ou a concessionária? Como era o isolamento (coluna, schema, banco)? | Autor / schema |
 | 12 | Perfis, permissões e escopo por unidade existentes; perfis customizáveis? | Autor / schema |
 | 13 | Autenticação: e-mail/senha, MFA, SSO, convite, administrador da plataforma | Autor |

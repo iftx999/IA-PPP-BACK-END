@@ -1,11 +1,15 @@
 package dev.aurora.contratos.service;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.Executor;
 import java.util.function.Supplier;
 
+import dev.aurora.auditoria.Auditoria;
+import dev.aurora.auditoria.TipoEvento;
 import dev.aurora.contexto.ContextoAcesso;
 import dev.aurora.contratos.model.Pagina;
 import dev.aurora.contratos.model.SituacaoDocumento;
@@ -30,8 +34,23 @@ public class ProcessadorDocumentos {
 
 	private static final Logger LOG = LoggerFactory.getLogger(ProcessadorDocumentos.class);
 
-	static final String SEM_TEXTO = "O PDF não tem texto selecionável (parece digitalizado). Envie a versão com "
-			+ "texto ou cadastre os itens manualmente; o reconhecimento de texto (OCR) ainda não está disponível.";
+	static final String SEM_TEXTO = "O PDF não tem texto selecionável (parece digitalizado) e o reconhecimento de "
+			+ "texto (OCR) não está disponível neste ambiente. Envie a versão com texto ou cadastre os itens manualmente.";
+
+	static final String OCR_SEM_RESULTADO = "O reconhecimento de texto (OCR) não encontrou texto legível. Confira a "
+			+ "qualidade da digitalização ou cadastre os itens manualmente.";
+
+	/** Página com menos que isto de texto (sem espaços) é tratada como digitalizada. */
+	static final int MINIMO_DE_TEXTO = 20;
+
+	/** Resolução do OCR: 300 DPI é o recomendado para texto impresso. */
+	static final int DPI_OCR = 300;
+
+	/**
+	 * Acima disso o documento é dividido antes do envio (cada página leva alguns
+	 * segundos).
+	 */
+	static final int MAXIMO_DE_PAGINAS_OCR = 300;
 
 	static final String IA_DESLIGADA = "A extração automática não está configurada neste ambiente. O texto foi lido; "
 			+ "cadastre os itens manualmente.";
@@ -52,9 +71,16 @@ public class ProcessadorDocumentos {
 
 	private final JsonMapper json;
 
+	private final ReconhecedorDeTexto ocr;
+
+	private final Auditoria auditoria;
+
 	ProcessadorDocumentos(ContratoRepository contratos, ItemRepository itens, Unidades unidades, LeitorPdf leitor,
 			ExtratorContrato extrator, TransactionTemplate transacao,
-			@Qualifier("applicationTaskExecutor") Executor executor, JsonMapper json) {
+			@Qualifier("applicationTaskExecutor") Executor executor, JsonMapper json, ReconhecedorDeTexto ocr,
+			Auditoria auditoria) {
+		this.ocr = ocr;
+		this.auditoria = auditoria;
 		this.contratos = contratos;
 		this.itens = itens;
 		this.unidades = unidades;
@@ -117,12 +143,25 @@ public class ProcessadorDocumentos {
 			situacao(documentoId, SituacaoDocumento.FALHA, "Não foi possível ler o PDF: " + erro.getMessage(), null);
 			return;
 		}
+		var digitalizadas = paginas.stream().filter(p -> semTexto(p.texto())).map(Pagina::numero).toList();
+		var porOcr = !digitalizadas.isEmpty() && ocr.disponivel();
+		if (!digitalizadas.isEmpty() && ocr.disponivel()) {
+			try {
+				paginas = reconhecer(documentoId, preparado.pdf(), paginas, digitalizadas);
+			}
+			catch (LeitorPdf.PdfInvalidoException | ReconhecedorDeTexto.ReconhecimentoFalhouException erro) {
+				situacao(documentoId, SituacaoDocumento.FALHA, erro.getMessage(), null);
+				return;
+			}
+		}
+		var lidas = paginas;
 		emTransacao(() -> {
-			contratos.salvarPaginas(documentoId, paginas);
+			contratos.salvarPaginas(documentoId, lidas);
 			return null;
 		});
 		if (paginas.stream().allMatch(p -> p.texto().isBlank())) {
-			situacao(documentoId, SituacaoDocumento.SEM_TEXTO, SEM_TEXTO, null);
+			situacao(documentoId, SituacaoDocumento.SEM_TEXTO,
+					!digitalizadas.isEmpty() && ocr.disponivel() ? OCR_SEM_RESULTADO : SEM_TEXTO, null);
 			return;
 		}
 		if (!extrator.disponivel()) {
@@ -152,7 +191,7 @@ public class ProcessadorDocumentos {
 			return;
 		}
 
-		var validacao = ValidadorPropostas.validar(resultado.propostas(), paginas, porNome);
+		var validacao = ValidadorPropostas.validar(resultado.propostas(), paginas, porNome, porOcr);
 		var aviso = resultado.observacoes().isEmpty() ? null : String.join(" ", resultado.observacoes());
 		emTransacao(() -> {
 			for (var item : validacao.validos()) {
@@ -166,6 +205,42 @@ public class ProcessadorDocumentos {
 		});
 		LOG.info("Documento {} processado: {} itens propostos, {} descartados", documentoId, validacao.validos().size(),
 				validacao.descartados());
+	}
+
+	/**
+	 * ADR 0021: OCR só das páginas sem texto; as demais ficam como o PDF trouxe. O
+	 * documento é marcado e a trilha registra quantas páginas passaram pelo OCR.
+	 */
+	private List<Pagina> reconhecer(UUID documentoId, byte[] pdf, List<Pagina> paginas, List<Integer> digitalizadas)
+			throws LeitorPdf.PdfInvalidoException, ReconhecedorDeTexto.ReconhecimentoFalhouException {
+		if (digitalizadas.size() > MAXIMO_DE_PAGINAS_OCR) {
+			throw new ReconhecedorDeTexto.ReconhecimentoFalhouException("O documento tem " + digitalizadas.size()
+					+ " páginas digitalizadas; divida em arquivos de até " + MAXIMO_DE_PAGINAS_OCR + " páginas.");
+		}
+		var inicio = System.nanoTime();
+		var resultado = new ArrayList<Pagina>();
+		for (var pagina : paginas) {
+			if (digitalizadas.contains(pagina.numero())) {
+				var texto = ocr.reconhecer(leitor.renderizarPagina(pdf, pagina.numero(), DPI_OCR));
+				resultado.add(new Pagina(pagina.numero(), texto));
+			}
+			else {
+				resultado.add(pagina);
+			}
+		}
+		var segundos = (System.nanoTime() - inicio) / 1_000_000_000L;
+		emTransacao(() -> {
+			contratos.marcarTextoPorOcr(documentoId);
+			auditoria.registrar(TipoEvento.TEXTO_RECONHECIDO_POR_OCR, "documento-contrato/" + documentoId,
+					Map.of("paginas", digitalizadas.size(), "segundos", segundos));
+			return null;
+		});
+		LOG.info("OCR do documento {}: {} página(s) em {} s", documentoId, digitalizadas.size(), segundos);
+		return resultado;
+	}
+
+	static boolean semTexto(String texto) {
+		return texto.replaceAll("\\s+", "").length() < MINIMO_DE_TEXTO;
 	}
 
 	private record Preparado(UUID contratoId, byte[] pdf) {

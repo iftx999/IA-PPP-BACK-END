@@ -63,6 +63,20 @@ class ValidadorPropostasTest {
 				Map.of(ValidadorPropostas.normalizar("Concessão A"), CONCESSAO));
 	}
 
+	@Test
+	void comOcrAceitaPoucosErrosDeReconhecimentoESemOcrNao() {
+		var paginas = List
+			.of(new Pagina(1, "7.2 A adesão mínima ao sistema de esgoto no Setor Aí\nserá de 85% até 2030."));
+		var trecho = "A adesao minima ao sistema de esgoto no Setor A1 sera de 85%";
+		assertThat(ValidadorPropostas.trechoNoTexto(trecho, 1, paginas, false)).isFalse();
+		assertThat(ValidadorPropostas.trechoNoTexto(trecho, 1, paginas, true)).isTrue();
+		// Trecho inventado continua recusado, mesmo com tolerância.
+		assertThat(
+				ValidadorPropostas.trechoNoTexto("A adesao minima no Setor B2 sera de 99% ate 2040", 1, paginas, true))
+			.isFalse();
+		assertThat(ValidadorPropostas.menorDistancia("setor a1", "no setor ai sera")).isEqualTo(1);
+	}
+
 	private static Proposta meta(String trecho, int pagina, String valor, String alerta, String unidade) {
 		return new Proposta("meta", "Adesão mínima", "Meta de adesão", "7.2", pagina, trecho,
 				valor == null ? null : new BigDecimal(valor), "%", LocalDate.of(2026, 12, 31), null, unidade,

@@ -37,12 +37,21 @@ final class ValidadorPropostas {
 	 * @param unidades nome normalizado -> id, das unidades que o contrato cobre
 	 */
 	static Resultado validar(List<Proposta> propostas, List<Pagina> paginas, Map<String, UUID> unidades) {
+		return validar(propostas, paginas, unidades, false);
+	}
+
+	/**
+	 * @param textoPorOcr o texto veio do OCR: o trecho é conferido com tolerância a erros
+	 * de reconhecimento (ADR 0021)
+	 */
+	static Resultado validar(List<Proposta> propostas, List<Pagina> paginas, Map<String, UUID> unidades,
+			boolean textoPorOcr) {
 		var validos = new ArrayList<Aprovavel>();
 		int descartados = 0;
 		for (var p : propostas) {
 			var tipo = tipo(p.tipo());
 			if (tipo == null || p.pagina() < 1 || p.pagina() > paginas.size() || vazio(p.trecho()) || vazio(p.titulo())
-					|| !trechoNoTexto(p.trecho(), p.pagina(), paginas)) {
+					|| !trechoNoTexto(p.trecho(), p.pagina(), paginas, textoPorOcr)) {
 				descartados++;
 				continue;
 			}
@@ -67,6 +76,10 @@ final class ValidadorPropostas {
 
 	/** O trecho precisa estar na página citada ou continuar na seguinte. */
 	static boolean trechoNoTexto(String trecho, int pagina, List<Pagina> paginas) {
+		return trechoNoTexto(trecho, pagina, paginas, false);
+	}
+
+	static boolean trechoNoTexto(String trecho, int pagina, List<Pagina> paginas, boolean tolerante) {
 		var procurado = normalizar(trecho);
 		if (procurado.length() < 10) {
 			return false;
@@ -75,7 +88,35 @@ final class ValidadorPropostas {
 		if (pagina < paginas.size()) {
 			texto = texto + " " + normalizar(paginas.get(pagina).texto());
 		}
-		return texto.contains(procurado);
+		if (texto.contains(procurado)) {
+			return true;
+		}
+		return tolerante && menorDistancia(procurado, texto) <= Math.max(2, procurado.length() / 20);
+	}
+
+	/**
+	 * Menor distância de edição entre o trecho e qualquer pedaço do texto (Sellers): mede
+	 * quantos caracteres o OCR trocou, tirou ou pôs.
+	 */
+	static int menorDistancia(String trecho, String texto) {
+		var anterior = new int[trecho.length() + 1];
+		var atual = new int[trecho.length() + 1];
+		for (int i = 0; i <= trecho.length(); i++) {
+			anterior[i] = i;
+		}
+		int melhor = anterior[trecho.length()];
+		for (int j = 1; j <= texto.length(); j++) {
+			atual[0] = 0;
+			for (int i = 1; i <= trecho.length(); i++) {
+				int custo = trecho.charAt(i - 1) == texto.charAt(j - 1) ? 0 : 1;
+				atual[i] = Math.min(Math.min(atual[i - 1] + 1, anterior[i] + 1), anterior[i - 1] + custo);
+			}
+			melhor = Math.min(melhor, atual[trecho.length()]);
+			var troca = anterior;
+			anterior = atual;
+			atual = troca;
+		}
+		return melhor;
 	}
 
 	/** Sem acentos, minúsculas e espaços colapsados (quebras de linha do PDF variam). */

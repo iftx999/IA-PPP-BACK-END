@@ -24,6 +24,12 @@ public enum TipoEvento {
 
 	META_DEFINIDA, META_ENCERRADA, META_REMOVIDA,
 
+	/**
+	 * A5: meta substituída por inteiro por um aditivo (a versão anterior fica no
+	 * histórico).
+	 */
+	META_SUBSTITUIDA,
+
 	/** Integrações (H3). */
 	FONTE_CRIADA, FONTE_ALTERADA, CREDENCIAL_GERADA, CREDENCIAL_REVOGADA, CARGA_CONCLUIDA,
 
@@ -37,6 +43,9 @@ public enum TipoEvento {
 
 	/** Contratos (épico A). */
 	CONTRATO_CRIADO, DOCUMENTO_CONTRATO_ENVIADO, ITEM_CONTRATUAL_APROVADO, ITEM_CONTRATUAL_REJEITADO,
+
+	/** ADR 0021: páginas digitalizadas lidas por OCR (nome herdado). */
+	TEXTO_RECONHECIDO_POR_OCR,
 
 	/** Mapa (épico E): marcações de visita e localizações enviadas pelo agente. */
 	MARCACAO_CRIADA, MARCACAO_REMOVIDA, IMOVEIS_GEOCODIFICADOS,

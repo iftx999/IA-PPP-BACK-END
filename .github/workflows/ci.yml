@@ -18,6 +18,8 @@ jobs:
           distribution: temurin
           java-version: '21'
           cache: maven
+      # OCR de contratos digitalizados (ADR 0021): os testes de OCR rodam com o Tesseract de verdade.
+      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends tesseract-ocr tesseract-ocr-por
       # Inclui os testes de isolamento entre tenants (obrigatórios, RN-15) via Testcontainers.
       - run: ./mvnw -B verify
 

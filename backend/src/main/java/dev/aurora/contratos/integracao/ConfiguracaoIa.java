@@ -6,9 +6,11 @@ import com.anthropic.client.okhttp.AnthropicOkHttpClient;
 import com.openai.client.okhttp.OpenAIOkHttpClient;
 import dev.aurora.comum.PropriedadesIa;
 import dev.aurora.contratos.service.ExtratorContrato;
+import dev.aurora.contratos.service.ReconhecedorDeTexto;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -19,6 +21,21 @@ class ConfiguracaoIa {
 	private static final Logger LOG = LoggerFactory.getLogger(ConfiguracaoIa.class);
 
 	private static final Duration TEMPO_MAXIMO = Duration.ofMinutes(5);
+
+	/**
+	 * OCR local (ADR 0021): {@code aurora.ocr.comando} aponta o binário do Tesseract;
+	 * vazio desliga.
+	 */
+	@Bean
+	ReconhecedorDeTexto reconhecedorDeTexto(@Value("${aurora.ocr.comando:tesseract}") String comando,
+			@Value("${aurora.ocr.segundos-por-pagina:90}") int segundos) {
+		if (comando.isBlank()) {
+			LOG.warn("OCR desligado por configuração (aurora.ocr.comando vazio).");
+			return new OcrDesligado();
+		}
+		var tesseract = new ReconhecedorTesseract(comando, Duration.ofSeconds(segundos));
+		return tesseract.disponivel() ? tesseract : new OcrDesligado();
+	}
 
 	@Bean
 	ExtratorContrato extratorContrato(PropriedadesIa ia) {

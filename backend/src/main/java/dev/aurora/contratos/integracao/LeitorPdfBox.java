@@ -1,13 +1,17 @@
 package dev.aurora.contratos.integracao;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import javax.imageio.ImageIO;
 
 import dev.aurora.contratos.model.Pagina;
 import dev.aurora.contratos.service.LeitorPdf;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.encryption.InvalidPasswordException;
+import org.apache.pdfbox.rendering.ImageType;
+import org.apache.pdfbox.rendering.PDFRenderer;
 import org.apache.pdfbox.text.PDFTextStripper;
 
 import org.springframework.stereotype.Component;
@@ -47,6 +51,22 @@ class LeitorPdfBox implements LeitorPdf {
 		}
 		catch (IOException erro) {
 			throw new PdfInvalidoException("o arquivo está corrompido ou não é um PDF.", erro);
+		}
+	}
+
+	@Override
+	public byte[] renderizarPagina(byte[] pdf, int pagina, int dpi) throws PdfInvalidoException {
+		try (var documento = Loader.loadPDF(pdf)) {
+			var imagem = new PDFRenderer(documento).renderImageWithDPI(pagina - 1, dpi, ImageType.GRAY);
+			var saida = new ByteArrayOutputStream();
+			ImageIO.write(imagem, "png", saida);
+			return saida.toByteArray();
+		}
+		catch (InvalidPasswordException erro) {
+			throw new PdfInvalidoException("o PDF está protegido por senha.", erro);
+		}
+		catch (IOException erro) {
+			throw new PdfInvalidoException("não foi possível desenhar a página " + pagina + ".", erro);
 		}
 	}
 

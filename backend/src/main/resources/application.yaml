@@ -71,6 +71,11 @@ aurora:
     url-retorno: ${AURORA_URL_FRONT}
     # Prazo dos links de convite e de redefinição de senha (uso único).
     validade-convite: 72h
+  ocr:
+    # OCR local de contratos digitalizados (ADR 0021). Exige os pacotes tesseract-ocr e tesseract-ocr-por na
+    # máquina da API; vazio desliga (o PDF digitalizado fica SEM_TEXTO).
+    comando: ${AURORA_OCR_COMANDO:tesseract}
+    segundos-por-pagina: 90
   auditoria:
     # Chave do HMAC da trilha (>= 32 bytes). Guardar em cofre de segredos; trocar exige nova cadeia (ADR 0009).
     chave: ${AURORA_AUDITORIA_CHAVE}

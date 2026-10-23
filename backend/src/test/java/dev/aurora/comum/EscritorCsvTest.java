@@ -26,6 +26,9 @@ class EscritorCsvTest {
 		assertThat(EscritorCsv.celula("+5511")).isEqualTo("'+5511");
 		assertThat(EscritorCsv.celula("@SUM(A1)")).isEqualTo("'@SUM(A1)");
 		assertThat(EscritorCsv.celula(-3)).isEqualTo("-3");
+		// Número puro em texto (ex.: "-0,30" no formato brasileiro) não é fórmula.
+		assertThat(EscritorCsv.celula("-0,30")).isEqualTo("-0,30");
+		assertThat(EscritorCsv.celula("-1+1")).isEqualTo("'-1+1");
 		assertThat(EscritorCsv.celula(null)).isEmpty();
 	}
 

@@ -27,7 +27,7 @@ public class ItemRepository {
 			       i.valor_referencia, i.unidade_medida, i.data_limite, i.periodicidade, i.unidade_id, i.valor_alerta,
 			       i.vigencia_inicio, un.nome AS unidade_nome, i.status, i.origem, i.modelo_ia, i.confianca,
 			       i.proposta_ia::text AS proposta_ia, i.proposto_em, rev.nome AS revisado_por, i.revisado_em,
-			       i.motivo_revisao
+			       i.motivo_revisao, i.substituido_por
 			  FROM item_contratual i
 			  LEFT JOIN unidade un ON un.id = i.unidade_id
 			  LEFT JOIN usuario rev ON rev.id = i.revisado_por""";
@@ -38,10 +38,14 @@ public class ItemRepository {
 		this.jdbc = jdbc;
 	}
 
-	/** Itens do contrato, sem os substituídos; ordem de leitura do documento. */
+	/**
+	 * Itens do contrato na ordem de leitura do documento. Propostas trocadas por
+	 * reprocessamento ficam de fora (nunca valeram); itens substituídos por aditivo ficam
+	 * (são histórico do contrato).
+	 */
 	public List<ItemContratual> listar(UUID contrato, @Nullable StatusItem status) {
 		return jdbc.sql(SELECAO + "\n" + """
-				WHERE i.contrato_id = :contrato AND i.status <> 'SUBSTITUIDO'
+				WHERE i.contrato_id = :contrato AND (i.status <> 'SUBSTITUIDO' OR i.substituido_por IS NOT NULL)
 				  AND (CAST(:status AS text) IS NULL OR i.status = CAST(:status AS text))
 				ORDER BY i.documento_id, i.pagina, i.clausula NULLS LAST, i.proposto_em""")
 			.param("contrato", contrato)
@@ -95,6 +99,16 @@ public class ItemRepository {
 	}
 
 	/** Um novo processamento troca as propostas ainda não revisadas do documento. */
+	/**
+	 * A5: item aprovado cujo efeito um aditivo substituiu; o histórico aponta para o item
+	 * novo.
+	 */
+	public int marcarSubstituido(UUID item, UUID novo) {
+		return jdbc.sql("""
+				UPDATE item_contratual SET status = 'SUBSTITUIDO', substituido_por = :novo
+				 WHERE id = :item AND status = 'APROVADO'""").param("novo", novo).param("item", item).update();
+	}
+
 	public int substituirPropostos(UUID documento) {
 		return jdbc
 			.sql("UPDATE item_contratual SET status = 'SUBSTITUIDO' WHERE documento_id = ? AND status = 'PROPOSTO'")
@@ -120,7 +134,8 @@ public class ItemRepository {
 				r.getObject("documento_id", UUID.class), dados, r.getString("unidade_nome"),
 				StatusItem.valueOf(r.getString("status")), r.getString("origem"), r.getString("modelo_ia"),
 				r.getBigDecimal("confianca"), r.getString("proposta_ia"), r.getTimestamp("proposto_em").toInstant(),
-				r.getString("revisado_por"), instante(r.getTimestamp("revisado_em")), r.getString("motivo_revisao"));
+				r.getString("revisado_por"), instante(r.getTimestamp("revisado_em")), r.getString("motivo_revisao"),
+				r.getObject("substituido_por", UUID.class));
 	}
 
 }

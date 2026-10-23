@@ -18,11 +18,13 @@ import dev.aurora.contratos.model.DadosItem;
 import dev.aurora.contratos.model.ItemContratual;
 import dev.aurora.contratos.model.Proposta;
 import dev.aurora.contratos.model.StatusItem;
+import dev.aurora.contratos.model.TipoDocumento;
 import dev.aurora.contratos.model.TipoItem;
 import dev.aurora.contratos.repository.ContratoRepository;
 import dev.aurora.contratos.repository.ItemRepository;
 import dev.aurora.metas.MetaDoContrato;
 import dev.aurora.metas.Metas;
+import dev.aurora.metas.ResultadoAditivo;
 import dev.aurora.unidades.Unidades;
 import org.jspecify.annotations.Nullable;
 import tools.jackson.databind.json.JsonMapper;
@@ -102,11 +104,26 @@ public class RevisaoService {
 			throw new RegraVioladaException("Item sem referência: informe a cláusula antes de aprovar.");
 		}
 		UUID meta = null;
+		ResultadoAditivo aditivo = null;
 		if (dados.tipo() == TipoItem.META) {
-			meta = metas.definirDoContrato(metaDe(contrato, item));
+			var documento = contratos.buscarDocumento(item.documentoId()).orElseThrow();
+			if (documento.tipo() == TipoDocumento.ADITIVO) {
+				aditivo = metas.aditarDoContrato(metaDe(contrato, item));
+				meta = aditivo.metaId();
+			}
+			else {
+				meta = metas.definirDoContrato(metaDe(contrato, item));
+			}
 		}
 		itens.revisar(itemId, StatusItem.APROVADO, ContextoAcesso.exigir().usuarioId(), null);
 		var detalhes = detalhes(item);
+		if (aditivo != null) {
+			// O item antigo deixa de valer (a meta dele foi encerrada ou substituída).
+			aditivo.itensSubstituidos().forEach(antigo -> itens.marcarSubstituido(antigo, itemId));
+			detalhes.put("aditivo", true);
+			detalhes.put("metasEncerradas", aditivo.encerradas());
+			detalhes.put("metasSubstituidas", aditivo.substituidas());
+		}
 		detalhes.put("editado", editado(item));
 		if (meta != null) {
 			detalhes.put("meta", meta.toString());

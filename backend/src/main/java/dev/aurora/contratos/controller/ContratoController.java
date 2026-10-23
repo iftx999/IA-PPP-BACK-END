@@ -70,12 +70,12 @@ class ContratoController {
 	record DocumentoResponse(UUID id, UUID contratoId, TipoDocumento tipo, String titulo, String nomeArquivo,
 			String sha256, long tamanhoBytes, @Nullable Integer paginas, SituacaoDocumento situacao,
 			@Nullable String mensagem, @Nullable String modeloIa, int itensPropostos, int itensDescartados,
-			Instant enviadoEm) {
+			Instant enviadoEm, boolean textoPorOcr) {
 
 		static DocumentoResponse de(Documento d) {
 			return new DocumentoResponse(d.id(), d.contratoId(), d.tipo(), d.titulo(), d.nomeArquivo(), d.sha256(),
 					d.tamanhoBytes(), d.paginas(), d.situacao(), d.erro(), d.modeloIa(), d.itensPropostos(),
-					d.itensDescartados(), d.enviadoEm());
+					d.itensDescartados(), d.enviadoEm(), d.textoPorOcr());
 		}
 	}
 
@@ -94,7 +94,8 @@ class ContratoController {
 			@Nullable UUID unidadeId, @Nullable String unidadeNome, @Nullable BigDecimal valorAlerta,
 			@Nullable LocalDate vigenciaInicio, StatusItem status, String origem, @Nullable String modeloIa,
 			@Nullable BigDecimal confianca, @Nullable JsonNode propostaIa, boolean semReferencia, Instant propostoEm,
-			@Nullable String revisadoPor, @Nullable Instant revisadoEm, @Nullable String motivoRevisao) {
+			@Nullable String revisadoPor, @Nullable Instant revisadoEm, @Nullable String motivoRevisao,
+			@Nullable UUID substituidoPor) {
 	}
 
 	record ItemRequest(@NotNull TipoItem tipo, @NotBlank @Size(max = 200) String titulo,
@@ -232,7 +233,8 @@ class ContratoController {
 				d.pagina(), d.trecho(), d.valorReferencia(), d.unidadeMedida(), d.dataLimite(), d.periodicidade(),
 				d.unidadeId(), i.unidadeNome(), d.valorAlerta(), d.vigenciaInicio(), i.status(), i.origem(),
 				i.modeloIa(), i.confianca(), i.propostaIa() == null ? null : json.readTree(i.propostaIa()),
-				d.semReferencia(), i.propostoEm(), i.revisadoPor(), i.revisadoEm(), i.motivoRevisao());
+				d.semReferencia(), i.propostoEm(), i.revisadoPor(), i.revisadoEm(), i.motivoRevisao(),
+				i.substituidoPor());
 	}
 
 }

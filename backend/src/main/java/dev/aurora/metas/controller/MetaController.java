@@ -2,7 +2,9 @@ package dev.aurora.metas.controller;
 
 import java.math.BigDecimal;
 import java.net.URI;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 import dev.aurora.contexto.ExigePermissao;
@@ -41,6 +43,12 @@ class MetaController {
 	record MetaCriada(UUID id) {
 	}
 
+	/** A5: versão anterior de uma meta encerrada ou substituída por aditivo. */
+	record VersaoAnteriorDaMeta(UUID metaId, LocalDate vigenciaInicio, @Nullable LocalDate vigenciaFim,
+			BigDecimal valorMeta, @Nullable BigDecimal valorAlerta, @Nullable String origem, String motivo,
+			@Nullable UUID substituidaPorMeta, Instant registradoEm) {
+	}
+
 	private final MetaService metas;
 
 	MetaController(MetaService metas) {
@@ -66,6 +74,19 @@ class MetaController {
 	ResponseEntity<Void> encerrar(@PathVariable UUID id, @Valid @RequestBody EncerramentoRequest pedido) {
 		metas.encerrar(id, pedido.fim());
 		return ResponseEntity.noContent().build();
+	}
+
+	/**
+	 * A5: histórico de metas da unidade (versões alteradas ou substituídas por aditivo).
+	 */
+	@GetMapping("/unidades/{unidade}/historico")
+	@ExigePermissao("indicador:ler")
+	List<VersaoAnteriorDaMeta> historico(@PathVariable UUID unidade) {
+		return metas.historico(unidade)
+			.stream()
+			.map(h -> new VersaoAnteriorDaMeta(h.metaId(), h.vigenciaInicio(), h.vigenciaFim(), h.valorMeta(),
+					h.valorAlerta(), h.origem(), h.motivo(), h.substituidaPorMeta(), h.registradoEm()))
+			.toList();
 	}
 
 }

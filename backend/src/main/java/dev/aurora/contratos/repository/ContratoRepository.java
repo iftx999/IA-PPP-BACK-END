@@ -39,7 +39,7 @@ public class ContratoRepository {
 
 	private static final String SELECAO_DOCUMENTO = """
 			SELECT id, contrato_id, tipo, titulo, nome_arquivo, sha256, tamanho_bytes, paginas, status, erro, modelo_ia,
-			       itens_propostos, itens_descartados, criado_em, processamento_iniciado_em
+			       itens_propostos, itens_descartados, criado_em, processamento_iniciado_em, texto_por_ocr
 			  FROM documento_contrato""";
 
 	private final JdbcClient jdbc;
@@ -127,6 +127,13 @@ public class ContratoRepository {
 				 WHERE id = ?""").params(propostos, descartados, modelo, aviso, documento).update();
 	}
 
+	/**
+	 * ADR 0021: o texto de alguma página veio do OCR (a tela pede conferência atenta).
+	 */
+	public void marcarTextoPorOcr(UUID documento) {
+		jdbc.sql("UPDATE documento_contrato SET texto_por_ocr = true WHERE id = ?").param(documento).update();
+	}
+
 	public void salvarPaginas(UUID documento, Collection<Pagina> paginas) {
 		jdbc.sql("DELETE FROM documento_pagina WHERE documento_id = ?").param(documento).update();
 		for (var pagina : paginas) {
@@ -163,7 +170,7 @@ public class ContratoRepository {
 				r.getString("sha256"), r.getLong("tamanho_bytes"), (Integer) r.getObject("paginas"),
 				SituacaoDocumento.valueOf(r.getString("status")), r.getString("erro"), r.getString("modelo_ia"),
 				r.getInt("itens_propostos"), r.getInt("itens_descartados"), r.getTimestamp("criado_em").toInstant(),
-				iniciado == null ? null : iniciado.toInstant());
+				iniciado == null ? null : iniciado.toInstant(), r.getBoolean("texto_por_ocr"));
 	}
 
 }

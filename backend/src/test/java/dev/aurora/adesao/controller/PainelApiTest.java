@@ -1,8 +1,12 @@
 package dev.aurora.adesao.controller;
 
-import dev.aurora.DadosDeTeste;
+import java.nio.charset.StandardCharsets;
+
 import dev.aurora.DadosDeTeste.Tenant;
+import dev.aurora.DadosDeTeste;
 import dev.aurora.TestcontainersConfiguration;
+import org.apache.pdfbox.Loader;
+import org.apache.pdfbox.text.PDFTextStripper;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -10,15 +14,20 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.closeTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.startsWith;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -93,6 +102,34 @@ class PainelApiTest {
 	void competenciaSemMedicaoRetorna404() throws Exception {
 		mvc.perform(get("/api/v1/painel").param("competencia", "2020-01").with(token("sub-gestor")))
 			.andExpect(status().isNotFound());
+	}
+
+	@Test
+	void exportaOPainelEmCsvEPdfComAuditoria() throws Exception {
+		var csv = mvc
+			.perform(get("/api/v1/painel/exportacao.csv").param("unidade", t.concessao().toString())
+				.param("competencia", "2026-08")
+				.with(token("sub-gestor")))
+			.andExpect(status().isOk())
+			.andExpect(header().string("Content-Disposition", startsWith("attachment; filename=\"painel-")))
+			.andReturn();
+		var linhas = new String(csv.getResponse().getContentAsByteArray(), StandardCharsets.UTF_8).lines().toList();
+		assertThat(linhas.get(0)).startsWith("\uFEFFunidade;tipo;competencia;adesao_pct;ligados;com_rede");
+		// Concessão A: 8.761 de 11.400 = 76,85%, meta 80 (do contrato), atenção.
+		assertThat(linhas.get(1)).contains(";2026-08;76,85;8761;11400;2639;").contains("Contrato 001/2025");
+		assertThat(linhas).hasSize(4);
+
+		var pdf = mvc
+			.perform(get("/api/v1/painel/exportacao.pdf").param("unidade", t.concessao().toString())
+				.with(token("sub-gestor")))
+			.andExpect(status().isOk())
+			.andExpect(content().contentType(MediaType.APPLICATION_PDF))
+			.andReturn();
+		try (var lido = Loader.loadPDF(pdf.getResponse().getContentAsByteArray())) {
+			var texto = new PDFTextStripper().getText(lido);
+			assertThat(texto).contains("Painel de adesão").contains("76,85%").contains("Unidades abaixo");
+		}
+		mvc.perform(get("/api/v1/painel/exportacao.xls").with(token("sub-gestor"))).andExpect(status().isNotFound());
 	}
 
 	private static RequestPostProcessor token(String sub) {

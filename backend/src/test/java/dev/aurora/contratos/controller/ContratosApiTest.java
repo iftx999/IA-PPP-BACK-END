@@ -6,8 +6,8 @@ import java.util.List;
 import java.util.UUID;
 
 import dev.aurora.BancoDeTeste;
-import dev.aurora.DadosDeTeste;
 import dev.aurora.DadosDeTeste.Tenant;
+import dev.aurora.DadosDeTeste;
 import dev.aurora.PdfDeTeste;
 import dev.aurora.TestcontainersConfiguration;
 import dev.aurora.contratos.model.Proposta;
@@ -32,6 +32,7 @@ import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
@@ -196,6 +197,29 @@ class ContratosApiTest {
 		mvc.perform(get("/api/v1/contratos/{id}/itens", contrato).param("status", "PROPOSTO").with(token("sub-admin")))
 			.andExpect(jsonPath("$", hasSize(1)))
 			.andExpect(jsonPath("$[0].origem", is("MANUAL")));
+	}
+
+	@Test
+	void contratoDigitalizadoPassaPeloOcrEOTrechoLiteralAindaEConferido() throws Exception {
+		assumeTrue(new ProcessBuilder("tesseract", "--version").start().waitFor() == 0, "Tesseract não instalado");
+		var contrato = criarContrato("C-" + UUID.randomUUID().toString().substring(0, 8));
+		var pdf = PdfDeTeste.digitalizado(List.of("Contrato de teste da concessao\nPartes e objeto.", PAGINA_METAS));
+
+		var pronto = aguardar(enviar(contrato, pdf));
+
+		assertThat(pronto.get("situacao").asString()).isEqualTo("PRONTO");
+		assertThat(pronto.get("textoPorOcr").asBoolean()).isTrue();
+		// Meta e obrigação têm o trecho no texto reconhecido; o prazo inventado é
+		// descartado.
+		assertThat(pronto.get("itensPropostos").asInt()).isEqualTo(2);
+		assertThat(pronto.get("itensDescartados").asInt()).isEqualTo(1);
+		try (var c = BancoDeTeste.comoSuperusuario();
+				var s = c.createStatement();
+				var r = s.executeQuery("SELECT count(*) FROM evento_auditoria WHERE tenant_id = '" + t.id()
+						+ "' AND tipo = 'TEXTO_RECONHECIDO_POR_OCR'")) {
+			r.next();
+			assertThat(r.getLong(1)).isGreaterThanOrEqualTo(1);
+		}
 	}
 
 	@Test

@@ -2,21 +2,24 @@ package dev.aurora.metas.service;
 
 import java.time.Clock;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import dev.aurora.contexto.ContextoAcesso;
 import dev.aurora.auditoria.Auditoria;
 import dev.aurora.auditoria.TipoEvento;
 import dev.aurora.comum.ConflitoException;
 import dev.aurora.comum.RecursoNaoEncontradoException;
 import dev.aurora.comum.RegraVioladaException;
-import dev.aurora.metas.model.LinhaMeta;
+import dev.aurora.contexto.ContextoAcesso;
 import dev.aurora.metas.MetaDoContrato;
 import dev.aurora.metas.Metas;
+import dev.aurora.metas.ResultadoAditivo;
 import dev.aurora.metas.SituacaoDaUnidade;
+import dev.aurora.metas.model.LinhaMeta;
+import dev.aurora.metas.model.MetaNoHistorico;
 import dev.aurora.metas.model.NovaMeta;
 import dev.aurora.metas.model.ResumoMetas;
 import dev.aurora.metas.repository.MetaRepository;
@@ -125,6 +128,54 @@ public class MetaService implements Metas {
 		}
 		auditoria.registrar(TipoEvento.META_DEFINIDA, RECURSO + id, detalhes);
 		return id;
+	}
+
+	@Override
+	@Transactional
+	public ResultadoAditivo aditarDoContrato(MetaDoContrato meta) {
+		var indicador = indicador();
+		var sobrepostas = metas.travarSobrepostas(indicador, meta.unidadeId(), meta.vigenciaInicio(),
+				meta.vigenciaFim());
+		var manual = sobrepostas.stream().filter(m -> m.itemContratualId() == null).findFirst();
+		if (manual.isPresent()) {
+			var m = manual.get();
+			throw new ConflitoException("A meta manual de " + m.unidadeNome() + " (desde " + m.vigenciaInicio()
+					+ ") cruza a vigência do aditivo. Encerre-a antes de aprovar.");
+		}
+		var usuario = ContextoAcesso.exigir().usuarioId();
+		var historico = new ArrayList<UUID>();
+		var itens = new ArrayList<UUID>();
+		int encerradas = 0;
+		int substituidas = 0;
+		for (var anterior : sobrepostas) {
+			itens.add(anterior.itemContratualId());
+			if (anterior.vigenciaInicio().isBefore(meta.vigenciaInicio())) {
+				historico.add(metas.arquivar(anterior.id(), "ENCERRADA_POR_ADITIVO", usuario));
+				var fim = meta.vigenciaInicio().minusDays(1);
+				metas.encerrar(anterior.id(), fim);
+				auditoria.registrar(TipoEvento.META_ENCERRADA, RECURSO + anterior.id(),
+						Map.of("fimAnterior", String.valueOf(anterior.vigenciaFim()), "fim", fim.toString(), "motivo",
+								"ADITIVO", "itemContratual", meta.itemContratualId().toString()));
+				encerradas++;
+			}
+			else {
+				historico.add(metas.arquivar(anterior.id(), "SUBSTITUIDA_POR_ADITIVO", usuario));
+				metas.remover(anterior.id());
+				auditoria.registrar(TipoEvento.META_SUBSTITUIDA, RECURSO + anterior.id(),
+						Map.of("itemContratual", meta.itemContratualId().toString()));
+				substituidas++;
+			}
+		}
+		var nova = definirDoContrato(meta);
+		metas.vincularHistorico(historico, nova);
+		return new ResultadoAditivo(nova, encerradas, substituidas, itens);
+	}
+
+	/** A5: versões anteriores das metas de uma unidade do escopo. */
+	@Transactional(readOnly = true)
+	public List<MetaNoHistorico> historico(UUID unidade) {
+		unidades.buscarNoEscopo(unidade).orElseThrow(RecursoNaoEncontradoException::new);
+		return metas.listarHistorico(unidade);
 	}
 
 	/**
