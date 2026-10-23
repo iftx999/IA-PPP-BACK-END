@@ -157,6 +157,17 @@ class MapaApiTest {
 	}
 
 	@Test
+	void clienteSemCargaRecebeTileVazioSemErro() throws Exception {
+		var novo = DadosDeTeste.criarTenant("Sem carga");
+		DadosDeTeste.criarUsuario(novo, "sub-sem-carga", "admin@sem-carga.teste", novo.grupo());
+		try (var c = BancoDeTeste.comoSuperusuario(); var s = c.createStatement()) {
+			s.execute("DELETE FROM imovel_situacao_mensal WHERE tenant_id = '%s'".formatted(novo.id()));
+		}
+		mvc.perform(get("/api/v1/mapa/tiles/10/376/578.mvt")
+			.with(jwt().jwt(j -> j.issuer(novo.emissor()).subject("sub-sem-carga")))).andExpect(status().isNoContent());
+	}
+
+	@Test
 	void imoveisNoPontoComMatriculaConformeAPermissao() throws Exception {
 		long antes = eventos("ACESSO_DADO_PESSOAL");
 		mvc.perform(get("/api/v1/mapa/imoveis").param("longitude", "-47.5")

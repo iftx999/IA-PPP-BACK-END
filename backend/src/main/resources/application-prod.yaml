@@ -14,3 +14,14 @@ springdoc:
 # Atrás de proxy/balanceador: IP de origem e esquema vêm dos cabeçalhos X-Forwarded-* confiáveis.
 server:
   forward-headers-strategy: framework
+  # Encerramento gracioso: termina as requisições em andamento antes de parar (deploy sem erro para o usuário).
+  shutdown: graceful
+spring.lifecycle.timeout-per-shutdown-phase: 25s
+
+# Saúde e métricas numa porta interna, fora do proxy público (ADR 0022).
+management:
+  server:
+    port: 8081
+  tracing:
+    export:
+      enabled: ${AURORA_TRACING_LIGADO:true}

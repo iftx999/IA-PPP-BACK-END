@@ -1,0 +1,89 @@
+{
+  "realm": "aurora",
+  "enabled": true,
+  "displayName": "Aurora",
+  "loginWithEmailAllowed": true,
+  "registrationAllowed": false,
+  "resetPasswordAllowed": true,
+  "rememberMe": true,
+  "bruteForceProtected": true,
+  "failureFactor": 5,
+  "permanentLockout": false,
+  "accessTokenLifespan": 300,
+  "ssoSessionIdleTimeout": 1800,
+  "internationalizationEnabled": true,
+  "supportedLocales": [
+    "pt-BR"
+  ],
+  "defaultLocale": "pt-BR",
+  "passwordPolicy": "length(12) and notUsername and notEmail and passwordHistory(5) and maxLength(128)",
+  "smtpServer": {
+    "host": "${AURORA_SMTP_HOST}",
+    "port": "${AURORA_SMTP_PORTA}",
+    "from": "${AURORA_SMTP_REMETENTE}",
+    "fromDisplayName": "Aurora",
+    "auth": "true",
+    "user": "${AURORA_SMTP_USUARIO}",
+    "password": "${AURORA_SMTP_SENHA}",
+    "starttls": "true",
+    "ssl": "false"
+  },
+  "clients": [
+    {
+      "clientId": "aurora-web",
+      "name": "Aurora (web)",
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "redirectUris": [
+        "${AURORA_URL_FRONT}/*"
+      ],
+      "webOrigins": [
+        "${AURORA_URL_FRONT}"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "${AURORA_URL_FRONT}/*"
+      },
+      "protocolMappers": [
+        {
+          "name": "aud-aurora-api",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.custom.audience": "aurora-api",
+            "access.token.claim": "true",
+            "id.token.claim": "false",
+            "introspection.token.claim": "true"
+          }
+        }
+      ],
+      "fullScopeAllowed": false
+    },
+    {
+      "clientId": "aurora-api-admin",
+      "name": "Aurora API (administração de usuários)",
+      "publicClient": false,
+      "secret": "${AURORA_IDENTIDADE_SEGREDO}",
+      "serviceAccountsEnabled": true,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "implicitFlowEnabled": false,
+      "fullScopeAllowed": true
+    }
+  ],
+  "loginTheme": "aurora",
+  "emailTheme": "keycloak",
+  "actionTokenGeneratedByAdminLifespan": 259200,
+  "sslRequired": "external",
+  "waitIncrementSeconds": 60,
+  "maxFailureWaitSeconds": 900,
+  "maxDeltaTimeSeconds": 43200,
+  "quickLoginCheckMilliSeconds": 1000,
+  "minimumQuickLoginWaitSeconds": 60,
+  "ssoSessionMaxLifespan": 36000,
+  "otpPolicyType": "totp",
+  "otpPolicyAlgorithm": "HmacSHA256",
+  "otpPolicyDigits": 6,
+  "otpPolicyPeriod": 30
+}

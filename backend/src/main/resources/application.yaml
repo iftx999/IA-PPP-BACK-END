@@ -71,6 +71,8 @@ aurora:
     url-retorno: ${AURORA_URL_FRONT}
     # Prazo dos links de convite e de redefinição de senha (uso único).
     validade-convite: 72h
+    # Endereço do Keycloak na rede interna (ex.: http://keycloak:8080); vazio = o do emissor (ADR 0022).
+    url-interna: ${AURORA_IDENTIDADE_URL_INTERNA:}
   ocr:
     # OCR local de contratos digitalizados (ADR 0021). Exige os pacotes tesseract-ocr e tesseract-ocr-por na
     # máquina da API; vazio desliga (o PDF digitalizado fica SEM_TEXTO).
@@ -86,12 +88,30 @@ springdoc:
   swagger-ui:
     path: /swagger-ui.html
 
+# Observabilidade (ADR 0022). Em produção, saúde e métricas ficam na porta de gerenciamento (application-prod).
 management:
   endpoints:
     web:
       exposure:
-        include: health,info
+        include: health,info,prometheus,sbom
   endpoint:
     health:
       probes:
         enabled: true
+  metrics:
+    tags:
+      aplicacao: aurora-api
+  tracing:
+    sampling:
+      probability: ${AURORA_TRACING_AMOSTRA:0.1}
+    export:
+      # Sem coletor OTLP no ambiente local: desligado por padrão.
+      enabled: ${AURORA_TRACING_LIGADO:false}
+  opentelemetry:
+    resource-attributes:
+      service.name: aurora-api
+      deployment.environment: ${AURORA_AMBIENTE:local}
+    tracing:
+      export:
+        otlp:
+          endpoint: ${OTEL_EXPORTER_OTLP_TRACES_ENDPOINT:http://localhost:4318/v1/traces}

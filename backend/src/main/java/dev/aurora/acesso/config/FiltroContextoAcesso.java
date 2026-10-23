@@ -2,13 +2,13 @@ package dev.aurora.acesso.config;
 
 import java.io.IOException;
 
-import dev.aurora.contexto.ContextoAcesso;
 import dev.aurora.acesso.service.ContextoAcessoService;
-
+import dev.aurora.contexto.ContextoAcesso;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.slf4j.MDC;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -22,6 +22,8 @@ import org.springframework.web.filter.OncePerRequestFilter;
  * recebe 403.
  */
 class FiltroContextoAcesso extends OncePerRequestFilter {
+
+	static final String CHAVE_TENANT = "tenant_id";
 
 	private final ContextoAcessoService resolvedor;
 
@@ -51,6 +53,9 @@ class FiltroContextoAcesso extends OncePerRequestFilter {
 		var autoridades = contexto.permissoes().stream().map(SimpleGrantedAuthority::new).toList();
 		var comPermissoes = new JwtAuthenticationToken(autenticacao.getToken(), autoridades, autenticacao.getName());
 		SecurityContextHolder.getContext().setAuthentication(comPermissoes);
+		// Logs e traços correlacionados por tenant (ADR 0022); nunca e-mail, nome ou
+		// matrícula.
+		MDC.put(CHAVE_TENANT, contexto.tenantId().toString());
 		try {
 			ContextoAcesso.executar(contexto, () -> {
 				cadeia.doFilter(requisicao, resposta);
@@ -62,6 +67,9 @@ class FiltroContextoAcesso extends OncePerRequestFilter {
 		}
 		catch (Exception erro) {
 			throw new ServletException(erro);
+		}
+		finally {
+			MDC.remove(CHAVE_TENANT);
 		}
 	}
 

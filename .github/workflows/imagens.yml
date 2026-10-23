@@ -1,0 +1,72 @@
+name: Imagens
+
+# Constrói, varre e publica as imagens da API e do banco no GHCR a cada push no main (e sob demanda).
+# Tag = sha do commit (imutável); "main" acompanha a última. Vulnerabilidade crítica corrigível bloqueia (ADR 0022).
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+  security-events: write
+
+jobs:
+  imagem:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - nome: aurora-api
+            contexto: backend
+          - nome: aurora-postgres
+            contexto: infra/postgres
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/${{ matrix.nome }}
+          tags: |
+            type=sha,format=short
+            type=raw,value=main
+      - name: Construir (sem publicar) para a varredura
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.contexto }}
+          load: true
+          tags: varredura/${{ matrix.nome }}:ci
+          cache-from: type=gha,scope=${{ matrix.nome }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.nome }}
+      - name: Varredura de vulnerabilidades (Trivy)
+        uses: aquasecurity/trivy-action@0.33.1
+        with:
+          image-ref: varredura/${{ matrix.nome }}:ci
+          severity: CRITICAL
+          ignore-unfixed: true
+          exit-code: '1'
+          format: sarif
+          output: trivy-${{ matrix.nome }}.sarif
+      - name: Relatório da varredura na aba Security
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-${{ matrix.nome }}.sarif
+          category: trivy-${{ matrix.nome }}
+      - name: Publicar com SBOM e proveniência
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.contexto }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          sbom: true
+          provenance: mode=max
+          cache-from: type=gha,scope=${{ matrix.nome }}

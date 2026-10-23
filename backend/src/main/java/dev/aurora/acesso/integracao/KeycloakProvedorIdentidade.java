@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import dev.aurora.acesso.service.ProvedorIdentidade;
+import dev.aurora.comum.EnderecoDoEmissor;
 import dev.aurora.comum.ServicoExternoIndisponivelException;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
@@ -58,7 +59,7 @@ public class KeycloakProvedorIdentidade implements ProvedorIdentidade {
 		return executar(() -> {
 			try {
 				var resposta = http.post()
-					.uri(admin(emissor) + "/users")
+					.uri(admin(EnderecoDoEmissor.paraServidor(emissor, propriedades.urlInterna())) + "/users")
 					.headers(h -> h.setBearerAuth(token(emissor)))
 					.contentType(MediaType.APPLICATION_JSON)
 					.body(conta)
@@ -92,7 +93,7 @@ public class KeycloakProvedorIdentidade implements ProvedorIdentidade {
 		executar(() -> {
 			try {
 				http.put()
-					.uri(admin(emissor) + "/users/{id}", sub)
+					.uri(admin(EnderecoDoEmissor.paraServidor(emissor, propriedades.urlInterna())) + "/users/{id}", sub)
 					.headers(h -> h.setBearerAuth(token(emissor)))
 					.contentType(MediaType.APPLICATION_JSON)
 					.body(Map.of("enabled", ativa))
@@ -100,7 +101,8 @@ public class KeycloakProvedorIdentidade implements ProvedorIdentidade {
 					.toBodilessEntity();
 				if (!ativa) {
 					http.post()
-						.uri(admin(emissor) + "/users/{id}/logout", sub)
+						.uri(admin(EnderecoDoEmissor.paraServidor(emissor, propriedades.urlInterna()))
+								+ "/users/{id}/logout", sub)
 						.headers(h -> h.setBearerAuth(token(emissor)))
 						.retrieve()
 						.toBodilessEntity();
@@ -115,7 +117,9 @@ public class KeycloakProvedorIdentidade implements ProvedorIdentidade {
 	}
 
 	private void enviarAcoes(String emissor, String sub, List<String> acoes) {
-		URI uri = UriComponentsBuilder.fromUriString(admin(emissor) + "/users/{id}/execute-actions-email")
+		URI uri = UriComponentsBuilder
+			.fromUriString(admin(EnderecoDoEmissor.paraServidor(emissor, propriedades.urlInterna()))
+					+ "/users/{id}/execute-actions-email")
 			.queryParam("client_id", propriedades.clienteWeb())
 			.queryParam("redirect_uri", propriedades.urlRetorno())
 			.queryParam("lifespan", propriedades.validadeConvite().toSeconds())
@@ -133,7 +137,8 @@ public class KeycloakProvedorIdentidade implements ProvedorIdentidade {
 
 	private String buscarPorEmail(String emissor, String email) {
 		var contas = http.get()
-			.uri(admin(emissor) + "/users?email={email}&exact=true", email)
+			.uri(admin(EnderecoDoEmissor.paraServidor(emissor, propriedades.urlInterna()))
+					+ "/users?email={email}&exact=true", email)
 			.headers(h -> h.setBearerAuth(token(emissor)))
 			.retrieve()
 			.body(Conta[].class);
@@ -153,7 +158,7 @@ public class KeycloakProvedorIdentidade implements ProvedorIdentidade {
 		formulario.add("client_id", propriedades.clienteId());
 		formulario.add("client_secret", propriedades.segredo());
 		var resposta = http.post()
-			.uri(emissor + "/protocol/openid-connect/token")
+			.uri(EnderecoDoEmissor.paraServidor(emissor, propriedades.urlInterna()) + "/protocol/openid-connect/token")
 			.contentType(MediaType.APPLICATION_FORM_URLENCODED)
 			.body(formulario)
 			.retrieve()

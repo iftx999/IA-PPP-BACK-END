@@ -120,6 +120,14 @@ public class MapaService {
 		return resultado;
 	}
 
+	/**
+	 * Competência pedida ou a mais recente com dados; vazio em cliente ainda sem carga.
+	 */
+	@Transactional(readOnly = true)
+	public Optional<YearMonth> competenciaSeHouver(Optional<YearMonth> pedida) {
+		return pedida.or(() -> camadas.listarCompetencias().stream().findFirst());
+	}
+
 	/** Competência pedida ou a mais recente com dados. */
 	@Transactional(readOnly = true)
 	public YearMonth competencia(Optional<YearMonth> pedida) {

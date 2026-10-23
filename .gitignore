@@ -1,5 +1,6 @@
 # Segredos locais
-infra/.env
+# Segredos de qualquer ambiente (o .env.example é o modelo versionado).
+**/.env
 *.env.local
 
 # IDEs e SO
@@ -7,3 +8,5 @@ infra/.env
 .vscode/
 *.iml
 .DS_Store
+# Backups gerados em produção (copiar para fora do host, nunca para o Git).
+infra/producao/backups/

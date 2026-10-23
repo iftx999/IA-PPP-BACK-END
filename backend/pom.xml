@@ -22,6 +22,11 @@
 		<pdfbox.version>3.0.5</pdfbox.version>
 		<anthropic.version>2.34.0</anthropic.version>
 		<openai.version>4.79.0</openai.version>
+		<!-- Correções de segurança acima do que o Spring Boot 4.1.1 traz (Trivy, 23/10/2026). Remover quando o Boot
+		     gerenciar versões iguais ou mais novas. Tomcat: CVE-2026-65182 (crítica); Jackson: CVE-2026-89407. -->
+		<tomcat.version>11.0.25</tomcat.version>
+		<jackson-bom.version>3.1.7</jackson-bom.version>
+		<jackson-2-bom.version>2.21.7</jackson-2-bom.version>
 		<!-- Piso de cobertura de linhas; sobe conforme os módulos amadurecem. -->
 		<cobertura.minima>0.85</cobertura.minima>
 	</properties>
@@ -41,6 +46,15 @@
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-jdbc</artifactId>
+		</dependency>
+		<!-- Observabilidade (ADR 0022): métricas no formato Prometheus e traços OpenTelemetry (OTLP). -->
+		<dependency>
+			<groupId>io.micrometer</groupId>
+			<artifactId>micrometer-registry-prometheus</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-opentelemetry</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -62,9 +76,11 @@
 			<groupId>org.flywaydb</groupId>
 			<artifactId>flyway-database-postgresql</artifactId>
 		</dependency>
+		<!-- Spring Modulith só verifica as fronteiras entre módulos nos testes (ModularidadeTest); nada em produção. -->
 		<dependency>
 			<groupId>org.springframework.modulith</groupId>
 			<artifactId>spring-modulith-starter-core</artifactId>
+			<scope>test</scope>
 		</dependency>
 
 		<dependency>
@@ -189,6 +205,12 @@
 						</goals>
 					</execution>
 				</executions>
+			</plugin>
+			<!-- SBOM das dependências Java (CycloneDX, versão e saída gerenciadas pelo Spring Boot): vai dentro do JAR e
+			     é servido em /actuator/sbom na porta interna (ADR 0022). -->
+			<plugin>
+				<groupId>org.cyclonedx</groupId>
+				<artifactId>cyclonedx-maven-plugin</artifactId>
 			</plugin>
 			<plugin>
 				<groupId>org.jacoco</groupId>

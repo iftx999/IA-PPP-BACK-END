@@ -24,6 +24,8 @@ import dev.aurora.integracoes.model.ResultadoCarga;
 import dev.aurora.integracoes.repository.CargaRepository;
 import dev.aurora.integracoes.repository.FonteRepository;
 import dev.aurora.unidades.Unidades;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tools.jackson.databind.json.JsonMapper;
@@ -67,9 +69,12 @@ public class CargaService {
 
 	private final Clock relogio;
 
+	private final MeterRegistry metricas;
+
 	CargaService(CargaRepository cargas, FonteRepository fontes, Unidades unidades, Medicoes medicoes,
 			Auditoria auditoria, ApplicationEventPublisher eventos, TransactionTemplate transacao, JsonMapper json,
-			Clock relogio) {
+			Clock relogio, MeterRegistry metricas) {
+		this.metricas = metricas;
 		this.cargas = cargas;
 		this.fontes = fontes;
 		this.unidades = unidades;
@@ -132,9 +137,15 @@ public class CargaService {
 			throw new RegraVioladaException("Nenhum registro válido. Veja as recusas no histórico de cargas.");
 		}
 
+		var cronometro = Timer.start(metricas);
 		try {
 			var resultado = emTransacao(() -> gravar(fonteId, execucao, competencia, registros.size(), validacao,
 					rejeicoesJson, origem, detalheAuditoria));
+			cronometro.stop(metricas.timer("aurora.carga.duracao", "origem", origem.name(), "resultado", "sucesso"));
+			metricas.counter("aurora.carga.registros", "origem", origem.name(), "resultado", "aceito")
+				.increment(validacao.validos().size());
+			metricas.counter("aurora.carga.registros", "origem", origem.name(), "resultado", "rejeitado")
+				.increment(validacao.rejeitados());
 			LOG.info("Carga {} da fonte {} ({}): {} novos, {} atualizados, {} rejeitados, {} medições", execucao,
 					fonteId, competencia, resultado.novos(), resultado.atualizados(), resultado.rejeitados(),
 					resultado.medicoes());
@@ -142,6 +153,7 @@ public class CargaService {
 		}
 		catch (RuntimeException erro) {
 			LOG.error("Carga {} falhou", execucao, erro);
+			cronometro.stop(metricas.timer("aurora.carga.duracao", "origem", origem.name(), "resultado", "falha"));
 			falhar(execucao, "Falha ao gravar a carga. Tente novamente; se persistir, acione o suporte.",
 					validacao.rejeitados(), rejeicoesJson);
 			throw erro;

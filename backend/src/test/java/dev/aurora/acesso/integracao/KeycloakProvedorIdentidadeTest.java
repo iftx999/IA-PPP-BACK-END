@@ -40,7 +40,7 @@ class KeycloakProvedorIdentidadeTest {
 		var builder = RestClient.builder();
 		servidor = MockRestServiceServer.bindTo(builder).build();
 		provedor = new KeycloakProvedorIdentidade(builder, new ConfiguracaoIdentidade.Propriedades("aurora-api-admin",
-				"segredo", "aurora-web", "http://front.teste/", Duration.ofHours(72)));
+				"segredo", "aurora-web", "http://front.teste/", Duration.ofHours(72), null));
 	}
 
 	@Test

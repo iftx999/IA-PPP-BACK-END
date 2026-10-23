@@ -26,3 +26,4 @@ gera um novo ADR que o substitui.
 | [0019](0019-provedor-de-ia-configuravel.md) | Provedor de IA configurável: Claude (padrão) ou OpenAI | Aceito |
 | [0020](0020-aditivos-e-historico-de-metas.md) | Aditivo contratual substitui metas com histórico | Aceito |
 | [0021](0021-ocr-de-contratos-digitalizados.md) | OCR local de contratos digitalizados com Tesseract | Aceito |
+| [0022](0022-implantacao-e-observabilidade.md) | Implantação em contêineres, host único e observabilidade | Aceito |

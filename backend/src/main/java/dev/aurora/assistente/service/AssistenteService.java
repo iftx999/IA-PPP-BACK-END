@@ -14,6 +14,7 @@ import java.util.regex.Pattern;
 
 import dev.aurora.assistente.model.Conversa;
 import dev.aurora.assistente.model.Mensagem;
+import dev.aurora.assistente.model.RespostaDoModelo;
 import dev.aurora.assistente.model.TurnoAnterior;
 import dev.aurora.assistente.repository.ConversaRepository;
 import dev.aurora.assistente.repository.UsoRepository;
@@ -23,6 +24,7 @@ import dev.aurora.comum.LimiteDeUsoException;
 import dev.aurora.comum.RecursoNaoEncontradoException;
 import dev.aurora.contexto.ContextoAcesso;
 import dev.aurora.unidades.Unidades;
+import io.micrometer.core.instrument.MeterRegistry;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -78,8 +80,12 @@ public class AssistenteService {
 
 	private final Clock relogio;
 
+	private final MeterRegistry metricas;
+
 	AssistenteService(ModeloDoAssistente modelo, FerramentasDoAssistente ferramentas, ConversaRepository conversas,
-			UsoRepository usos, Unidades unidades, Auditoria auditoria, TransactionTemplate transacao, Clock relogio) {
+			UsoRepository usos, Unidades unidades, Auditoria auditoria, TransactionTemplate transacao, Clock relogio,
+			MeterRegistry metricas) {
+		this.metricas = metricas;
 		this.modelo = modelo;
 		this.ferramentas = ferramentas;
 		this.conversas = conversas;
@@ -140,6 +146,7 @@ public class AssistenteService {
 		var numeros = fontes.stream().map(f -> f.numero()).toList();
 		var dados = coletor.dados().stream().filter(d -> numeros.contains(d.fonte())).toList();
 		var custo = Optional.ofNullable(resposta.custoUsd());
+		registrarMetricas(resposta, semFonte.size());
 		var textoFinal = texto;
 		var fontesFinais = fontes;
 		var semFonteFinal = semFonte;
@@ -239,6 +246,25 @@ public class AssistenteService {
 			texto.append("A pessoa perguntou a partir da unidade: ").append(unidade).append('\n');
 		}
 		return texto.append("</contexto>\n<pergunta>\n").append(pergunta).append("\n</pergunta>").toString();
+	}
+
+	/**
+	 * Uso e qualidade do assistente (ADR 0022): por modelo e resultado, sem tenant nem
+	 * texto.
+	 */
+	private void registrarMetricas(RespostaDoModelo resposta, int numerosSemFonte) {
+		var resultado = resposta.recusada() ? "recusada" : numerosSemFonte > 0 ? "numero_sem_fonte" : "ok";
+		metricas.counter("aurora.assistente.perguntas", "modelo", resposta.modelo(), "resultado", resultado)
+			.increment();
+		var uso = resposta.uso();
+		metricas.counter("aurora.ia.tokens", "modelo", resposta.modelo(), "tipo", "entrada").increment(uso.entrada());
+		metricas.counter("aurora.ia.tokens", "modelo", resposta.modelo(), "tipo", "saida").increment(uso.saida());
+		metricas.counter("aurora.ia.tokens", "modelo", resposta.modelo(), "tipo", "cache_lido")
+			.increment(uso.cacheLido());
+		if (resposta.custoUsd() != null) {
+			metricas.counter("aurora.ia.custo.usd", "modelo", resposta.modelo())
+				.increment(resposta.custoUsd().doubleValue());
+		}
 	}
 
 	/** Tira marcas [n] que não correspondem a nenhuma fonte lida. */

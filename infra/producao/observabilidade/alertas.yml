@@ -1,0 +1,50 @@
+# Alertas ligados às metas do doc 09 (9.9). Ajustar após medir o uso real.
+groups:
+  - name: aurora-slo
+    rules:
+      - alert: ApiForaDoAr
+        expr: up{job="aurora-api"} == 0
+        for: 2m
+        labels: { severidade: critica }
+        annotations:
+          resumo: "A API da Aurora não responde às métricas há 2 minutos."
+
+      - alert: PainelLento
+        expr: >
+          histogram_quantile(0.95, sum by (le) (rate(http_server_requests_seconds_bucket{uri="/api/v1/painel"}[10m]))) > 0.3
+        for: 10m
+        labels: { severidade: atencao }
+        annotations:
+          resumo: "p95 do painel acima de 300 ms (meta do doc 09)."
+
+      - alert: TileDoMapaLento
+        expr: >
+          histogram_quantile(0.95, sum by (le) (rate(http_server_requests_seconds_bucket{uri="/api/v1/mapa/tiles/{z}/{x}/{y}.mvt"}[10m]))) > 0.5
+        for: 10m
+        labels: { severidade: atencao }
+        annotations:
+          resumo: "p95 dos tiles do mapa acima de 500 ms."
+
+      - alert: ErrosDoServidor
+        expr: >
+          sum(rate(http_server_requests_seconds_count{status=~"5.."}[5m]))
+          / clamp_min(sum(rate(http_server_requests_seconds_count[5m])), 1) > 0.02
+        for: 5m
+        labels: { severidade: critica }
+        annotations:
+          resumo: "Mais de 2% das requisições com erro 5xx."
+
+      - alert: AssistenteComNumerosSemFonte
+        expr: >
+          sum(increase(aurora_assistente_perguntas_total{resultado="numero_sem_fonte"}[1h]))
+          / clamp_min(sum(increase(aurora_assistente_perguntas_total[1h])), 1) > 0.1
+        for: 30m
+        labels: { severidade: atencao }
+        annotations:
+          resumo: "Mais de 10% das respostas do assistente com números sem fonte (G6): revisar prompt/modelo."
+
+      - alert: CustoDeIaAlto
+        expr: sum(increase(aurora_ia_custo_usd_total[24h])) > 50
+        labels: { severidade: atencao }
+        annotations:
+          resumo: "Gasto com IA acima de US$ 50 em 24 h."

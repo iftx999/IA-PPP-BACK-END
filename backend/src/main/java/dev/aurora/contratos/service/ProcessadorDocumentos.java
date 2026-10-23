@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.Executor;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
 import dev.aurora.auditoria.Auditoria;
@@ -16,8 +17,10 @@ import dev.aurora.contratos.model.SituacaoDocumento;
 import dev.aurora.contratos.repository.ContratoRepository;
 import dev.aurora.contratos.repository.ItemRepository;
 import dev.aurora.unidades.Unidades;
+import io.micrometer.core.instrument.MeterRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import tools.jackson.databind.json.JsonMapper;
 
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -75,10 +78,13 @@ public class ProcessadorDocumentos {
 
 	private final Auditoria auditoria;
 
+	private final MeterRegistry metricas;
+
 	ProcessadorDocumentos(ContratoRepository contratos, ItemRepository itens, Unidades unidades, LeitorPdf leitor,
 			ExtratorContrato extrator, TransactionTemplate transacao,
 			@Qualifier("applicationTaskExecutor") Executor executor, JsonMapper json, ReconhecedorDeTexto ocr,
-			Auditoria auditoria) {
+			Auditoria auditoria, MeterRegistry metricas) {
+		this.metricas = metricas;
 		this.ocr = ocr;
 		this.auditoria = auditoria;
 		this.contratos = contratos;
@@ -94,7 +100,13 @@ public class ProcessadorDocumentos {
 	/** Agenda o processamento no contexto de acesso atual (tenant, usuário, escopo). */
 	public void agendar(UUID documento) {
 		var contexto = ContextoAcesso.exigir();
+		// Logs do processamento com o mesmo tenant e trace da requisição que enviou o
+		// documento (ADR 0022).
+		var registro = MDC.getCopyOfContextMap();
 		executor.execute(() -> {
+			if (registro != null) {
+				MDC.setContextMap(registro);
+			}
 			try {
 				ContextoAcesso.executar(contexto, () -> {
 					processar(documento);
@@ -103,6 +115,9 @@ public class ProcessadorDocumentos {
 			}
 			catch (Exception erro) {
 				LOG.error("Falha ao processar o documento {}", documento, erro);
+			}
+			finally {
+				MDC.clear();
 			}
 		});
 	}
@@ -228,7 +243,10 @@ public class ProcessadorDocumentos {
 				resultado.add(pagina);
 			}
 		}
-		var segundos = (System.nanoTime() - inicio) / 1_000_000_000L;
+		var duracao = System.nanoTime() - inicio;
+		var segundos = duracao / 1_000_000_000L;
+		metricas.counter("aurora.ocr.paginas").increment(digitalizadas.size());
+		metricas.timer("aurora.ocr.documento").record(duracao, TimeUnit.NANOSECONDS);
 		emTransacao(() -> {
 			contratos.marcarTextoPorOcr(documentoId);
 			auditoria.registrar(TipoEvento.TEXTO_RECONHECIDO_POR_OCR, "documento-contrato/" + documentoId,

@@ -61,8 +61,8 @@ Se o `ng serve` mostrar tela antiga ou erro 500 do Vite depois de trocar depend�
 8. ~~Marco 5 (mapa/GIS)~~ (feito em 23/10).
 9. ~~Marco 4 (assistente)~~ (feito em 23/10; falta validar com uma chave real de IA).
 10. ~~Marco 6 (refino)~~ (feito em 23/10).
-11. Próximo: imagem Docker e pipeline de implantação da API e do front (com Tesseract), observabilidade
-    (métricas/tracing) e as pendências restantes do doc 06 (regra factível × cortado, H9 autenticação segura).
+11. ~~Implantação e observabilidade~~ (feito em 23/10, ADR 0022, runbook em `docs/operacao.md`).
+12. Próximo: H9 completo (MFA por perfil, SSO), regra factível × cortado (doc 06) e validação da IA com chave real.
 - O E2E de integrações grava uma carga idempotente (matrículas `E2E-000x`) na competência mais antiga da lista.
 
 ## Sessão de 22/10/2026
@@ -231,3 +231,22 @@ token não leva os papéis de `realm-management` e a Admin API responde 403. Flu
   do mapa passou a usá-lo).
 - CSV: número puro (ex.: `-0,30`) não é mais tratado como fórmula.
 - Testes: back-end 166; front 40 unitários e 30 E2E.
+
+### Implantação e observabilidade — ADR 0022
+- **Imagens:** API (JRE mínimo via jlink, Tesseract, não-root, porta de gerenciamento 8081, 690 MB) e front (nginx
+  não-privilegiado, somente leitura, CSP sem scripts inline, `/configuracao.json` por ambiente, 96 MB). Trivy:
+  0 vulnerabilidades altas/críticas corrigíveis (Tomcat 11.0.25 e Jackson corrigidos no `pom.xml`).
+- **Produção num host:** `infra/producao/` (compose `aurora-producao`, Caddy com TLS, Keycloak produção com realm
+  gerado por `infra/keycloak/gerar-realm-producao.py`, backup diário, Prometheus/Tempo/Grafana), scripts
+  `provisionar-cliente.sh` e `restaurar-backup.sh`.
+- **Observabilidade:** métricas Prometheus (incl. negócio), traços OTLP, logs ECS com `traceId`/`tenant_id`, painel
+  Grafana e 6 regras de alerta ligadas às metas do doc 09.
+- **CI:** workflows `imagens.yml` (API e banco) e `imagem.yml` (front): build, Trivy, publicação no GHCR com SBOM.
+- **Validações feitas nesta máquina:** E2E completa (30) contra as imagens de produção; pilha de produção inteira com
+  HTTPS local (`aurora.localhost`), provisionamento de cliente, primeiro acesso com troca de senha, OCR, traços no
+  Tempo, painel no Grafana, perda simulada e restauração.
+- Correções que só apareceram em produção: workers `.mjs` com tipo errado, scripts inline bloqueados pela CSP,
+  emissor OIDC fixo no código, chaves do Keycloak buscadas pelo endereço público, tiles com 422 em cliente sem carga,
+  restauração com `--clean` incompatível com tabelas particionadas, `.env` de produção fora do `.gitignore`.
+- **Atenção:** nunca nomear projeto Compose como `aurora` (colide com o volume antigo `aurora_postgres-dados`).
+- Testes: back-end 169; front 42 unitários e 30 E2E.

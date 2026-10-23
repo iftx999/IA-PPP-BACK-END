@@ -62,9 +62,14 @@ class MapaController {
 			@RequestParam Optional<Set<SituacaoNoMapa>> situacoes,
 			@RequestParam(defaultValue = "true") boolean aproximadas,
 			@RequestParam(defaultValue = "true") boolean rede) {
-		var filtro = filtro(competencia, situacoes, aproximadas);
-		var tile = mapa.tile(z, x, y, filtro, rede);
 		var cache = CacheControl.maxAge(Duration.ofMinutes(5)).cachePrivate();
+		var mes = mapa.competenciaSeHouver(competencia);
+		if (mes.isEmpty()) {
+			// Cliente ainda sem carga: mapa sem imóveis, sem erro.
+			return ResponseEntity.noContent().cacheControl(cache).build();
+		}
+		var filtro = filtro(mes, situacoes, aproximadas);
+		var tile = mapa.tile(z, x, y, filtro, rede);
 		if (tile.length == 0) {
 			return ResponseEntity.noContent().cacheControl(cache).build();
 		}

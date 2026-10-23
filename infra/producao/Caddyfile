@@ -1,0 +1,35 @@
+# Proxy de borda: TLS automático (Let's Encrypt) para o app e para o provedor de identidade.
+{
+	email {$AURORA_EMAIL_TLS}
+	servers {
+		# HTTP/3 e cabeçalhos X-Forwarded-* confiáveis só a partir deste proxy.
+		protocols h1 h2 h3
+	}
+}
+
+{$AURORA_DOMINIO} {
+	encode zstd gzip
+	# Grafana (perfil observabilidade) atrás de login próprio; o restante vai para o front (que repassa /api).
+	handle /grafana* {
+		reverse_proxy grafana:3000
+	}
+	handle {
+		reverse_proxy web:8080
+	}
+	log {
+		output stdout
+		format json
+	}
+}
+
+{$AURORA_DOMINIO_ID} {
+	encode zstd gzip
+	# Console de administração do Keycloak não fica exposto na internet (acesso pelo túnel/SSH do host).
+	@admin path /admin*
+	respond @admin 404
+	reverse_proxy keycloak:8080
+	log {
+		output stdout
+		format json
+	}
+}
