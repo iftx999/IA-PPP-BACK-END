@@ -1,5 +1,6 @@
 package dev.aurora.contexto;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -77,6 +78,35 @@ public record ContextoAcesso(UUID tenantId, @Nullable UUID usuarioId, Map<String
 	 */
 	public ContextoAcesso restritoA(String permissao) {
 		return new ContextoAcesso(tenantId, usuarioId, concessoes, escoposDe(permissao));
+	}
+
+	/**
+	 * Escopo efetivo onde todas as permissões valem ao mesmo tempo (interseção das
+	 * subárvores): ex. o assistente lê indicadores só onde a pessoa pode usar o
+	 * assistente <em>e</em> ler indicadores.
+	 */
+	public ContextoAcesso restritoATodas(String... permissoes) {
+		List<String> comum = null;
+		for (var permissao : permissoes) {
+			var caminhos = escoposDe(permissao);
+			if (comum == null) {
+				comum = caminhos;
+				continue;
+			}
+			var intersecao = new ArrayList<String>();
+			for (var a : comum) {
+				for (var b : caminhos) {
+					if (dentroDe(a, b)) {
+						intersecao.add(a);
+					}
+					else if (dentroDe(b, a)) {
+						intersecao.add(b);
+					}
+				}
+			}
+			comum = intersecao.stream().distinct().toList();
+		}
+		return new ContextoAcesso(tenantId, usuarioId, concessoes, comum == null ? List.of() : comum);
 	}
 
 	/**

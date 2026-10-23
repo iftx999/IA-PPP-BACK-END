@@ -30,6 +30,17 @@ class ContextoAcessoTest {
 	}
 
 	@Test
+	void restritoATodasFicaComAIntersecaoDasSubarvores() {
+		var varias = new ContextoAcesso(UUID.randomUUID(), UUID.randomUUID(),
+				Map.of("assistente:usar", List.of("g.c", "g.x"), "indicador:ler", List.of("g.c.b", "g.y", "g.x")),
+				List.of("g"));
+		assertThat(varias.restritoATodas("assistente:usar", "indicador:ler").escopos())
+			.containsExactlyInAnyOrder("g.c.b", "g.x");
+		assertThat(varias.restritoATodas("assistente:usar", "nao:tem").escopos()).isEmpty();
+		assertThat(varias.restritoATodas("indicador:ler").escopos()).containsExactly("g.c.b", "g.y", "g.x");
+	}
+
+	@Test
 	void trocarDevolveOAnteriorERestaura() {
 		var anterior = ContextoAcesso.trocar(contexto);
 		assertThat(ContextoAcesso.exigir()).isSameAs(contexto);

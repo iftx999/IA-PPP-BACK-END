@@ -23,4 +23,13 @@ public interface Medicoes {
 	 */
 	List<AdesaoDaUnidade> situacaoDas(Collection<UUID> unidades, YearMonth competencia);
 
+	/**
+	 * Indicador completo de cada unidade pedida que tem medição na competência (as demais
+	 * ficam de fora), na ordem pedida.
+	 */
+	List<IndicadorDaUnidade> detalhar(Collection<UUID> unidades, YearMonth competencia);
+
+	/** Competências com medição no escopo, da mais recente para a mais antiga. */
+	List<YearMonth> competencias();
+
 }

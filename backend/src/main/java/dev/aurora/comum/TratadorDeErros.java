@@ -24,6 +24,11 @@ class TratadorDeErros {
 		return ProblemDetail.forStatusAndDetail(HttpStatus.UNPROCESSABLE_CONTENT, erro.getMessage());
 	}
 
+	@ExceptionHandler(LimiteDeUsoException.class)
+	ProblemDetail limiteDeUso(LimiteDeUsoException erro) {
+		return ProblemDetail.forStatusAndDetail(HttpStatus.TOO_MANY_REQUESTS, erro.getMessage());
+	}
+
 	@ExceptionHandler(ServicoExternoIndisponivelException.class)
 	ProblemDetail servicoExternoIndisponivel(ServicoExternoIndisponivelException erro) {
 		return ProblemDetail.forStatusAndDetail(HttpStatus.SERVICE_UNAVAILABLE, erro.getMessage());

@@ -22,3 +22,4 @@ gera um novo ADR que o substitui.
 | [0015](0015-alertas-e-tarefas-agendadas.md) | Alertas por sincronização de condições e tarefas agendadas com trava no banco | Aceito |
 | [0016](0016-ingestao-de-cargas.md) | Ingestão de cargas pelo Agente Aurora e por arquivo | Aceito |
 | [0017](0017-mapa-e-tiles-vetoriais.md) | Mapa: tiles vetoriais do PostGIS, camadas leves e exportação do visível | Aceito |
+| [0018](0018-assistente-com-fontes.md) | Assistente com fontes: ferramentas fixas, fontes numeradas e verificação dos números | Aceito |

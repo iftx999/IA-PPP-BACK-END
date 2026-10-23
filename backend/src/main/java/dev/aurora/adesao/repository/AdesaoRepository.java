@@ -172,6 +172,16 @@ public class AdesaoRepository {
 			.single();
 	}
 
+	/**
+	 * RN-14: competências com medição de adesão no escopo, da mais recente à mais antiga.
+	 */
+	public List<YearMonth> listarCompetenciasDoEscopo(UUID indicadorId) {
+		return jdbc.sql("SELECT DISTINCT periodo_inicio FROM medicao WHERE indicador_id = ? ORDER BY 1 DESC LIMIT 60")
+			.param(indicadorId)
+			.query((linha, n) -> YearMonth.from(linha.getDate(1).toLocalDate()))
+			.list();
+	}
+
 	/** Medição da competência de cada unidade pedida que a tem (unidades do escopo). */
 	public Map<UUID, Adesao> buscarMedicoes(Collection<UUID> unidades, UUID indicadorId, YearMonth competencia) {
 		var medicoes = new HashMap<UUID, Adesao>();

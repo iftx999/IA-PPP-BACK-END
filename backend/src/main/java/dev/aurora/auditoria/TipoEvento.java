@@ -39,6 +39,12 @@ public enum TipoEvento {
 	CONTRATO_CRIADO, DOCUMENTO_CONTRATO_ENVIADO, ITEM_CONTRATUAL_APROVADO, ITEM_CONTRATUAL_REJEITADO,
 
 	/** Mapa (épico E): marcações de visita e localizações enviadas pelo agente. */
-	MARCACAO_CRIADA, MARCACAO_REMOVIDA, IMOVEIS_GEOCODIFICADOS
+	MARCACAO_CRIADA, MARCACAO_REMOVIDA, IMOVEIS_GEOCODIFICADOS,
+
+	/**
+	 * Assistente (épico G): só identificadores, tokens e custo; nunca o texto da
+	 * pergunta.
+	 */
+	PERGUNTA_IA, RESPOSTA_IA_AVALIADA
 
 }
