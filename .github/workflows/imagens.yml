@@ -16,6 +16,8 @@ jobs:
   imagem:
     runs-on: ubuntu-latest
     strategy:
+      # Uma imagem com problema não cancela a outra.
+      fail-fast: false
       matrix:
         include:
           - nome: aurora-api
@@ -23,45 +25,42 @@ jobs:
           - nome: aurora-postgres
             contexto: infra/postgres
     steps:
-      - uses: actions/checkout@v4
-      - uses: docker/setup-buildx-action@v3
-      - uses: docker/login-action@v3
+      - uses: actions/checkout@v5
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: ghcr.io/${{ github.repository_owner }}/${{ matrix.nome }}
           tags: |
             type=sha,format=short
             type=raw,value=main
       - name: Construir (sem publicar) para a varredura
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: ${{ matrix.contexto }}
           load: true
           tags: varredura/${{ matrix.nome }}:ci
           cache-from: type=gha,scope=${{ matrix.nome }}
           cache-to: type=gha,mode=max,scope=${{ matrix.nome }}
-      - name: Varredura de vulnerabilidades (Trivy)
-        uses: aquasecurity/trivy-action@v0.33.1
-        with:
-          image-ref: varredura/${{ matrix.nome }}:ci
-          severity: CRITICAL
-          ignore-unfixed: true
-          exit-code: '1'
-          format: sarif
-          output: trivy-${{ matrix.nome }}.sarif
+      - name: Varredura de vulnerabilidades (Trivy; crítica corrigível bloqueia)
+        run: >
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v "$PWD:/saida"
+          aquasec/trivy:0.67.2 image --quiet --severity CRITICAL --ignore-unfixed --exit-code 1
+          --db-repository mirror.gcr.io/aquasec/trivy-db,public.ecr.aws/aquasecurity/trivy-db
+          --format sarif --output /saida/trivy-${{ matrix.nome }}.sarif varredura/${{ matrix.nome }}:ci
       - name: Relatório da varredura na aba Security
-        if: always()
-        uses: github/codeql-action/upload-sarif@v3
+        if: always() && hashFiles('trivy-*.sarif') != ''
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: trivy-${{ matrix.nome }}.sarif
           category: trivy-${{ matrix.nome }}
       - name: Publicar com SBOM e proveniência
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: ${{ matrix.contexto }}
           push: true
