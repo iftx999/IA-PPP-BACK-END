@@ -60,7 +60,9 @@ Se o `ng serve` mostrar tela antiga ou erro 500 do Vite depois de trocar depend�
 7. ~~Ingestão de cargas~~ (feito em 22/10).
 8. ~~Marco 5 (mapa/GIS)~~ (feito em 23/10).
 9. ~~Marco 4 (assistente)~~ (feito em 23/10; falta validar com uma chave real de IA).
-10. Próximo: Marco 6 (refino: aditivos A5, OCR de PDF digitalizado) e pendências de produto do doc 06.
+10. ~~Marco 6 (refino)~~ (feito em 23/10).
+11. Próximo: imagem Docker e pipeline de implantação da API e do front (com Tesseract), observabilidade
+    (métricas/tracing) e as pendências restantes do doc 06 (regra factível × cortado, H9 autenticação segura).
 - O E2E de integrações grava uma carga idempotente (matrículas `E2E-000x`) na competência mais antiga da lista.
 
 ## Sessão de 22/10/2026
@@ -215,3 +217,17 @@ token não leva os papéis de `realm-management` e a Admin API responde 403. Flu
 - Para ligar a IA no ambiente local: exportar as variáveis acima antes de `./mvnw spring-boot:run`.
 - O E2E do assistente simula a resposta no navegador (o ambiente local roda sem chave); o caminho no servidor é
   coberto por `AssistenteApiTest` e `AssistenteComOpenAiApiTest`.
+
+### Marco 6 — Refino (A5, B6, OCR) — ADRs 0020 e 0021
+- **A5 aditivos:** aprovar META de documento ADITIVO encerra na véspera (ou substitui, se retroativo) as metas de
+  contrato sobrepostas; versões anteriores em `meta_historico` (V18); item antigo `SUBSTITUIDO` com
+  `substituido_por`; meta manual sobreposta → 409. `GET /metas/unidades/{id}/historico`; diálogo "Histórico de
+  metas" na tela de Metas (também para quem só lê). Pendência 6 do doc 06 resolvida.
+- **OCR:** Tesseract local em português nas páginas sem texto (300 DPI), `texto_por_ocr`, evento
+  `TEXTO_RECONHECIDO_POR_OCR`; trecho da IA conferido com tolerância de 5% só no texto de OCR. Sem Tesseract, fica
+  como antes (`SEM_TEXTO`). `AURORA_OCR_COMANDO` (vazio desliga). CI instala `tesseract-ocr-por`. Pendência 10
+  resolvida. Exemplo: `aurora-frontend/e2e/exemplos/contrato-digitalizado.pdf` (`scripts/gerar-contrato-digitalizado.py`).
+- **B6:** `GET /painel/exportacao.csv|pdf` (auditado), menu Exportar no painel. `RelatorioPdf` em `comum` (o PDF
+  do mapa passou a usá-lo).
+- CSV: número puro (ex.: `-0,30`) não é mais tratado como fórmula.
+- Testes: back-end 166; front 40 unitários e 30 E2E.
