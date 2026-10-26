@@ -27,3 +27,4 @@ gera um novo ADR que o substitui.
 | [0020](0020-aditivos-e-historico-de-metas.md) | Aditivo contratual substitui metas com histórico | Aceito |
 | [0021](0021-ocr-de-contratos-digitalizados.md) | OCR local de contratos digitalizados com Tesseract | Aceito |
 | [0022](0022-implantacao-e-observabilidade.md) | Implantação em contêineres, host único e observabilidade | Aceito |
+| [0023](0023-verificacao-em-duas-etapas.md) | Verificação em duas etapas: TOTP no Keycloak, política conferida pela API | Aceito |

@@ -1,6 +1,7 @@
 package dev.aurora.acesso.service;
 
 import java.time.Clock;
+import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.Collection;
 import java.util.LinkedHashSet;
@@ -11,6 +12,7 @@ import java.util.UUID;
 
 import dev.aurora.acesso.model.ConcessaoDoUsuario;
 import dev.aurora.acesso.model.NovaConcessao;
+import dev.aurora.acesso.model.Permissao;
 import dev.aurora.acesso.model.SituacaoUsuario;
 import dev.aurora.acesso.model.Usuario;
 import dev.aurora.acesso.repository.PerfilRepository;
@@ -22,6 +24,7 @@ import dev.aurora.comum.ConflitoException;
 import dev.aurora.comum.RecursoNaoEncontradoException;
 import dev.aurora.comum.RegraVioladaException;
 import dev.aurora.unidades.Unidades;
+import org.jspecify.annotations.Nullable;
 
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
@@ -52,20 +55,31 @@ public class GestaoUsuarioService {
 
 	private final Auditoria auditoria;
 
+	private final SegundoFatorService segundoFator;
+
 	private final Clock relogio;
 
 	GestaoUsuarioService(UsuarioRepository usuarios, PerfilRepository perfis, TenantRepository tenants,
-			Unidades unidades, ProvedorIdentidade identidade, Auditoria auditoria, Clock relogio) {
+			Unidades unidades, ProvedorIdentidade identidade, Auditoria auditoria, SegundoFatorService segundoFator,
+			Clock relogio) {
 		this.usuarios = usuarios;
 		this.perfis = perfis;
 		this.tenants = tenants;
 		this.unidades = unidades;
 		this.identidade = identidade;
 		this.auditoria = auditoria;
+		this.segundoFator = segundoFator;
 		this.relogio = relogio;
 	}
 
 	public record DadosConvite(String nome, String email, List<NovaConcessao> concessoes) {
+	}
+
+	/**
+	 * @param exigido a política obriga a pessoa a usar o segundo fator
+	 * @param cadastradoEm quando cadastrou o TOTP; nulo se não tem
+	 */
+	public record SituacaoSegundoFator(boolean exigido, @Nullable Instant cadastradoEm) {
 	}
 
 	@Transactional(readOnly = true)
@@ -185,6 +199,48 @@ public class GestaoUsuarioService {
 		}
 		auditoria.registrar(TipoEvento.REDEFINICAO_SENHA_ENVIADA, RECURSO + id, Map.of());
 		identidade.enviarRedefinicaoSenha(emissorDoTenant(contexto.tenantId()), usuario.subExterno());
+	}
+
+	/** Consulta o provedor de identidade: indisponível -> 503. */
+	@Transactional(readOnly = true)
+	public SituacaoSegundoFator situacaoSegundoFator(UUID id) {
+		var contexto = EscopoAdministrativo.exigirTenantInteiro();
+		var usuario = usuarios.buscar(id).orElseThrow(RecursoNaoEncontradoException::new);
+		var sub = usuario.subExterno();
+		var cadastradoEm = sub == null ? null
+				: identidade.segundoFatorCadastradoEm(emissorDoTenant(contexto.tenantId()), sub).orElse(null);
+		return new SituacaoSegundoFator(segundoFatorExigido(id), cadastradoEm);
+	}
+
+	/**
+	 * Remove o TOTP de quem perdeu o aparelho. Se a política exigir, o cadastro de um
+	 * novo é pedido no próximo login.
+	 */
+	@Transactional
+	public void removerSegundoFator(UUID id) {
+		var contexto = EscopoAdministrativo.exigirTenantInteiro();
+		var usuario = usuarios.buscar(id).orElseThrow(RecursoNaoEncontradoException::new);
+		if (id.equals(contexto.usuarioId())) {
+			throw new ConflitoException(
+					"Você não pode remover a própria verificação em duas etapas: peça a outro administrador.");
+		}
+		var sub = usuario.subExterno();
+		if (sub == null) {
+			throw new ConflitoException("O convite ainda não foi aceito: não há verificação em duas etapas.");
+		}
+		var emissor = emissorDoTenant(contexto.tenantId());
+		auditoria.registrar(TipoEvento.SEGUNDO_FATOR_REMOVIDO, RECURSO + id, Map.of());
+		identidade.removerSegundoFator(emissor, sub);
+		if (segundoFatorExigido(id)) {
+			identidade.exigirCadastroSegundoFator(emissor, sub);
+		}
+	}
+
+	private boolean segundoFatorExigido(UUID id) {
+		return segundoFator.exigido(tenants.segundoFatorObrigatorio(),
+				usuarios.listarConcessoesVigentes(id)
+					.stream()
+					.anyMatch(c -> Permissao.GERIR_USUARIOS.equals(c.permissao())));
 	}
 
 	/**

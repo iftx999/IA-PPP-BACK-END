@@ -9,6 +9,7 @@ import java.util.UUID;
 
 import dev.aurora.contexto.ContextoAcesso;
 import dev.aurora.acesso.model.Concessao;
+import dev.aurora.acesso.model.Permissao;
 import dev.aurora.acesso.repository.TenantRepository;
 import dev.aurora.acesso.repository.UsuarioRepository;
 
@@ -26,9 +27,12 @@ public class ContextoAcessoService {
 
 	private final UsuarioRepository usuarios;
 
-	ContextoAcessoService(TenantRepository tenants, UsuarioRepository usuarios) {
+	private final SegundoFatorService segundoFator;
+
+	ContextoAcessoService(TenantRepository tenants, UsuarioRepository usuarios, SegundoFatorService segundoFator) {
 		this.tenants = tenants;
 		this.usuarios = usuarios;
+		this.segundoFator = segundoFator;
 	}
 
 	public Optional<UUID> tenantDoEmissor(String emissor) {
@@ -38,6 +42,8 @@ public class ContextoAcessoService {
 	/**
 	 * Vazio quando o emissor é desconhecido, o tenant está inativo ou a pessoa não é
 	 * usuária ativa.
+	 * @throws SegundoFatorNecessarioException se a política exige o segundo fator e o
+	 * token não o comprova (H9)
 	 */
 	public Optional<ContextoAcesso> resolver(Jwt token) throws Exception {
 		var tenantId = tenantDoEmissor(String.valueOf(token.getIssuer()));
@@ -65,6 +71,9 @@ public class ContextoAcessoService {
 			concessoes.computeIfAbsent(concessao.permissao(), p -> new LinkedHashSet<>())
 				.add(concessao.caminhoUnidade());
 			escopos.add(concessao.caminhoUnidade());
+		}
+		if (segundoFator.exigido(tenants.segundoFatorObrigatorio(), concessoes.containsKey(Permissao.GERIR_USUARIOS))) {
+			segundoFator.exigir(token);
 		}
 		usuarios.registrarAcesso(usuarioId.get());
 		var porPermissao = new TreeMap<String, List<String>>();

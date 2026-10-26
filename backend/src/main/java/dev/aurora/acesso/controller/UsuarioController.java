@@ -1,6 +1,7 @@
 package dev.aurora.acesso.controller;
 
 import java.net.URI;
+import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -19,6 +20,7 @@ import jakarta.validation.constraints.Size;
 import org.jspecify.annotations.Nullable;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -71,6 +73,13 @@ class UsuarioController {
 	record UsuarioConvidado(UUID id) {
 	}
 
+	record SegundoFatorResponse(boolean exigido, boolean cadastrado, @Nullable Instant cadastradoEm) {
+
+		static SegundoFatorResponse de(GestaoUsuarioService.SituacaoSegundoFator s) {
+			return new SegundoFatorResponse(s.exigido(), s.cadastradoEm() != null, s.cadastradoEm());
+		}
+	}
+
 	private final GestaoUsuarioService usuarios;
 
 	UsuarioController(GestaoUsuarioService usuarios) {
@@ -117,6 +126,18 @@ class UsuarioController {
 	ResponseEntity<Void> redefinirSenha(@PathVariable UUID id) {
 		usuarios.enviarRedefinicaoSenha(id);
 		return ResponseEntity.accepted().build();
+	}
+
+	/** Verificação em duas etapas da pessoa (H9); consulta o provedor de identidade. */
+	@GetMapping("/{id}/segundo-fator")
+	SegundoFatorResponse segundoFator(@PathVariable UUID id) {
+		return SegundoFatorResponse.de(usuarios.situacaoSegundoFator(id));
+	}
+
+	@DeleteMapping("/{id}/segundo-fator")
+	ResponseEntity<Void> removerSegundoFator(@PathVariable UUID id) {
+		usuarios.removerSegundoFator(id);
+		return ResponseEntity.noContent().build();
 	}
 
 }

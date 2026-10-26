@@ -161,7 +161,7 @@ Cada meta tem **percentual de meta** e **limite de alerta** (alerta ≤ meta).
 ## RN-17 · Autenticação
 
 - Senha com hash forte, bloqueio progressivo após falhas, recuperação por e-mail com link de uso único.
-- MFA opcional por tenant e obrigatório para administradores.
+- MFA (TOTP) obrigatório para administradores e, se o tenant ligar, para todos; vale na requisição seguinte (ADR 0023).
 - Convites expiram e são de uso único.
 - Troca de tenant gera novo token e é auditada.
 

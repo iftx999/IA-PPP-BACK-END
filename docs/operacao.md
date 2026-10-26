@@ -78,4 +78,7 @@ Troca periódica (ou após incidente): gere novos valores, atualize o `.env` e `
 - `AURORA_AUDITORIA_CHAVE` assina a trilha: trocar inicia uma nova cadeia (ADR 0009).
 - `AURORA_CHAVE_CURSOR`: cursores de paginação antigos deixam de valer (o usuário só recarrega a lista).
 - `AURORA_IDENTIDADE_SEGREDO`: troque também no cliente `aurora-api-admin` do Keycloak.
+- `AURORA_SEGUNDO_FATOR_ADMINISTRADORES` (padrão `true`): exige o código do aplicativo autenticador de quem gerencia
+  usuários (ADR 0023). Administrador que perdeu o celular: outro administrador remove o aplicativo em
+  Usuários › Verificação em duas etapas; se não houver outro, remova a credencial OTP pelo console do Keycloak.
 - Chaves de IA (ADR 0019): só por variável de ambiente; nunca em chat, e-mail ou repositório.

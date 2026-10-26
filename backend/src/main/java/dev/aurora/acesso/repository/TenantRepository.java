@@ -29,6 +29,15 @@ public class TenantRepository {
 		return jdbc.sql("SELECT ativo FROM tenant").query(Boolean.class).optional().orElse(false);
 	}
 
+	/** Política do tenant atual: segundo fator exigido de todos os usuários (H9). */
+	public boolean segundoFatorObrigatorio() {
+		return jdbc.sql("SELECT segundo_fator_obrigatorio FROM tenant").query(Boolean.class).optional().orElse(false);
+	}
+
+	public void definirSegundoFatorObrigatorio(boolean obrigatorio) {
+		jdbc.sql("UPDATE tenant SET segundo_fator_obrigatorio = ?").param(obrigatorio).update();
+	}
+
 	/**
 	 * Emissor OIDC (realm) do tenant: é onde a administração de usuários cria e altera
 	 * contas.

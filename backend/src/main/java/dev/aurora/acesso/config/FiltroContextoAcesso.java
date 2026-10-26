@@ -3,6 +3,7 @@ package dev.aurora.acesso.config;
 import java.io.IOException;
 
 import dev.aurora.acesso.service.ContextoAcessoService;
+import dev.aurora.acesso.service.SegundoFatorNecessarioException;
 import dev.aurora.contexto.ContextoAcesso;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -11,6 +12,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.MDC;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
@@ -42,6 +44,10 @@ class FiltroContextoAcesso extends OncePerRequestFilter {
 		try {
 			contexto = resolvedor.resolver(autenticacao.getToken()).orElse(null);
 		}
+		catch (SegundoFatorNecessarioException erro) {
+			recusarSemSegundoFator(resposta, erro);
+			return;
+		}
 		catch (Exception erro) {
 			throw new ServletException("falha ao resolver o contexto de acesso", erro);
 		}
@@ -71,6 +77,21 @@ class FiltroContextoAcesso extends OncePerRequestFilter {
 		finally {
 			MDC.remove(CHAVE_TENANT);
 		}
+	}
+
+	/**
+	 * Problem Details com {@code codigo}: o front leva a pessoa a entrar de novo com o
+	 * código, em vez de mostrar "sem permissão".
+	 */
+	private static void recusarSemSegundoFator(HttpServletResponse resposta, SegundoFatorNecessarioException erro)
+			throws IOException {
+		resposta.setStatus(HttpStatus.FORBIDDEN.value());
+		resposta.setContentType(MediaType.APPLICATION_PROBLEM_JSON_VALUE);
+		resposta.setCharacterEncoding("UTF-8");
+		resposta.getWriter()
+			.write("""
+					{"type":"about:blank","title":"Forbidden","status":403,"detail":"%s","codigo":"%s"}"""
+				.formatted(erro.getMessage(), SegundoFatorNecessarioException.CODIGO));
 	}
 
 }

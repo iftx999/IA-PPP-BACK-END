@@ -1,5 +1,8 @@
 package dev.aurora.acesso.service;
 
+import java.time.Instant;
+import java.util.Optional;
+
 /**
  * Contas no provedor de identidade (OIDC) do tenant, identificado pelo emissor. A Aurora
  * não guarda senhas: convite, redefinição de senha e bloqueio de login acontecem lá (ADR
@@ -27,5 +30,22 @@ public interface ProvedorIdentidade {
 	 * Habilita ou bloqueia o login. Ao bloquear, encerra as sessões abertas (RN-16).
 	 */
 	void definirAtiva(String emissor, String sub, boolean ativa);
+
+	/**
+	 * Quando a pessoa cadastrou o segundo fator (TOTP) mais recente; vazio se não tem
+	 * (H9).
+	 */
+	Optional<Instant> segundoFatorCadastradoEm(String emissor, String sub);
+
+	/**
+	 * Pede o cadastro do segundo fator no próximo login, se a pessoa ainda não tem um.
+	 */
+	void exigirCadastroSegundoFator(String emissor, String sub);
+
+	/**
+	 * Remove o segundo fator (ex.: celular perdido). Se a política exigir, a pessoa
+	 * cadastra outro no próximo login.
+	 */
+	void removerSegundoFator(String emissor, String sub);
 
 }

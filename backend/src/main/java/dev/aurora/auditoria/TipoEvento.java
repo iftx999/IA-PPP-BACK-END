@@ -13,6 +13,11 @@ public enum TipoEvento {
 	 */
 	ACESSO_ALTERADO, CONVITE_REENVIADO, USUARIO_DESATIVADO, USUARIO_REATIVADO, REDEFINICAO_SENHA_ENVIADA,
 
+	/**
+	 * Verificação em duas etapas (H9): política do tenant e remoção do TOTP de alguém.
+	 */
+	POLITICA_SEGUNDO_FATOR_ALTERADA, SEGUNDO_FATOR_REMOVIDO,
+
 	/** Exibição de dado pessoal sem máscara (ex.: matrícula completa). */
 	ACESSO_DADO_PESSOAL,
 

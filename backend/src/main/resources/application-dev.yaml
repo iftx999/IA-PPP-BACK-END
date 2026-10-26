@@ -9,6 +9,8 @@ spring:
 aurora:
   seguranca:
     chave-cursor: ${AURORA_CHAVE_CURSOR:chave-de-cursor-de-desenvolvimento-nao-usar}
+    # Desligado no ambiente local para os usuários de demonstração e os E2E entrarem só com senha.
+    segundo-fator-administradores: ${AURORA_SEGUNDO_FATOR_ADMINISTRADORES:false}
   auditoria:
     chave: ${AURORA_AUDITORIA_CHAVE:chave-de-desenvolvimento-nao-usar-em-producao}
   cors:

@@ -2,8 +2,11 @@ package dev.aurora.acesso.integracao;
 
 import java.net.URI;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 import dev.aurora.acesso.service.ProvedorIdentidade;
@@ -50,6 +53,17 @@ public class KeycloakProvedorIdentidade implements ProvedorIdentidade {
 
 	record Conta(String id) {
 	}
+
+	record ContaComAcoes(String id, @Nullable List<String> requiredActions) {
+	}
+
+	record Credencial(String id, String type, long createdDate) {
+	}
+
+	/** Tipo da credencial TOTP e ação obrigatória que pede o cadastro no Keycloak. */
+	private static final String OTP = "otp";
+
+	private static final String CONFIGURAR_OTP = "CONFIGURE_TOTP";
 
 	@Override
 	public String criarConta(String emissor, String email, String nome) {
@@ -114,6 +128,69 @@ public class KeycloakProvedorIdentidade implements ProvedorIdentidade {
 			}
 			return null;
 		});
+	}
+
+	@Override
+	public Optional<Instant> segundoFatorCadastradoEm(String emissor, String sub) {
+		var cadastro = executar(() -> Arrays.stream(credenciais(emissor, sub))
+			.filter(c -> OTP.equals(c.type()))
+			.map(c -> Instant.ofEpochMilli(c.createdDate()))
+			.max(Instant::compareTo));
+		return cadastro == null ? Optional.empty() : cadastro;
+	}
+
+	@Override
+	public void exigirCadastroSegundoFator(String emissor, String sub) {
+		executar(() -> {
+			if (Arrays.stream(credenciais(emissor, sub)).anyMatch(c -> OTP.equals(c.type()))) {
+				return null;
+			}
+			var conta = http.get()
+				.uri(admin(EnderecoDoEmissor.paraServidor(emissor, propriedades.urlInterna())) + "/users/{id}", sub)
+				.headers(h -> h.setBearerAuth(token(emissor)))
+				.retrieve()
+				.body(ContaComAcoes.class);
+			var acoes = new ArrayList<String>(
+					conta == null || conta.requiredActions() == null ? List.of() : conta.requiredActions());
+			if (!acoes.contains(CONFIGURAR_OTP)) {
+				acoes.add(CONFIGURAR_OTP);
+				http.put()
+					.uri(admin(EnderecoDoEmissor.paraServidor(emissor, propriedades.urlInterna())) + "/users/{id}", sub)
+					.headers(h -> h.setBearerAuth(token(emissor)))
+					.contentType(MediaType.APPLICATION_JSON)
+					.body(Map.of("requiredActions", acoes))
+					.retrieve()
+					.toBodilessEntity();
+			}
+			return null;
+		});
+	}
+
+	@Override
+	public void removerSegundoFator(String emissor, String sub) {
+		executar(() -> {
+			for (var credencial : credenciais(emissor, sub)) {
+				if (OTP.equals(credencial.type())) {
+					http.delete()
+						.uri(admin(EnderecoDoEmissor.paraServidor(emissor, propriedades.urlInterna()))
+								+ "/users/{id}/credentials/{credencial}", sub, credencial.id())
+						.headers(h -> h.setBearerAuth(token(emissor)))
+						.retrieve()
+						.toBodilessEntity();
+				}
+			}
+			return null;
+		});
+	}
+
+	private Credencial[] credenciais(String emissor, String sub) {
+		var lista = http.get()
+			.uri(admin(EnderecoDoEmissor.paraServidor(emissor, propriedades.urlInterna())) + "/users/{id}/credentials",
+					sub)
+			.headers(h -> h.setBearerAuth(token(emissor)))
+			.retrieve()
+			.body(Credencial[].class);
+		return lista == null ? new Credencial[0] : lista;
 	}
 
 	private void enviarAcoes(String emissor, String sub, List<String> acoes) {

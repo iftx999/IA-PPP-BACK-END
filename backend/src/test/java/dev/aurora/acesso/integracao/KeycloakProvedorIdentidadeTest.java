@@ -102,6 +102,61 @@ class KeycloakProvedorIdentidadeTest {
 	}
 
 	@Test
+	void segundoFatorCadastradoEhOTotpMaisRecente() {
+		esperarToken();
+		servidor.expect(requestTo(ADMIN + "/users/abc/credentials"))
+			.andExpect(method(HttpMethod.GET))
+			.andRespond(withSuccess("""
+					[{"id":"c1","type":"password","createdDate":1793050000000},
+					 {"id":"c2","type":"otp","createdDate":1793050100000},
+					 {"id":"c3","type":"otp","createdDate":1793050200000}]""", MediaType.APPLICATION_JSON));
+		servidor.expect(requestTo(ADMIN + "/users/sem/credentials"))
+			.andRespond(withSuccess("[{\"id\":\"c1\",\"type\":\"password\",\"createdDate\":1}]",
+					MediaType.APPLICATION_JSON));
+
+		assertThat(provedor.segundoFatorCadastradoEm(EMISSOR, "abc"))
+			.contains(java.time.Instant.ofEpochMilli(1793050200000L));
+		assertThat(provedor.segundoFatorCadastradoEm(EMISSOR, "sem")).isEmpty();
+	}
+
+	@Test
+	void exigirCadastroAcrescentaAAcaoSemPerderAsOutras() {
+		esperarToken();
+		servidor.expect(requestTo(ADMIN + "/users/abc/credentials"))
+			.andRespond(withSuccess("[]", MediaType.APPLICATION_JSON));
+		servidor.expect(requestTo(ADMIN + "/users/abc"))
+			.andExpect(method(HttpMethod.GET))
+			.andRespond(withSuccess("{\"id\":\"abc\",\"requiredActions\":[\"UPDATE_PASSWORD\"]}",
+					MediaType.APPLICATION_JSON));
+		servidor.expect(requestTo(ADMIN + "/users/abc"))
+			.andExpect(method(HttpMethod.PUT))
+			.andExpect(content().json("{\"requiredActions\":[\"UPDATE_PASSWORD\",\"CONFIGURE_TOTP\"]}", true))
+			.andRespond(withStatus(HttpStatus.NO_CONTENT));
+		// Quem já tem TOTP não recebe a ação.
+		servidor.expect(requestTo(ADMIN + "/users/com/credentials"))
+			.andRespond(withSuccess("[{\"id\":\"c\",\"type\":\"otp\",\"createdDate\":1}]", MediaType.APPLICATION_JSON));
+
+		provedor.exigirCadastroSegundoFator(EMISSOR, "abc");
+		provedor.exigirCadastroSegundoFator(EMISSOR, "com");
+		servidor.verify();
+	}
+
+	@Test
+	void removerSegundoFatorApagaSoOTotp() {
+		esperarToken();
+		servidor.expect(requestTo(ADMIN + "/users/abc/credentials"))
+			.andRespond(withSuccess("""
+					[{"id":"senha","type":"password","createdDate":1},{"id":"totp","type":"otp","createdDate":2}]""",
+					MediaType.APPLICATION_JSON));
+		servidor.expect(once(), requestTo(ADMIN + "/users/abc/credentials/totp"))
+			.andExpect(method(HttpMethod.DELETE))
+			.andRespond(withStatus(HttpStatus.NO_CONTENT));
+
+		provedor.removerSegundoFator(EMISSOR, "abc");
+		servidor.verify();
+	}
+
+	@Test
 	void emissorPrecisaSerUmRealm() {
 		assertThatThrownBy(() -> KeycloakProvedorIdentidade.admin("http://idp.teste/outro"))
 			.isInstanceOf(IllegalArgumentException.class);

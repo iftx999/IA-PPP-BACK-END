@@ -16,7 +16,7 @@
 | 10 | PDFs escaneados: OCR ou apenas PDFs com texto? | ✅ OCR local com Tesseract (ADR 0021) |
 | 11 | Multi-tenant: o tenant era o grupo ou a concessionária? Como era o isolamento (coluna, schema, banco)? | Autor / schema |
 | 12 | Perfis, permissões e escopo por unidade existentes; perfis customizáveis? | Autor / schema |
-| 13 | Autenticação: e-mail/senha, MFA, SSO, convite, administrador da plataforma | Autor |
+| 13 | Autenticação: e-mail/senha, MFA, SSO, convite, administrador da plataforma | MFA ✅ (ADR 0023); SSO e administrador da plataforma: autor |
 
 ## 6.2 Riscos
 

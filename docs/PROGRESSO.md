@@ -62,7 +62,9 @@ Se o `ng serve` mostrar tela antiga ou erro 500 do Vite depois de trocar depend�
 9. ~~Marco 4 (assistente)~~ (feito em 23/10; falta validar com uma chave real de IA).
 10. ~~Marco 6 (refino)~~ (feito em 23/10).
 11. ~~Implantação e observabilidade~~ (feito em 23/10, ADR 0022, runbook em `docs/operacao.md`).
-12. Próximo: H9 completo (MFA por perfil, SSO), regra factível × cortado (doc 06) e validação da IA com chave real.
+12. ~~MFA (H9/S9)~~ (feito em 26/10, ADR 0023).
+13. Próximo: SSO corporativo (S10), regra factível × cortado (doc 06, depende do autor), validação da IA com chave
+    real, alertas de ritmo e de prazo contratual, notificação por e-mail.
 - O E2E de integrações grava uma carga idempotente (matrículas `E2E-000x`) na competência mais antiga da lista.
 
 ## Sessão de 22/10/2026
@@ -250,3 +252,31 @@ token não leva os papéis de `realm-management` e a Admin API responde 403. Flu
   restauração com `--clean` incompatível com tabelas particionadas, `.env` de produção fora do `.gitignore`.
 - **Atenção:** nunca nomear projeto Compose como `aurora` (colide com o volume antigo `aurora_postgres-dados`).
 - Testes: back-end 169; front 42 unitários e 30 E2E.
+
+## Sessão de 26/10/2026
+
+### Verificação em duas etapas (H9, S9, RN-17) — ADR 0023
+- **Keycloak:** fluxo `aurora-browser` (cópia do `browser` com referência `pwd`/`otp` em cada etapa) e mapeador `amr`
+  no client `aurora-web`, nos realms de desenvolvimento e de produção. O código é pedido a quem já cadastrou TOTP.
+- **API:** política conferida a cada requisição: obrigatória para quem tem `usuario:gerenciar`
+  (`AURORA_SEGUNDO_FATOR_ADMINISTRADORES`, padrão ligado; **desligada no perfil dev**) e para todos quando o tenant
+  liga (V19, `tenant.segundo_fator_obrigatorio`). Sem `otp` no `amr` → 403 `SEGUNDO_FATOR_NECESSARIO` e ação
+  `CONFIGURE_TOTP` no Keycloak. O login em que o TOTP é cadastrado vale (TOTP criado após o `auth_time`).
+  `GET/PUT /seguranca/segundo-fator`, `GET/DELETE /usuarios/{id}/segundo-fator`; eventos
+  `POLITICA_SEGUNDO_FATOR_ALTERADA` e `SEGUNDO_FATOR_REMOVIDO`.
+- **Front:** aviso "Verificação em duas etapas" com "Entrar com o código" (`prompt=login`, volta à mesma tela),
+  interceptador para recusas no meio da sessão, cartão da política em Usuários e diálogo por pessoa (situação e
+  remover aplicativo).
+- **Validação real** (Keycloak + API locais): política ligada → token só com senha recusado → novo login com
+  cadastro do TOTP aceito → login seguinte com `amr` `pwd`+`otp` aceito.
+- **Correção:** `infra/postgres/Dockerfile` usava `COPY --chmod` (exige BuildKit); o Testcontainers constrói com o
+  builder legado e toda a suíte do back-end falhava desde o commit do gosu. Agora `COPY` + `RUN chmod`.
+- Testes: back-end 178 (`SegundoFatorApiTest`, provedor); front 43 unitários e 32 E2E.
+
+### Observações
+- Para testar o MFA de verdade no ambiente local: `AURORA_SEGUNDO_FATOR_ADMINISTRADORES=true ./mvnw spring-boot:run`
+  ou ligar "Exigir de todos" em Usuários. Depois, remova o OTP de `admin@exemplo.dev` (console do Keycloak, aba
+  Credenciais) ou recrie o contêiner do Keycloak; senão os E2E param na tela do código.
+- Recriar o contêiner do Keycloak reimporta o realm e apaga usuários criados pelos E2E (os de demonstração têm IDs
+  fixos e continuam vinculados).
+

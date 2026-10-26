@@ -42,6 +42,8 @@ aurora:
     audiencia: aurora-api
     # Segredo dos cursores de paginação (>= 32 caracteres).
     chave-cursor: ${AURORA_CHAVE_CURSOR}
+    # Verificação em duas etapas obrigatória para quem gerencia usuários (RN-17). O tenant pode exigir de todos.
+    segundo-fator-administradores: ${AURORA_SEGUNDO_FATOR_ADMINISTRADORES:true}
   cors:
     origens: ${AURORA_CORS_ORIGENS}
   contratos:
