@@ -8,6 +8,8 @@ RUN apt-get update \
  && apt-get upgrade -y --no-install-recommends \
  && apt-get install -y --no-install-recommends postgresql-18-postgis-3 \
  && rm -rf /var/lib/apt/lists/* /usr/local/bin/gosu
-COPY --chmod=755 gosu-setpriv.sh /usr/local/sbin/gosu
+# Sem COPY --chmod: o Testcontainers constrói com o builder legado, que não aceita a opção.
+COPY gosu-setpriv.sh /usr/local/sbin/gosu
+RUN chmod 755 /usr/local/sbin/gosu
 
 COPY init/ /docker-entrypoint-initdb.d/
