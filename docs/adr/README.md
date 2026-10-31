@@ -29,3 +29,4 @@ gera um novo ADR que o substitui.
 | [0022](0022-implantacao-e-observabilidade.md) | Implantação em contêineres, host único e observabilidade | Aceito |
 | [0023](0023-verificacao-em-duas-etapas.md) | Verificação em duas etapas: TOTP no Keycloak, política conferida pela API | Aceito |
 | [0024](0024-alertas-de-ritmo-prazo-e-email.md) | Alertas de ritmo e de prazo contratual e notificação por e-mail | Aceito |
+| [0025](0025-sso-corporativo.md) | SSO corporativo: IdP da empresa no realm do tenant, só para pessoas convidadas | Aceito |

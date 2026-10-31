@@ -12,7 +12,11 @@ PASTA = Path(__file__).resolve().parent
 
 def main() -> None:
     realm = json.loads((PASTA / "realm-aurora.json").read_text(encoding="utf-8"))
-    realm.pop("users", None)
+    # Sem usuários de demonstração; fica só a conta de serviço da API, que leva os papéis de realm-management usados
+    # pela gestão de usuários e do SSO corporativo (ADR 0011, ADR 0025). Sem ela, convites e SSO falham em produção.
+    realm["users"] = [u for u in realm.get("users", []) if u.get("serviceAccountClientId") == "aurora-api-admin"]
+    if not realm["users"]:
+        raise SystemExit("realm-aurora.json sem a conta de serviço de aurora-api-admin")
     realm.update({
         "sslRequired": "external",
         "passwordPolicy": "length(12) and notUsername and notEmail and passwordHistory(5) and maxLength(128)",

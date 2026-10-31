@@ -11,6 +11,8 @@ aurora:
     chave-cursor: ${AURORA_CHAVE_CURSOR:chave-de-cursor-de-desenvolvimento-nao-usar}
     # Desligado no ambiente local para os usuários de demonstração e os E2E entrarem só com senha.
     segundo-fator-administradores: ${AURORA_SEGUNDO_FATOR_ADMINISTRADORES:false}
+    # O IdP corporativo de exemplo roda no Keycloak local (http://localhost:8180/realms/corporativo-exemplo).
+    sso-permitir-enderecos-internos: ${AURORA_SSO_PERMITIR_ENDERECOS_INTERNOS:true}
   auditoria:
     chave: ${AURORA_AUDITORIA_CHAVE:chave-de-desenvolvimento-nao-usar-em-producao}
   cors:

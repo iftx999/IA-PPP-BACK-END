@@ -3,6 +3,9 @@ package dev.aurora.acesso.integracao;
 import java.net.URI;
 import java.time.Duration;
 
+import dev.aurora.acesso.model.ProvedorCorporativo;
+import dev.aurora.acesso.model.ProvedorCorporativo.Protocolo;
+import dev.aurora.comum.RegraVioladaException;
 import dev.aurora.comum.ServicoExternoIndisponivelException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -160,6 +163,129 @@ class KeycloakProvedorIdentidadeTest {
 	void emissorPrecisaSerUmRealm() {
 		assertThatThrownBy(() -> KeycloakProvedorIdentidade.admin("http://idp.teste/outro"))
 			.isInstanceOf(IllegalArgumentException.class);
+	}
+
+	private static final String IDPS = ADMIN + "/identity-provider";
+
+	private static final String DESCOBERTA = "https://login.empresa.teste/v2.0/.well-known/openid-configuration";
+
+	@Test
+	void criaIdpOidcComAConfiguracaoLidaDoEnderecoEOsFluxosDaAurora() {
+		esperarToken();
+		servidor.expect(once(), requestTo(IDPS + "/import-config"))
+			.andExpect(method(HttpMethod.POST))
+			.andExpect(content().json("{\"providerId\":\"oidc\",\"fromUrl\":\"" + DESCOBERTA + "\"}"))
+			.andRespond(withSuccess(
+					"""
+							{"authorizationUrl":"https://login.empresa.teste/auth","tokenUrl":"https://login.empresa.teste/token",
+							 "validateSignature":"true","useJwksUrl":true}""",
+					MediaType.APPLICATION_JSON));
+		servidor.expect(once(), requestTo(IDPS + "/instances/corporativo"))
+			.andExpect(method(HttpMethod.GET))
+			.andRespond(withStatus(HttpStatus.NOT_FOUND));
+		servidor.expect(once(), requestTo(IDPS + "/instances"))
+			.andExpect(method(HttpMethod.POST))
+			.andExpect(content()
+				.json("""
+						{"alias":"corporativo","displayName":"Entra ID","providerId":"oidc","enabled":true,"trustEmail":true,
+						 "storeToken":false,"firstBrokerLoginFlowAlias":"aurora-sso-primeiro-login",
+						 "postBrokerLoginFlowAlias":"aurora-sso-pos-login",
+						 "config":{"authorizationUrl":"https://login.empresa.teste/auth","useJwksUrl":"true",
+						   "metadataDescriptorUrl":"%s","clientId":"app-aurora","clientSecret":"s3gr3do",
+						   "clientAuthMethod":"client_secret_post","pkceEnabled":"true","syncMode":"IMPORT"}}"""
+					.formatted(DESCOBERTA)))
+			.andRespond(withStatus(HttpStatus.CREATED));
+
+		provedor.salvarProvedorCorporativo(EMISSOR,
+				new ProvedorCorporativo(Protocolo.OIDC, "Entra ID", DESCOBERTA, "app-aurora", true), "s3gr3do");
+		servidor.verify();
+	}
+
+	@Test
+	void atualizarSemSegredoMandaOValorMascaradoQueMantemOAtual() {
+		esperarToken();
+		servidor.expect(requestTo(IDPS + "/import-config"))
+			.andRespond(withSuccess("{\"authorizationUrl\":\"https://x/auth\"}", MediaType.APPLICATION_JSON));
+		servidor.expect(requestTo(IDPS + "/instances/corporativo"))
+			.andRespond(withSuccess("{\"alias\":\"corporativo\",\"providerId\":\"oidc\",\"enabled\":true}",
+					MediaType.APPLICATION_JSON));
+		servidor.expect(once(), requestTo(IDPS + "/instances/corporativo"))
+			.andExpect(method(HttpMethod.PUT))
+			.andExpect(content().json("{\"displayName\":\"Novo nome\",\"enabled\":false,"
+					+ "\"config\":{\"clientSecret\":\"**********\"}}"))
+			.andRespond(withStatus(HttpStatus.NO_CONTENT));
+
+		provedor.salvarProvedorCorporativo(EMISSOR,
+				new ProvedorCorporativo(Protocolo.OIDC, "Novo nome", DESCOBERTA, "app-aurora", false), null);
+		servidor.verify();
+	}
+
+	@Test
+	void trocarParaSamlRecriaOIdpComOsMapeadoresDeEmail() {
+		esperarToken();
+		servidor.expect(requestTo(IDPS + "/import-config"))
+			.andExpect(content().json("{\"providerId\":\"saml\"}"))
+			.andRespond(withSuccess("{\"singleSignOnServiceUrl\":\"https://x/saml\",\"signingCertificate\":\"MII\"}",
+					MediaType.APPLICATION_JSON));
+		servidor.expect(requestTo(IDPS + "/instances/corporativo"))
+			.andRespond(withSuccess("{\"alias\":\"corporativo\",\"providerId\":\"oidc\",\"enabled\":true}",
+					MediaType.APPLICATION_JSON));
+		servidor.expect(once(), requestTo(IDPS + "/instances/corporativo"))
+			.andExpect(method(HttpMethod.DELETE))
+			.andRespond(withStatus(HttpStatus.NO_CONTENT));
+		servidor.expect(once(), requestTo(IDPS + "/instances"))
+			.andExpect(method(HttpMethod.POST))
+			.andExpect(content().json("""
+					{"providerId":"saml","config":{"singleSignOnServiceUrl":"https://x/saml","signingCertificate":"MII",
+					 "nameIDPolicyFormat":"urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress"}}"""))
+			.andRespond(withStatus(HttpStatus.CREATED));
+		servidor
+			.expect(org.springframework.test.web.client.ExpectedCount.times(2),
+					requestTo(IDPS + "/instances/corporativo/mappers"))
+			.andExpect(method(HttpMethod.POST))
+			.andExpect(content().json("{\"identityProviderMapper\":\"saml-user-attribute-idp-mapper\"}"))
+			.andRespond(withStatus(HttpStatus.CREATED));
+
+		provedor.salvarProvedorCorporativo(EMISSOR,
+				new ProvedorCorporativo(Protocolo.SAML, "ADFS", "https://x/metadata", null, true), null);
+		servidor.verify();
+	}
+
+	@Test
+	void enderecoSemConfiguracaoValidaViraRegraVioladaSemCriarNada() {
+		esperarToken();
+		servidor.expect(requestTo(IDPS + "/import-config")).andRespond(withServerError());
+		servidor.expect(requestTo(IDPS + "/import-config"))
+			.andRespond(withSuccess("{\"issuer\":\"https://x\"}", MediaType.APPLICATION_JSON));
+		var provedorX = new ProvedorCorporativo(Protocolo.OIDC, "X", "https://x/nada", "c", true);
+
+		assertThatThrownBy(() -> provedor.salvarProvedorCorporativo(EMISSOR, provedorX, "s"))
+			.isInstanceOf(RegraVioladaException.class)
+			.hasMessageContaining("descoberta OIDC");
+		// Responde, mas não é um documento de descoberta (sem authorizationUrl).
+		assertThatThrownBy(() -> provedor.salvarProvedorCorporativo(EMISSOR, provedorX, "s"))
+			.isInstanceOf(RegraVioladaException.class);
+		servidor.verify();
+	}
+
+	@Test
+	void leOIdpSemOSegredoEIgnoraIdpInexistenteAoRemover() {
+		esperarToken();
+		servidor.expect(requestTo(IDPS + "/instances/corporativo"))
+			.andRespond(withSuccess("""
+					{"alias":"corporativo","displayName":"Entra ID","providerId":"oidc","enabled":true,
+					 "config":{"clientId":"app","clientSecret":"**********","metadataDescriptorUrl":"%s"}}"""
+				.formatted(DESCOBERTA), MediaType.APPLICATION_JSON));
+		servidor.expect(requestTo(IDPS + "/instances/corporativo")).andRespond(withStatus(HttpStatus.NOT_FOUND));
+		servidor.expect(requestTo(IDPS + "/instances/corporativo"))
+			.andExpect(method(HttpMethod.DELETE))
+			.andRespond(withStatus(HttpStatus.NOT_FOUND));
+
+		assertThat(provedor.provedorCorporativo(EMISSOR))
+			.contains(new ProvedorCorporativo(Protocolo.OIDC, "Entra ID", DESCOBERTA, "app", true));
+		assertThat(provedor.provedorCorporativo(EMISSOR)).isEmpty();
+		provedor.removerProvedorCorporativo(EMISSOR);
+		servidor.verify();
 	}
 
 	private void esperarToken() {

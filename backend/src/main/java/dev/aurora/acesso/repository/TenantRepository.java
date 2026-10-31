@@ -39,6 +39,18 @@ public class TenantRepository {
 	}
 
 	/**
+	 * Política do tenant atual: a verificação em duas etapas feita pelo IdP corporativo
+	 * vale no lugar do TOTP da Aurora (S10, ADR 0025).
+	 */
+	public boolean ssoConfiaSegundoFator() {
+		return jdbc.sql("SELECT sso_confia_segundo_fator FROM tenant").query(Boolean.class).optional().orElse(false);
+	}
+
+	public void definirSsoConfiaSegundoFator(boolean confia) {
+		jdbc.sql("UPDATE tenant SET sso_confia_segundo_fator = ?").param(confia).update();
+	}
+
+	/**
 	 * Emissor OIDC (realm) do tenant: é onde a administração de usuários cria e altera
 	 * contas.
 	 */

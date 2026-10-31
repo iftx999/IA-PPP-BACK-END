@@ -298,8 +298,26 @@ token não leva os papéis de `realm-management` e a Admin API responde 403. Flu
 - Testes: back-end 187 (`NotificacaoAlertasApiTest`, `PrazosApiTest`, regras e mensagem); front 44 unitários e 33 E2E.
   Testes do back-end agora usam pool com poucas conexões ociosas (muitos contextos em cache esgotavam o banco).
 
+### Branches
+- `feat/verificacao-em-duas-etapas` e `feat/alertas-ritmo-prazo-email` enviadas ao GitHub (o SSH voltou a funcionar).
+
+### SSO corporativo (S10) — ADR 0025 — mesma sessão (branch `feat/sso-corporativo`)
+- **API** `GET/PUT/DELETE /seguranca/sso`: um IdP por tenant (apelido `corporativo`), OIDC (descoberta + client ID +
+  segredo) ou SAML (metadados), criado no realm do tenant pela Admin API. Segredo só no Keycloak (nunca devolvido;
+  vazio mantém). Endereço só HTTPS e público fora do dev. Auditoria `SSO_CONFIGURADO`/`SSO_REMOVIDO` sem dados
+  sensíveis. V21 `tenant.sso_confia_segundo_fator`.
+- **Keycloak:** fluxos `aurora-sso-primeiro-login` (só vincula contas convidadas) e `aurora-sso-pos-login` (TOTP para
+  quem cadastrou, `amr` com `otp`), mapeador `idp`, papéis de IdP na conta de serviço, mensagem de recusa no tema.
+  Realm `corporativo-exemplo` no compose de dev. Instalações existentes: `infra/producao/atualizar-realm-sso.sh`.
+- **Correção:** o realm de produção gerado removia a conta de serviço da API (convites falhariam em produção).
+- **Front:** cartão "Login corporativo (SSO)" em Usuários com diálogo (protocolo, endereços para registrar no IdP com
+  copiar, dados do IdP, mostrar botão, confiar no MFA do IdP, remover com confirmação). Rótulos na Auditoria.
+- **Validação real:** OIDC e SAML contra o realm de exemplo; convidada entra, sem convite é recusada; segredo mantido
+  ao editar; TOTP pedido após o SSO; confiança no MFA do IdP; troca de protocolo; remoção. Script de atualização
+  testado num realm da versão anterior (2 execuções).
+- Testes: back-end 195; front 46 unitários e 37 E2E (`e2e/sso.spec.ts`).
+
 ### Pendências
-- O push para o GitHub travou nesta sessão: o agente SSH pede confirmação/senha da chave. Branches locais
-  `feat/verificacao-em-duas-etapas` (MFA, 26/10) e `feat/alertas-ritmo-prazo-email` (este trabalho) ainda não enviados.
-- Próximo: SSO corporativo (S10), regra factível × cortado (autor), validação da IA com chave real, prazos
-  recorrentes (`periodicidade`).
+- Próximo: regra factível × cortado (autor), validação da IA com chave real, prazos recorrentes (`periodicidade`),
+  administrador da plataforma (tela de tenants, depende do autor).
+- Se o E2E de SSO falhar no meio, o botão "Empresa Exemplo (E2E)" fica no login até remover o SSO em Usuários.

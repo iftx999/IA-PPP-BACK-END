@@ -4,13 +4,17 @@ import java.net.URI;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
+import dev.aurora.acesso.model.ProvedorCorporativo;
+import dev.aurora.acesso.model.ProvedorCorporativo.Protocolo;
 import dev.aurora.acesso.service.ProvedorIdentidade;
 import dev.aurora.comum.EnderecoDoEmissor;
+import dev.aurora.comum.RegraVioladaException;
 import dev.aurora.comum.ServicoExternoIndisponivelException;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
@@ -20,6 +24,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -59,6 +64,29 @@ public class KeycloakProvedorIdentidade implements ProvedorIdentidade {
 
 	record Credencial(String id, String type, long createdDate) {
 	}
+
+	record IdpKc(String alias, String providerId, @Nullable String displayName, boolean enabled,
+			@Nullable Map<String, String> config) {
+	}
+
+	/** Fluxos do realm para o SSO corporativo (ADR 0025). */
+	static final String FLUXO_PRIMEIRO_LOGIN = "aurora-sso-primeiro-login";
+
+	static final String FLUXO_POS_LOGIN = "aurora-sso-pos-login";
+
+	/**
+	 * Valor que o Keycloak devolve no lugar de segredos; enviado de volta, mantém o
+	 * atual.
+	 */
+	static final String SEGREDO_MASCARADO = "**********";
+
+	private static final String ENDERECO_INVALIDO = "Não foi possível ler a configuração do provedor neste endereço. "
+			+ "Confira se é o documento de descoberta OIDC (.well-known/openid-configuration) ou os metadados SAML "
+			+ "do provedor e se ele está acessível.";
+
+	/** Atributos de e-mail mais comuns em asserções SAML (genérico e Entra ID/ADFS). */
+	private static final List<String> ATRIBUTOS_EMAIL_SAML = List.of("email",
+			"http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress");
 
 	/** Tipo da credencial TOTP e ação obrigatória que pede o cadastro no Keycloak. */
 	private static final String OTP = "otp";
@@ -181,6 +209,162 @@ public class KeycloakProvedorIdentidade implements ProvedorIdentidade {
 			}
 			return null;
 		});
+	}
+
+	@Override
+	public Optional<ProvedorCorporativo> provedorCorporativo(String emissor) {
+		var provedor = executar(() -> idpCorporativo(emissor).map(KeycloakProvedorIdentidade::paraModelo));
+		return provedor == null ? Optional.empty() : provedor;
+	}
+
+	@Override
+	public void salvarProvedorCorporativo(String emissor, ProvedorCorporativo provedor, @Nullable String segredo) {
+		var tipo = provedor.protocolo().name().toLowerCase(java.util.Locale.ROOT);
+		executar(() -> {
+			var config = new LinkedHashMap<String, String>(importarConfiguracao(emissor, tipo, provedor.endereco()));
+			config.put("metadataDescriptorUrl", provedor.endereco());
+			config.put("syncMode", "IMPORT");
+			if (provedor.protocolo() == Protocolo.OIDC) {
+				config.put("clientId", String.valueOf(provedor.clienteId()));
+				config.put("clientSecret", segredo != null ? segredo : SEGREDO_MASCARADO);
+				config.put("clientAuthMethod", "client_secret_post");
+				config.put("defaultScope", "openid email profile");
+				config.put("pkceEnabled", "true");
+				config.put("pkceMethod", "S256");
+			}
+			else {
+				config.put("nameIDPolicyFormat", "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress");
+				config.put("principalType", "SUBJECT");
+			}
+			var corpo = new LinkedHashMap<String, Object>();
+			corpo.put("alias", ProvedorCorporativo.APELIDO);
+			corpo.put("displayName", provedor.nome());
+			corpo.put("providerId", tipo);
+			corpo.put("enabled", provedor.habilitado());
+			// O e-mail vem do diretório da empresa; só serve para achar a conta já
+			// convidada.
+			corpo.put("trustEmail", true);
+			corpo.put("storeToken", false);
+			corpo.put("firstBrokerLoginFlowAlias", FLUXO_PRIMEIRO_LOGIN);
+			corpo.put("postBrokerLoginFlowAlias", FLUXO_POS_LOGIN);
+			corpo.put("config", config);
+
+			var existente = idpCorporativo(emissor);
+			var instancias = idps(emissor) + "/instances";
+			if (existente.isPresent() && existente.get().providerId().equals(tipo)) {
+				http.put()
+					.uri(instancias + "/{alias}", ProvedorCorporativo.APELIDO)
+					.headers(h -> h.setBearerAuth(token(emissor)))
+					.contentType(MediaType.APPLICATION_JSON)
+					.body(corpo)
+					.retrieve()
+					.toBodilessEntity();
+				return null;
+			}
+			if (provedor.protocolo() == Protocolo.OIDC && segredo == null) {
+				throw new IllegalArgumentException("Segredo obrigatório ao criar o IdP OIDC");
+			}
+			// Troca de protocolo: o tipo do IdP não muda no Keycloak, então recria.
+			existente.ifPresent(e -> removerIdp(emissor));
+			http.post()
+				.uri(instancias)
+				.headers(h -> h.setBearerAuth(token(emissor)))
+				.contentType(MediaType.APPLICATION_JSON)
+				.body(corpo)
+				.retrieve()
+				.toBodilessEntity();
+			if (provedor.protocolo() == Protocolo.SAML) {
+				for (var atributo : ATRIBUTOS_EMAIL_SAML) {
+					http.post()
+						.uri(instancias + "/{alias}/mappers", ProvedorCorporativo.APELIDO)
+						.headers(h -> h.setBearerAuth(token(emissor)))
+						.contentType(MediaType.APPLICATION_JSON)
+						.body(Map.of("name", "email: " + atributo, "identityProviderAlias", ProvedorCorporativo.APELIDO,
+								"identityProviderMapper", "saml-user-attribute-idp-mapper", "config",
+								Map.of("syncMode", "INHERIT", "attribute.name", atributo, "user.attribute", "email")))
+						.retrieve()
+						.toBodilessEntity();
+				}
+			}
+			return null;
+		});
+	}
+
+	@Override
+	public void removerProvedorCorporativo(String emissor) {
+		executar(() -> {
+			removerIdp(emissor);
+			return null;
+		});
+	}
+
+	private void removerIdp(String emissor) {
+		try {
+			http.delete()
+				.uri(idps(emissor) + "/instances/{alias}", ProvedorCorporativo.APELIDO)
+				.headers(h -> h.setBearerAuth(token(emissor)))
+				.retrieve()
+				.toBodilessEntity();
+		}
+		catch (HttpClientErrorException.NotFound jaRemovido) {
+			// Nada a remover.
+		}
+	}
+
+	private Optional<IdpKc> idpCorporativo(String emissor) {
+		try {
+			return Optional.ofNullable(http.get()
+				.uri(idps(emissor) + "/instances/{alias}", ProvedorCorporativo.APELIDO)
+				.headers(h -> h.setBearerAuth(token(emissor)))
+				.retrieve()
+				.body(IdpKc.class));
+		}
+		catch (HttpClientErrorException.NotFound semIdp) {
+			return Optional.empty();
+		}
+	}
+
+	/**
+	 * O Keycloak lê o endereço e devolve a configuração (endpoints, chaves, certificado).
+	 * Endereço inválido ou inacessível vira 400/500 lá.
+	 */
+	private Map<String, String> importarConfiguracao(String emissor, String tipo, String endereco) {
+		Map<?, ?> lida;
+		try {
+			lida = http.post()
+				.uri(idps(emissor) + "/import-config")
+				.headers(h -> h.setBearerAuth(token(emissor)))
+				.contentType(MediaType.APPLICATION_JSON)
+				.body(Map.of("providerId", tipo, "fromUrl", endereco))
+				.retrieve()
+				.body(Map.class);
+		}
+		catch (HttpServerErrorException | HttpClientErrorException.BadRequest erro) {
+			throw new RegraVioladaException(ENDERECO_INVALIDO);
+		}
+		var essencial = "oidc".equals(tipo) ? "authorizationUrl" : "singleSignOnServiceUrl";
+		if (lida == null || lida.get(essencial) == null) {
+			throw new RegraVioladaException(ENDERECO_INVALIDO);
+		}
+		var config = new LinkedHashMap<String, String>();
+		lida.forEach((chave, valor) -> {
+			if (valor != null) {
+				config.put(String.valueOf(chave), String.valueOf(valor));
+			}
+		});
+		return config;
+	}
+
+	private static ProvedorCorporativo paraModelo(IdpKc idp) {
+		var config = idp.config() == null ? Map.<String, String>of() : idp.config();
+		var protocolo = "saml".equals(idp.providerId()) ? Protocolo.SAML : Protocolo.OIDC;
+		return new ProvedorCorporativo(protocolo, idp.displayName() == null ? idp.alias() : idp.displayName(),
+				config.getOrDefault("metadataDescriptorUrl", ""),
+				protocolo == Protocolo.OIDC ? config.get("clientId") : null, idp.enabled());
+	}
+
+	private String idps(String emissor) {
+		return admin(EnderecoDoEmissor.paraServidor(emissor, propriedades.urlInterna())) + "/identity-provider";
 	}
 
 	private Credencial[] credenciais(String emissor, String sub) {

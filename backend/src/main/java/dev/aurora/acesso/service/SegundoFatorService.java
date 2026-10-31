@@ -7,6 +7,7 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import dev.aurora.acesso.model.ProvedorCorporativo;
 import dev.aurora.comum.ServicoExternoIndisponivelException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -72,10 +73,12 @@ public class SegundoFatorService {
 	}
 
 	/**
+	 * @param confiaNoIdpCorporativo o tenant aceita a verificação feita pelo IdP
+	 * corporativo (ADR 0025): login por ele dispensa o TOTP da Aurora
 	 * @throws SegundoFatorNecessarioException se o token não comprova o segundo fator
 	 */
-	public void exigir(Jwt token) {
-		if (comOtp(token)) {
+	public void exigir(Jwt token, boolean confiaNoIdpCorporativo) {
+		if (comOtp(token) || (confiaNoIdpCorporativo && pelaEmpresa(token))) {
 			return;
 		}
 		var authTime = authTime(token);
@@ -111,6 +114,11 @@ public class SegundoFatorService {
 			LOG.warn("Segundo fator não conferido: provedor de identidade indisponível");
 		}
 		return new Conferencia(false, agora.plus(VALIDADE_RECUSADO));
+	}
+
+	/** Claim {@code idp}: nota de sessão do Keycloak com o IdP usado no login. */
+	private static boolean pelaEmpresa(Jwt token) {
+		return ProvedorCorporativo.APELIDO.equals(token.getClaimAsString("idp"));
 	}
 
 	private static boolean comOtp(Jwt token) {

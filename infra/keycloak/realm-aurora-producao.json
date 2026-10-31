@@ -185,6 +185,82 @@
           "userSetupAllowed": false
         }
       ]
+    },
+    {
+      "alias": "aurora-sso-primeiro-login",
+      "description": "Primeiro login pelo SSO corporativo: só vincula contas já convidadas (ADR 0025)",
+      "providerId": "basic-flow",
+      "topLevel": true,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "authenticator": "idp-detect-existing-broker-user",
+          "authenticatorFlow": false,
+          "requirement": "REQUIRED",
+          "priority": 10,
+          "autheticatorFlow": false,
+          "userSetupAllowed": false
+        },
+        {
+          "authenticator": "idp-auto-link",
+          "authenticatorFlow": false,
+          "requirement": "REQUIRED",
+          "priority": 20,
+          "autheticatorFlow": false,
+          "userSetupAllowed": false
+        }
+      ]
+    },
+    {
+      "alias": "aurora-sso-pos-login",
+      "description": "Depois do SSO corporativo: código TOTP para quem cadastrou (ADR 0023, ADR 0025)",
+      "providerId": "basic-flow",
+      "topLevel": true,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "authenticatorFlow": true,
+          "requirement": "CONDITIONAL",
+          "priority": 10,
+          "autheticatorFlow": true,
+          "flowAlias": "aurora-sso-pos-login segundo fator",
+          "userSetupAllowed": false
+        },
+        {
+          "authenticator": "allow-access-authenticator",
+          "authenticatorFlow": false,
+          "requirement": "REQUIRED",
+          "priority": 20,
+          "autheticatorFlow": false,
+          "userSetupAllowed": false
+        }
+      ]
+    },
+    {
+      "alias": "aurora-sso-pos-login segundo fator",
+      "description": "TOTP se a pessoa já cadastrou",
+      "providerId": "basic-flow",
+      "topLevel": false,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "authenticator": "conditional-user-configured",
+          "authenticatorFlow": false,
+          "requirement": "REQUIRED",
+          "priority": 10,
+          "autheticatorFlow": false,
+          "userSetupAllowed": false
+        },
+        {
+          "authenticator": "auth-otp-form",
+          "authenticatorFlow": false,
+          "requirement": "REQUIRED",
+          "priority": 20,
+          "autheticatorFlow": false,
+          "userSetupAllowed": false,
+          "authenticatorConfig": "aurora-amr-otp"
+        }
+      ]
     }
   ],
   "authenticatorConfig": [
@@ -258,6 +334,19 @@
             "id.token.claim": "true",
             "introspection.token.claim": "true"
           }
+        },
+        {
+          "name": "idp",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usersessionmodel-note-mapper",
+          "config": {
+            "user.session.note": "identity_provider",
+            "claim.name": "idp",
+            "jsonType.label": "String",
+            "access.token.claim": "true",
+            "id.token.claim": "false",
+            "introspection.token.claim": "true"
+          }
         }
       ],
       "fullScopeAllowed": false
@@ -272,6 +361,22 @@
       "directAccessGrantsEnabled": false,
       "implicitFlowEnabled": false,
       "fullScopeAllowed": true
+    }
+  ],
+  "users": [
+    {
+      "username": "service-account-aurora-api-admin",
+      "enabled": true,
+      "serviceAccountClientId": "aurora-api-admin",
+      "clientRoles": {
+        "realm-management": [
+          "manage-users",
+          "view-users",
+          "query-users",
+          "manage-identity-providers",
+          "view-identity-providers"
+        ]
+      }
     }
   ],
   "loginTheme": "aurora",

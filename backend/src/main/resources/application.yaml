@@ -44,6 +44,9 @@ aurora:
     chave-cursor: ${AURORA_CHAVE_CURSOR}
     # Verificação em duas etapas obrigatória para quem gerencia usuários (RN-17). O tenant pode exigir de todos.
     segundo-fator-administradores: ${AURORA_SEGUNDO_FATOR_ADMINISTRADORES:true}
+    # SSO corporativo (ADR 0025): o Keycloak busca o endereço informado pelo administrador. Fora do desenvolvimento,
+    # só HTTPS e endereços públicos (evita usar o Keycloak para sondar a rede interna).
+    sso-permitir-enderecos-internos: ${AURORA_SSO_PERMITIR_ENDERECOS_INTERNOS:false}
   cors:
     origens: ${AURORA_CORS_ORIGENS}
   contratos:

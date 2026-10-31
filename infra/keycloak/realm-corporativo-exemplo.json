@@ -1,0 +1,74 @@
+{
+  "realm": "corporativo-exemplo",
+  "enabled": true,
+  "displayName": "Diretório corporativo de exemplo",
+  "loginWithEmailAllowed": true,
+  "registrationAllowed": false,
+  "resetPasswordAllowed": false,
+  "internationalizationEnabled": true,
+  "supportedLocales": ["pt-BR"],
+  "defaultLocale": "pt-BR",
+  "clients": [
+    {
+      "clientId": "aurora-sso",
+      "name": "Aurora (SSO por OIDC)",
+      "description": "Faz o papel do aplicativo registrado no IdP corporativo (ex.: Entra ID). Só desenvolvimento.",
+      "publicClient": false,
+      "secret": "sso-dev",
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "redirectUris": ["http://localhost:8180/realms/aurora/broker/corporativo/endpoint"],
+      "attributes": {
+        "pkce.code.challenge.method": "S256"
+      }
+    },
+    {
+      "clientId": "http://localhost:8180/realms/aurora",
+      "name": "Aurora (SSO por SAML)",
+      "description": "Provedor de serviço SAML da Aurora (entidade = realm aurora). Só desenvolvimento.",
+      "protocol": "saml",
+      "enabled": true,
+      "redirectUris": ["http://localhost:8180/realms/aurora/broker/corporativo/endpoint"],
+      "attributes": {
+        "saml_assertion_consumer_url_post": "http://localhost:8180/realms/aurora/broker/corporativo/endpoint",
+        "saml.client.signature": "false",
+        "saml.server.signature": "true",
+        "saml.assertion.signature": "true",
+        "saml_name_id_format": "email",
+        "saml.force.name.id.format": "true"
+      },
+      "protocolMappers": [
+        {
+          "name": "email",
+          "protocol": "saml",
+          "protocolMapper": "saml-user-property-mapper",
+          "config": {
+            "user.attribute": "email",
+            "attribute.name": "email",
+            "attribute.nameformat": "Basic"
+          }
+        }
+      ]
+    }
+  ],
+  "users": [
+    {
+      "username": "diretoria@exemplo.dev",
+      "email": "diretoria@exemplo.dev",
+      "emailVerified": true,
+      "firstName": "Diretoria",
+      "lastName": "Exemplo",
+      "enabled": true,
+      "credentials": [{ "type": "password", "value": "corporativo-dev", "temporary": false }]
+    },
+    {
+      "username": "pessoa.externa@exemplo.dev",
+      "email": "pessoa.externa@exemplo.dev",
+      "emailVerified": true,
+      "firstName": "Pessoa",
+      "lastName": "Externa",
+      "enabled": true,
+      "credentials": [{ "type": "password", "value": "corporativo-dev", "temporary": false }]
+    }
+  ]
+}

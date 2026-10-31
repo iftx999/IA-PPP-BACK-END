@@ -18,6 +18,9 @@ public enum TipoEvento {
 	 */
 	POLITICA_SEGUNDO_FATOR_ALTERADA, SEGUNDO_FATOR_REMOVIDO,
 
+	/** SSO corporativo (S10): IdP configurado, alterado ou removido. */
+	SSO_CONFIGURADO, SSO_REMOVIDO,
+
 	/** Exibição de dado pessoal sem máscara (ex.: matrícula completa). */
 	ACESSO_DADO_PESSOAL,
 

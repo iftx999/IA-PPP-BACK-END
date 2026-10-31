@@ -73,7 +73,7 @@ public class ContextoAcessoService {
 			escopos.add(concessao.caminhoUnidade());
 		}
 		if (segundoFator.exigido(tenants.segundoFatorObrigatorio(), concessoes.containsKey(Permissao.GERIR_USUARIOS))) {
-			segundoFator.exigir(token);
+			segundoFator.exigir(token, tenants.ssoConfiaSegundoFator());
 		}
 		usuarios.registrarAcesso(usuarioId.get());
 		var porPermissao = new TreeMap<String, List<String>>();

@@ -30,6 +30,8 @@ services:
       - "8180:8180"
     volumes:
       - ./keycloak/realm-aurora.json:/opt/keycloak/data/import/realm-aurora.json:ro
+      # Diretório corporativo fictício para testar o SSO (S10, ADR 0025); só no desenvolvimento.
+      - ./keycloak/realm-corporativo-exemplo.json:/opt/keycloak/data/import/realm-corporativo-exemplo.json:ro
       - ./keycloak/temas/aurora:/opt/keycloak/themes/aurora:ro
 
   mailpit:

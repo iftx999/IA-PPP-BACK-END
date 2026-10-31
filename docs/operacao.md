@@ -32,6 +32,10 @@ Cria cliente, unidade raiz, perfis do sistema e o primeiro administrador, que re
 confirme que o e-mail é da pessoa. O administrador cadastra unidades, convida usuários e configura integrações pela
 própria Aurora. O script pode rodar de novo sem duplicar nada.
 
+**SSO corporativo (S10):** o administrador do cliente configura em Administração > Usuários > Login corporativo,
+com o endereço de descoberta OIDC ou de metadados SAML do IdP da empresa (só HTTPS e endereço público). A tela mostra
+os endereços que a TI do cliente registra no IdP. Só pessoas já convidadas entram pelo SSO.
+
 ## 3. Atualizar a versão
 
 1. Escolha a tag publicada pelo CI (aba Packages do GitHub; o CI só publica imagem sem vulnerabilidade crítica).
@@ -39,6 +43,9 @@ própria Aurora. O script pode rodar de novo sem duplicar nada.
 3. Troque `AURORA_VERSAO` no `.env` e rode `docker compose --env-file .env up -d`. As migrações do banco (Flyway)
    rodam na subida da API; o encerramento é gracioso (requisições em andamento terminam).
 4. Confira saúde, login e o painel do Grafana (erros 5xx e latência).
+5. Se a nova versão exige mudanças no realm (o Keycloak só importa o realm na primeira subida), rode o script
+   indicado nas notas da versão. Para o SSO corporativo (ADR 0025), uma vez: `./atualizar-realm-sso.sh`
+   (idempotente).
 
 **Voltar versão:** recoloque a tag anterior e `up -d`. Se a versão nova aplicou migração incompatível, restaure o
 backup do passo 2 (seção 4).

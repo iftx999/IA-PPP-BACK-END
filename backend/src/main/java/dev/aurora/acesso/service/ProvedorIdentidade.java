@@ -3,6 +3,9 @@ package dev.aurora.acesso.service;
 import java.time.Instant;
 import java.util.Optional;
 
+import dev.aurora.acesso.model.ProvedorCorporativo;
+import org.jspecify.annotations.Nullable;
+
 /**
  * Contas no provedor de identidade (OIDC) do tenant, identificado pelo emissor. A Aurora
  * não guarda senhas: convite, redefinição de senha e bloqueio de login acontecem lá (ADR
@@ -47,5 +50,20 @@ public interface ProvedorIdentidade {
 	 * cadastra outro no próximo login.
 	 */
 	void removerSegundoFator(String emissor, String sub);
+
+	/** IdP corporativo configurado no emissor (S10); vazio se não há. */
+	Optional<ProvedorCorporativo> provedorCorporativo(String emissor);
+
+	/**
+	 * Cria ou atualiza o IdP corporativo a partir do endereço de descoberta (OIDC) ou dos
+	 * metadados (SAML). Só contas já existentes no emissor podem entrar por ele.
+	 * @param segredo segredo do client no IdP (OIDC); {@code null} mantém o atual
+	 * @throws dev.aurora.comum.RegraVioladaException se o endereço não traz uma
+	 * configuração válida do protocolo
+	 */
+	void salvarProvedorCorporativo(String emissor, ProvedorCorporativo provedor, @Nullable String segredo);
+
+	/** Remove o IdP corporativo e os vínculos das contas com ele. */
+	void removerProvedorCorporativo(String emissor);
 
 }
