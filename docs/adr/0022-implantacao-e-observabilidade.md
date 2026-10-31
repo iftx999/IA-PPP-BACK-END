@@ -32,7 +32,9 @@ manuais frágeis.
 - **Pipeline.** A cada push no `main`: imagens construídas, varridas pelo Trivy (crítica corrigível bloqueia,
   relatório na aba Security) e publicadas no GHCR com tag do commit, SBOM e proveniência. SBOM CycloneDX das
   dependências Java dentro do JAR (`/actuator/sbom`). Versões corrigidas acima das do Spring Boot ficam explícitas no
-  `pom.xml` (ex.: Tomcat 11.0.25, Jackson 3.1.7/2.21.7, em 23/10/2026).
+  `pom.xml` (ex.: Tomcat 11.0.25, Jackson 3.1.7/2.21.7, em 23/10/2026). Na imagem do banco, o `gosu` da base
+  (binário Go com CVE crítica) é removido e substituído por um shim com `setpriv` do Debian; `apt upgrade` na
+  construção. As três imagens saíram com 0 vulnerabilidades altas/críticas corrigíveis.
 - **Novo cliente** por `provisionar-cliente.sh` (idempotente): tenant, emissor, unidade raiz, perfis do sistema e
   primeiro administrador, com convite por e-mail; sem SMTP, senha temporária entregue por canal seguro.
 - **Backup** diário (Aurora e Keycloak, formato custom, retenção 14 dias) e restauração que preserva o banco anterior
