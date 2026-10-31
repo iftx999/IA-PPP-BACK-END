@@ -11,12 +11,14 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import dev.aurora.acesso.Destinatarios;
 import dev.aurora.acesso.model.Concessao;
 import dev.aurora.acesso.model.ConcessaoDoUsuario;
 import dev.aurora.acesso.model.NovaConcessao;
 import dev.aurora.acesso.model.Permissao;
 import dev.aurora.acesso.model.Usuario;
 import dev.aurora.acesso.model.UsuarioAutenticado;
+import org.jspecify.annotations.Nullable;
 
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
@@ -53,6 +55,28 @@ public class UsuarioRepository {
 				 WHERE lower(email) = lower(:email) AND ativo
 				   AND (sub_externo IS NULL OR sub_externo = :sub)
 				RETURNING id""").param("sub", sub).param("email", email).query(UUID.class).optional();
+	}
+
+	/**
+	 * Usuários ativos com a permissão numa concessão vigente (unidade ativa) que cobre a
+	 * unidade; sem unidade, em qualquer unidade.
+	 */
+	public List<Destinatarios.Destinatario> listarComPermissao(String permissao, @Nullable UUID unidade) {
+		return jdbc.sql("""
+				SELECT DISTINCT u.id, u.nome, u.email
+				  FROM usuario u
+				  JOIN usuario_perfil_escopo c ON c.usuario_id = u.id AND (c.valido_ate IS NULL OR c.valido_ate > now())
+				  JOIN perfil_permissao pp ON pp.perfil_id = c.perfil_id AND pp.permissao = :permissao
+				  JOIN unidade e ON e.id = c.unidade_id AND e.ativo
+				 WHERE u.ativo
+				   AND (CAST(:unidade AS uuid) IS NULL
+				        OR e.caminho @> (SELECT caminho FROM unidade WHERE id = CAST(:unidade AS uuid)))
+				 ORDER BY u.nome""")
+			.param("permissao", permissao)
+			.param("unidade", unidade)
+			.query((r, n) -> new Destinatarios.Destinatario(r.getObject("id", UUID.class), r.getString("nome"),
+					r.getString("email")))
+			.list();
 	}
 
 	/** Concessões vigentes, em unidades ativas. */

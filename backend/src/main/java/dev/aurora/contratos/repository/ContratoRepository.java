@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import dev.aurora.contratos.PrazoContratual;
 import dev.aurora.contratos.model.Contrato;
 import dev.aurora.contratos.model.DadosContrato;
 import dev.aurora.contratos.model.Documento;
@@ -161,6 +162,19 @@ public class ContratoRepository {
 				r.getString("regulador"), r.getObject("data_assinatura", LocalDate.class),
 				r.getObject("vigencia_fim", LocalDate.class), r.getLong("documentos"), r.getLong("itens_pendentes"),
 				r.getLong("itens_aprovados"));
+	}
+
+	/** Contratos cuja vigência termina entre as datas (fim do contrato como prazo). */
+	public List<PrazoContratual> listarVigenciasTerminando(LocalDate de, LocalDate ate) {
+		return jdbc.sql("""
+				SELECT id, numero, unidade_id, vigencia_fim FROM contrato
+				 WHERE vigencia_fim BETWEEN ? AND ? ORDER BY vigencia_fim""")
+			.param(Date.valueOf(de))
+			.param(Date.valueOf(ate))
+			.query((r, n) -> new PrazoContratual(r.getObject("id", UUID.class), r.getString("numero"), null,
+					"Fim da vigência do contrato", null, r.getObject("unidade_id", UUID.class),
+					r.getObject("vigencia_fim", LocalDate.class)))
+			.list();
 	}
 
 	private static Documento documento(ResultSet r) throws SQLException {

@@ -8,7 +8,9 @@ Implantação num host único com Docker Compose (ADR 0022). Todos os comandos r
 1. Host Linux com Docker 27+ e Compose v2; portas 80 e 443 abertas; dois nomes DNS apontando para o host
    (`AURORA_DOMINIO`, ex. `aurora.empresa.com.br`, e `AURORA_DOMINIO_ID`, ex. `id.aurora.empresa.com.br`).
 2. `cp .env.example .env` e preencha. Segredos: `openssl rand -base64 48`. `AURORA_VERSAO` = tag do commit publicada
-   no GHCR (ex. `sha-84ecca8`). Defina SMTP real (convites e redefinição de senha dependem dele).
+   no GHCR (ex. `sha-84ecca8`). Defina SMTP real (convites, redefinição de senha e alertas por e-mail dependem dele; a API usa as mesmas
+   variáveis `AURORA_SMTP_*` do Keycloak, ADR 0024). Métrica `aurora_alertas_emails_total{resultado="falha"}` indica
+   falha de envio.
 3. `docker compose --env-file .env --profile observabilidade up -d`
 4. Confira: `docker compose --env-file .env ps` (api e web `healthy`); `https://AURORA_DOMINIO` abre o login.
 5. Fundo do mapa: contrate um provedor de tiles (os tiles públicos do OpenStreetMap não admitem uso de produção) e

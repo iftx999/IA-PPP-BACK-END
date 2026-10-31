@@ -80,6 +80,14 @@ aurora:
     # máquina da API; vazio desliga (o PDF digitalizado fica SEM_TEXTO).
     comando: ${AURORA_OCR_COMANDO:tesseract}
     segundos-por-pagina: 90
+  email:
+    # SMTP dos alertas por e-mail (ADR 0024). Vazio desliga o envio (os alertas ficam só na tela).
+    host: ${AURORA_SMTP_HOST:}
+    porta: ${AURORA_SMTP_PORTA:587}
+    usuario: ${AURORA_SMTP_USUARIO:}
+    senha: ${AURORA_SMTP_SENHA:}
+    remetente: ${AURORA_SMTP_REMETENTE:nao-responda@aurora.localhost}
+    tls: ${AURORA_SMTP_TLS:true}
   auditoria:
     # Chave do HMAC da trilha (>= 32 bytes). Guardar em cofre de segredos; trocar exige nova cadeia (ADR 0009).
     chave: ${AURORA_AUDITORIA_CHAVE}

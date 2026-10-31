@@ -20,6 +20,7 @@ import dev.aurora.contratos.model.StatusItem;
 import dev.aurora.contratos.model.TipoDocumento;
 import dev.aurora.contratos.model.TipoItem;
 import dev.aurora.contratos.service.ContratoService;
+import dev.aurora.contratos.service.PrazoService;
 import dev.aurora.contratos.service.RevisaoService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMax;
@@ -37,6 +38,7 @@ import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -95,7 +97,7 @@ class ContratoController {
 			@Nullable LocalDate vigenciaInicio, StatusItem status, String origem, @Nullable String modeloIa,
 			@Nullable BigDecimal confianca, @Nullable JsonNode propostaIa, boolean semReferencia, Instant propostoEm,
 			@Nullable String revisadoPor, @Nullable Instant revisadoEm, @Nullable String motivoRevisao,
-			@Nullable UUID substituidoPor) {
+			@Nullable UUID substituidoPor, @Nullable String cumpridoPor, @Nullable Instant cumpridoEm) {
 	}
 
 	record ItemRequest(@NotNull TipoItem tipo, @NotBlank @Size(max = 200) String titulo,
@@ -125,11 +127,14 @@ class ContratoController {
 
 	private final RevisaoService revisao;
 
+	private final PrazoService prazos;
+
 	private final JsonMapper json;
 
-	ContratoController(ContratoService contratos, RevisaoService revisao, JsonMapper json) {
+	ContratoController(ContratoService contratos, RevisaoService revisao, PrazoService prazos, JsonMapper json) {
 		this.contratos = contratos;
 		this.revisao = revisao;
+		this.prazos = prazos;
 		this.json = json;
 	}
 
@@ -227,6 +232,21 @@ class ContratoController {
 		return ResponseEntity.noContent().build();
 	}
 
+	/** ADR 0024: prazo cumprido encerra o alerta de prazo; desfazer reabre. */
+	@PostMapping("/itens/{item}/cumprimento")
+	@ExigePermissao(GERENCIAR)
+	ResponseEntity<Void> cumprir(@PathVariable UUID item) {
+		prazos.definirCumprimento(item, true);
+		return ResponseEntity.noContent().build();
+	}
+
+	@DeleteMapping("/itens/{item}/cumprimento")
+	@ExigePermissao(GERENCIAR)
+	ResponseEntity<Void> reabrir(@PathVariable UUID item) {
+		prazos.definirCumprimento(item, false);
+		return ResponseEntity.noContent().build();
+	}
+
 	private ItemResponse item(ItemContratual i) {
 		var d = i.dados();
 		return new ItemResponse(i.id(), i.contratoId(), i.documentoId(), d.tipo(), d.titulo(), d.resumo(), d.clausula(),
@@ -234,7 +254,7 @@ class ContratoController {
 				d.unidadeId(), i.unidadeNome(), d.valorAlerta(), d.vigenciaInicio(), i.status(), i.origem(),
 				i.modeloIa(), i.confianca(), i.propostaIa() == null ? null : json.readTree(i.propostaIa()),
 				d.semReferencia(), i.propostoEm(), i.revisadoPor(), i.revisadoEm(), i.motivoRevisao(),
-				i.substituidoPor());
+				i.substituidoPor(), i.cumpridoPor(), i.cumpridoEm());
 	}
 
 }

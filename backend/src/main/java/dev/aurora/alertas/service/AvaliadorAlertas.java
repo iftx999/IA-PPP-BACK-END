@@ -1,16 +1,19 @@
 package dev.aurora.alertas.service;
 
 import java.time.Clock;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
 
+import dev.aurora.adesao.Medicoes;
 import dev.aurora.alertas.model.Condicao;
 import dev.aurora.alertas.model.TipoAlerta;
 import dev.aurora.alertas.repository.AlertaRepository;
 import dev.aurora.auditoria.VerificacaoDaTrilha;
+import dev.aurora.contratos.PrazosContratuais;
 import dev.aurora.integracoes.Fontes;
 import dev.aurora.metas.Metas;
 
@@ -26,7 +29,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class AvaliadorAlertas {
 
 	static final Set<TipoAlerta> DE_INDICADORES = EnumSet.of(TipoAlerta.INDICADOR_ABAIXO_DA_META,
-			TipoAlerta.FONTE_ATRASADA);
+			TipoAlerta.META_FORA_DO_RITMO, TipoAlerta.FONTE_ATRASADA, TipoAlerta.PRAZO_CONTRATUAL);
 
 	private final AlertaRepository alertas;
 
@@ -34,14 +37,21 @@ public class AvaliadorAlertas {
 
 	private final Fontes fontes;
 
+	private final Medicoes medicoes;
+
+	private final PrazosContratuais prazos;
+
 	private final VerificacaoDaTrilha trilha;
 
 	private final Clock relogio;
 
-	AvaliadorAlertas(AlertaRepository alertas, Metas metas, Fontes fontes, VerificacaoDaTrilha trilha, Clock relogio) {
+	AvaliadorAlertas(AlertaRepository alertas, Metas metas, Fontes fontes, Medicoes medicoes, PrazosContratuais prazos,
+			VerificacaoDaTrilha trilha, Clock relogio) {
 		this.alertas = alertas;
 		this.metas = metas;
 		this.fontes = fontes;
+		this.medicoes = medicoes;
+		this.prazos = prazos;
 		this.trilha = trilha;
 		this.relogio = relogio;
 	}
@@ -58,7 +68,12 @@ public class AvaliadorAlertas {
 	public Resultado avaliarIndicadores() {
 		var condicoes = new ArrayList<Condicao>();
 		condicoes.addAll(RegrasDeAlerta.deAdesao(metas.situacoes()));
+		condicoes.addAll(RegrasDeAlerta.deRitmo(medicoes.projecoes()));
 		condicoes.addAll(RegrasDeAlerta.deFontes(fontes.atrasadas(), relogio.getZone()));
+		var hoje = LocalDate.now(relogio);
+		condicoes.addAll(
+				RegrasDeAlerta.dePrazos(prazos.pendentes(hoje, hoje.plusDays(RegrasDeAlerta.ANTECEDENCIA_PRAZO_DIAS),
+						hoje.plusDays(RegrasDeAlerta.ANTECEDENCIA_CONTRATO_DIAS)), hoje));
 		return sincronizar(DE_INDICADORES, condicoes);
 	}
 

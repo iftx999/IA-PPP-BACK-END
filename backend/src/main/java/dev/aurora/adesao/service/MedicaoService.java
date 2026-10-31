@@ -10,7 +10,9 @@ import java.util.UUID;
 import dev.aurora.adesao.AdesaoDaUnidade;
 import dev.aurora.adesao.IndicadorDaUnidade;
 import dev.aurora.adesao.Medicoes;
+import dev.aurora.adesao.ProjecaoDaUnidade;
 import dev.aurora.adesao.Situacao;
+import dev.aurora.adesao.model.Projecao;
 import dev.aurora.adesao.repository.AdesaoRepository;
 import dev.aurora.adesao.repository.MedicaoRepository;
 
@@ -84,6 +86,38 @@ class MedicaoService implements Medicoes {
 					meta != null && meta.herdada() ? meta.unidadeNome() : null, Situacao.classificar(percentual, meta),
 					composicao.factiveis(), composicao.cortados()));
 		}
+		return resultado;
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public List<ProjecaoDaUnidade> projecoes() {
+		var indicador = adesao.buscarIndicadorAdesao().orElse(null);
+		if (indicador == null) {
+			return List.of();
+		}
+		var competencias = adesao.listarCompetenciasDoEscopo(indicador);
+		if (competencias.isEmpty()) {
+			return List.of();
+		}
+		var atual = competencias.getFirst();
+		var series = adesao.listarSeriesDoEscopo(indicador, atual.minusMonths(Projecao.JANELA_MESES), atual);
+		var resultado = new ArrayList<ProjecaoDaUnidade>();
+		series.forEach((unidade, serie) -> {
+			var ultimo = serie.getLast();
+			if (!ultimo.competencia().equals(atual)) {
+				return;
+			}
+			var meta = adesao.buscarMetaVigente(unidade.id(), indicador, atual).orElse(null);
+			if (meta == null || meta.vigenciaFim() == null) {
+				return;
+			}
+			Projecao.calcular(serie, meta.valorMeta(), meta.vigenciaFim())
+				.ifPresent(p -> resultado.add(new ProjecaoDaUnidade(unidade.id(), unidade.nome(), unidade.tipo(), atual,
+						ultimo.adesao().percentual(), meta.valorMeta(), meta.valorAlerta(), !meta.herdada(),
+						p.ritmoAtual(), p.ritmoNecessario(), p.faltam(), p.mesesRestantes(), p.projecaoNoPrazo(),
+						p.prazo(), p.mesAtingimento(), p.atinge())));
+		});
 		return resultado;
 	}
 

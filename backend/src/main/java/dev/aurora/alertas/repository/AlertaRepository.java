@@ -92,6 +92,28 @@ public class AlertaRepository {
 				 WHERE id = ? AND resolvido_em IS NULL AND reconhecido_em IS NULL""").params(usuario, id).update() == 1;
 	}
 
+	/**
+	 * Fila de notificação: abertos, não reconhecidos e não enviados, criados depois de
+	 * {@code desde} (um alerta antigo não vira e-mail depois de uma parada longa).
+	 */
+	public List<Alerta> aNotificar(Instant desde) {
+		return jdbc.sql(SELECAO + "\n" + """
+				WHERE a.notificado_em IS NULL AND a.resolvido_em IS NULL AND a.reconhecido_em IS NULL
+				  AND a.criado_em >= ?
+				ORDER BY a.severidade = 'CRITICO' DESC, a.criado_em""")
+			.param(Timestamp.from(desde))
+			.query((r, n) -> alerta(r))
+			.list();
+	}
+
+	public void marcarNotificados(Collection<UUID> ids) {
+		if (!ids.isEmpty()) {
+			jdbc.sql("UPDATE alerta SET notificado_em = now() WHERE id = ANY (?)")
+				.param(ids.toArray(UUID[]::new))
+				.update();
+		}
+	}
+
 	/** Abertos por severidade, sem os reconhecidos (são os que pedem ação). */
 	public record Contagem(long criticos, long atencao, long reconhecidos) {
 	}

@@ -3,8 +3,10 @@ package dev.aurora.adesao.repository;
 import java.sql.Date;
 import java.time.LocalDate;
 import java.time.YearMonth;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -103,6 +105,31 @@ public class AdesaoRepository {
 			.query((linha, n) -> new PontoSerie(YearMonth.from(linha.getDate("periodo_inicio").toLocalDate()),
 					new Adesao(linha.getLong("numerador"), linha.getLong("denominador"))))
 			.list();
+	}
+
+	/**
+	 * Séries de todas as unidades ativas do escopo entre as competências, em ordem
+	 * cronológica (uma consulta para a avaliação periódica, em vez de uma por unidade).
+	 */
+	public Map<UnidadeResumo, List<PontoSerie>> listarSeriesDoEscopo(UUID indicadorId, YearMonth de, YearMonth ate) {
+		var series = new LinkedHashMap<UnidadeResumo, List<PontoSerie>>();
+		jdbc.sql("""
+				SELECT u.id, u.nome, u.tipo, m.periodo_inicio, m.numerador, m.denominador
+				  FROM medicao m
+				  JOIN unidade u ON u.id = m.unidade_id
+				 WHERE m.indicador_id = ? AND m.periodo_inicio BETWEEN ? AND ? AND u.ativo
+				 ORDER BY u.caminho, m.periodo_inicio""")
+			.param(indicadorId)
+			.param(inicio(de))
+			.param(inicio(ate))
+			.query(linha -> {
+				var unidade = new UnidadeResumo(linha.getObject("id", UUID.class), linha.getString("nome"),
+						linha.getString("tipo"));
+				series.computeIfAbsent(unidade, u -> new ArrayList<>())
+					.add(new PontoSerie(YearMonth.from(linha.getDate("periodo_inicio").toLocalDate()),
+							new Adesao(linha.getLong("numerador"), linha.getLong("denominador"))));
+			});
+		return series;
 	}
 
 	/**

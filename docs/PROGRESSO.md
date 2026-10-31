@@ -280,3 +280,26 @@ token não leva os papéis de `realm-management` e a Admin API responde 403. Flu
 - Recriar o contêiner do Keycloak reimporta o realm e apaga usuários criados pelos E2E (os de demonstração têm IDs
   fixos e continuam vinculados).
 
+
+## Sessão de 31/10/2026
+
+### Alertas de ritmo e de prazo contratual e e-mail (RN-05, RN-07) — ADR 0024
+- **Ritmo:** `Medicoes.projecoes()` reaproveita a `Projecao` do painel; alerta `META_FORA_DO_RITMO` quando a meta com
+  prazo não sai no ritmo atual (Crítico se a projeção fica abaixo do limite de alerta).
+- **Prazo contratual:** itens `PRAZO` aprovados (60 dias antes; Crítico com 15 ou vencido, até ser marcado como
+  cumprido) e fim da vigência do contrato (180 dias antes; Crítico com 30). `POST/DELETE
+  /contratos/itens/{id}/cumprimento` (auditado). Na tela do contrato: selo "Vence em N dias"/"Venceu"/"Cumprido" e
+  botões "Marcar como cumprido"/"Reabrir prazo".
+- **E-mail:** tarefa `notificar-alertas` a cada 15 min; um resumo por pessoa com os alertas novos que ela pode ver;
+  preferência Nenhum / Só críticos (padrão) / Todos em Alertas (`/alertas/preferencias`). SMTP por `AURORA_SMTP_*`
+  (vazio desliga); no ambiente local vai para o Mailpit (http://localhost:8025). V20.
+- **Validação real:** prazo vencendo em 5 dias no banco local → alerta crítico → 2 e-mails no Mailpit (administração
+  e diretoria), conforme a preferência padrão.
+- Testes: back-end 187 (`NotificacaoAlertasApiTest`, `PrazosApiTest`, regras e mensagem); front 44 unitários e 33 E2E.
+  Testes do back-end agora usam pool com poucas conexões ociosas (muitos contextos em cache esgotavam o banco).
+
+### Pendências
+- O push para o GitHub travou nesta sessão: o agente SSH pede confirmação/senha da chave. Branches locais
+  `feat/verificacao-em-duas-etapas` (MFA, 26/10) e `feat/alertas-ritmo-prazo-email` (este trabalho) ainda não enviados.
+- Próximo: SSO corporativo (S10), regra factível × cortado (autor), validação da IA com chave real, prazos
+  recorrentes (`periodicidade`).

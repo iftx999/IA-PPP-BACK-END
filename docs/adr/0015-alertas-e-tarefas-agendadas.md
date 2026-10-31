@@ -23,5 +23,4 @@ e as tabelas têm RLS forçado por tenant.
 - **Permissões:** ver e reconhecer exigem `indicador:ler` (o catálogo herdado não tem permissões de alerta); o
   RLS mostra os alertas das unidades do escopo e os sem unidade (fonte, trilha). Reconhecer é auditado.
 
-**Consequências.** Alertas de ritmo (META_FORA_DO_RITMO) e de prazo contratual existem no schema, mas ainda não
-são gerados. A notificação por e-mail (`notificado_em`) fica para depois.
+**Consequências.** Alertas de ritmo e de prazo contratual e a notificação por e-mail vieram depois (ADR 0024).

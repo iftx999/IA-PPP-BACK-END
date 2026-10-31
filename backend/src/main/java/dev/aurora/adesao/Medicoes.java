@@ -29,6 +29,12 @@ public interface Medicoes {
 	 */
 	List<IndicadorDaUnidade> detalhar(Collection<UUID> unidades, YearMonth competencia);
 
+	/**
+	 * RN-05: projeção de cada unidade do escopo com medição na competência mais recente e
+	 * meta vigente com fim de vigência (metas sem prazo não têm "no prazo").
+	 */
+	List<ProjecaoDaUnidade> projecoes();
+
 	/** Competências com medição no escopo, da mais recente para a mais antiga. */
 	List<YearMonth> competencias();
 

@@ -18,3 +18,8 @@ aurora:
   identidade:
     segredo: ${AURORA_IDENTIDADE_SEGREDO:api-admin-dev}
     url-retorno: ${AURORA_URL_FRONT:http://localhost:4200/}
+  email:
+    # Mailpit do infra/compose.yaml (caixa em http://localhost:8025).
+    host: ${AURORA_SMTP_HOST:localhost}
+    porta: ${AURORA_SMTP_PORTA:1025}
+    tls: ${AURORA_SMTP_TLS:false}

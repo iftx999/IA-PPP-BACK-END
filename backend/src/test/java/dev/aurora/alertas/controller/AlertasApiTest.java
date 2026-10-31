@@ -68,7 +68,9 @@ class AlertasApiTest {
 	@Test
 	void avaliacaoAbreNaoDuplicaEResolveSozinho() throws Exception {
 		var primeira = avaliar();
-		assertThat(primeira.abertos()).isEqualTo(3);
+		// Cidade B (crítico), concessão abaixo da meta, concessão fora do ritmo (RN-05:
+		// 81/mês até dez/2026 leva a 79,7% < 80%) e a fonte atrasada.
+		assertThat(primeira.abertos()).isEqualTo(4);
 		assertThat(avaliar()).isEqualTo(new AvaliadorAlertas.Resultado(0, 0, 0));
 
 		mvc.perform(get("/api/v1/alertas").with(token("sub-admin")))
@@ -76,7 +78,10 @@ class AlertasApiTest {
 			.andExpect(jsonPath("$[0].severidade", is("CRITICO")))
 			.andExpect(
 					jsonPath("$[0].titulo", is("Adesão abaixo do limite de alerta em %s".formatted(nome(t.cidadeB())))))
-			.andExpect(jsonPath("$[*].titulo", hasItem("Fonte de dados atrasada: Sistema comercial")));
+			.andExpect(jsonPath("$[*].titulo", hasItem("Fonte de dados atrasada: Sistema comercial")))
+			.andExpect(jsonPath("$[?(@.tipo == 'META_FORA_DO_RITMO')].descricao",
+					hasItem("No ritmo atual (81/mês), a adesão chega a 79,7% em dez/2026; meta de 80,0% até dez/2026. "
+							+ "Faltam 359 ligações: ritmo necessário de 90/mês. No ritmo atual, a meta sai em jan/2027.")));
 
 		// Escopo: quem atua na Cidade A vê o alerta da fonte (do tenant), mas não o da
 		// Cidade B.
