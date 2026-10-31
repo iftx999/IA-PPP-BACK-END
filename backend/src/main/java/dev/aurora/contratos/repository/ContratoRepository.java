@@ -173,7 +173,7 @@ public class ContratoRepository {
 			.param(Date.valueOf(ate))
 			.query((r, n) -> new PrazoContratual(r.getObject("id", UUID.class), r.getString("numero"), null,
 					"Fim da vigência do contrato", null, r.getObject("unidade_id", UUID.class),
-					r.getObject("vigencia_fim", LocalDate.class)))
+					r.getObject("vigencia_fim", LocalDate.class), null))
 			.list();
 	}
 

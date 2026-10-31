@@ -52,8 +52,11 @@ public enum TipoEvento {
 	/** Contratos (épico A). */
 	CONTRATO_CRIADO, DOCUMENTO_CONTRATO_ENVIADO, ITEM_CONTRATUAL_APROVADO, ITEM_CONTRATUAL_REJEITADO,
 
-	/** ADR 0024: prazo contratual marcado como cumprido ou reaberto. */
-	PRAZO_CONTRATUAL_CUMPRIDO, PRAZO_CONTRATUAL_REABERTO,
+	/**
+	 * ADR 0024, ADR 0026: agenda de vencimentos definida; vencimento cumprido ou
+	 * reaberto.
+	 */
+	AGENDA_DE_PRAZO_DEFINIDA, PRAZO_CONTRATUAL_CUMPRIDO, PRAZO_CONTRATUAL_REABERTO,
 
 	/** ADR 0021: páginas digitalizadas lidas por OCR (nome herdado). */
 	TEXTO_RECONHECIDO_POR_OCR,

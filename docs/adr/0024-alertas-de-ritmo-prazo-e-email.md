@@ -32,6 +32,6 @@ Aurora. As regras exatas não estão no doc 03: as faixas abaixo são decisão d
 - **Conteúdo (LGPD).** O e-mail traz só o que a tela de alertas mostra (unidade, percentuais, prazos, link). Nada de
   matrícula ou dado pessoal. Texto escapado no HTML.
 
-**Consequências.** Prazos recorrentes (`periodicidade`) ainda não geram ocorrências: só a `data_limite` conta.
+**Consequências.** Prazos recorrentes: ver ADR 0026 (agenda, cumprimento por vencimento e obrigações).
 Antecedências fixas no código; tornar configuráveis por tenant se os clientes pedirem. Sem fila externa: se a
 mensageria entrar (doc 09), a notificação é a primeira candidata a consumir eventos.

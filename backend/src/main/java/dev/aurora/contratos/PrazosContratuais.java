@@ -7,9 +7,9 @@ import java.util.List;
 public interface PrazosContratuais {
 
 	/**
-	 * Prazos do escopo a acompanhar: itens PRAZO aprovados e não cumpridos com data até
-	 * {@code itensAte} (vencidos inclusive) e contratos cuja vigência termina entre hoje
-	 * e {@code contratosAte}.
+	 * Prazos do escopo a acompanhar: próximo vencimento de prazos e obrigações aprovados
+	 * até {@code itensAte} (vencidos inclusive) e contratos cuja vigência termina entre
+	 * hoje e {@code contratosAte}.
 	 */
 	List<PrazoContratual> pendentes(LocalDate hoje, LocalDate itensAte, LocalDate contratosAte);
 

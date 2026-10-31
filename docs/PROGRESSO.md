@@ -317,7 +317,17 @@ token não leva os papéis de `realm-management` e a Admin API responde 403. Flu
   testado num realm da versão anterior (2 execuções).
 - Testes: back-end 195; front 46 unitários e 37 E2E (`e2e/sso.spec.ts`).
 
+### Prazos e obrigações recorrentes — ADR 0026 — mesma sessão (branch `feat/prazos-recorrentes`)
+- Nos contratos lidos, quem se repete são obrigações sem data (só o texto "trimestral", "anual"...). Agenda no item
+  aprovado (`PUT /contratos/itens/{id}/agenda`: primeiro vencimento + recorrência), com sugestão a partir do texto.
+- Cumprimento por vencimento (V22 `item_contratual_cumprimento`, cumprimentos da V20 migrados); cumprir avança ao
+  próximo, desfazer volta o último; respeita o fim da vigência. Obrigações com data passam a ser acompanhadas.
+- Alerta por vencimento (`PRAZO:<item>:<data>`) com antecedência proporcional ao período (mensal: 15/7 dias).
+- Front: seção "Vencimentos" no item e aviso no contrato ("15 obrigações recorrentes sem data" no contrato 001/2025).
+- Validação: migração da V20 conferida no banco de dev; E2E de contratos cobre definir, cumprir, avançar e desfazer.
+- Testes: back-end 218; front 47 unitários e 37 E2E.
+
 ### Pendências
-- Próximo: regra factível × cortado (autor), validação da IA com chave real, prazos recorrentes (`periodicidade`),
-  administrador da plataforma (tela de tenants, depende do autor).
+- Próximo: regra factível × cortado (autor), validação da IA com chave real, administrador da plataforma (tela de
+  tenants, depende do autor).
 - Se o E2E de SSO falhar no meio, o botão "Empresa Exemplo (E2E)" fica no login até remover o SSO em Usuários.

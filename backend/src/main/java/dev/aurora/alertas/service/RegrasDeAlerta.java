@@ -82,7 +82,11 @@ final class RegrasDeAlerta {
 			.toList();
 	}
 
-	/** Item de prazo: alerta a partir de 60 dias antes; crítico a 15 dias ou vencido. */
+	/**
+	 * Item de prazo: alerta a partir de 60 dias antes; crítico a 15 dias ou vencido. Em
+	 * item recorrente, no máximo metade do período (e um quarto para crítico): uma
+	 * obrigação mensal não fica em alerta o mês inteiro (ADR 0026).
+	 */
 	static final int ANTECEDENCIA_PRAZO_DIAS = 60;
 
 	static final int PRAZO_CRITICO_DIAS = 15;
@@ -145,11 +149,14 @@ final class RegrasDeAlerta {
 		var condicoes = new ArrayList<Condicao>();
 		for (var p : prazos) {
 			var dias = ChronoUnit.DAYS.between(hoje, p.data());
-			var antecedencia = p.fimDoContrato() ? ANTECEDENCIA_CONTRATO_DIAS : ANTECEDENCIA_PRAZO_DIAS;
+			var periodo = p.recorrencia() == null ? Integer.MAX_VALUE : p.recorrencia().diasAproximados();
+			var antecedencia = p.fimDoContrato() ? ANTECEDENCIA_CONTRATO_DIAS
+					: Math.min(ANTECEDENCIA_PRAZO_DIAS, periodo / 2);
 			if (dias > antecedencia || (p.fimDoContrato() && dias < 0)) {
 				continue;
 			}
-			var critico = dias <= (p.fimDoContrato() ? CONTRATO_CRITICO_DIAS : PRAZO_CRITICO_DIAS);
+			var critico = dias <= (p.fimDoContrato() ? CONTRATO_CRITICO_DIAS
+					: Math.min(PRAZO_CRITICO_DIAS, periodo / 4));
 			var quando = dias < 0 ? "venceu em " + DATA.format(p.data()) + " (há " + diasPorExtenso(-dias) + ")"
 					: dias == 0 ? "vence hoje (" + DATA.format(p.data()) + ")"
 							: "vence em " + DATA.format(p.data()) + " (faltam " + diasPorExtenso(dias) + ")";
@@ -163,11 +170,14 @@ final class RegrasDeAlerta {
 						+ ". Verifique renovação, aditivo ou transição.";
 			}
 			else {
-				chave = "PRAZO:" + p.itemId();
+				// Recorrente: um alerta por vencimento (o seguinte gera outro aviso).
+				chave = "PRAZO:" + p.itemId() + (p.recorrencia() == null ? "" : ":" + p.data());
 				titulo = (dias < 0 ? "Prazo contratual vencido: " : "Prazo contratual: ") + p.titulo();
 				descricao = "Contrato " + p.contratoNumero()
 						+ (p.clausula() == null ? "" : ", cláusula " + p.clausula()) + ": " + quando
-						+ ". Quando for cumprido, marque o item no contrato.";
+						+ (p.recorrencia() == null ? ". Quando for cumprido, marque o item no contrato."
+								: ". Repete " + p.recorrencia().rotulo()
+										+ "; ao marcar como cumprido, o acompanhamento passa ao próximo vencimento.");
 			}
 			condicoes
 				.add(new Condicao(chave, TipoAlerta.PRAZO_CONTRATUAL, critico ? Severidade.CRITICO : Severidade.ATENCAO,

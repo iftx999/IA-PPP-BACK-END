@@ -10,10 +10,13 @@ import java.util.Optional;
 import java.util.UUID;
 
 import dev.aurora.contexto.ExigePermissao;
+import dev.aurora.contratos.Recorrencia;
 import dev.aurora.contratos.model.Contrato;
 import dev.aurora.contratos.model.DadosContrato;
 import dev.aurora.contratos.model.DadosItem;
 import dev.aurora.contratos.model.Documento;
+
+import dev.aurora.contratos.model.AgendaDePrazo;
 import dev.aurora.contratos.model.ItemContratual;
 import dev.aurora.contratos.model.SituacaoDocumento;
 import dev.aurora.contratos.model.StatusItem;
@@ -97,7 +100,35 @@ class ContratoController {
 			@Nullable LocalDate vigenciaInicio, StatusItem status, String origem, @Nullable String modeloIa,
 			@Nullable BigDecimal confianca, @Nullable JsonNode propostaIa, boolean semReferencia, Instant propostoEm,
 			@Nullable String revisadoPor, @Nullable Instant revisadoEm, @Nullable String motivoRevisao,
-			@Nullable UUID substituidoPor, @Nullable String cumpridoPor, @Nullable Instant cumpridoEm) {
+			@Nullable UUID substituidoPor, @Nullable AgendaResponse agenda, @Nullable Recorrencia recorrenciaSugerida) {
+	}
+
+	/**
+	 * Vencimentos de um prazo ou obrigação aprovado (ADR 0026).
+	 *
+	 * @param proximoVencimento vencimento em aberto; nulo quando tudo foi cumprido
+	 */
+	record AgendaResponse(LocalDate primeiroVencimento, @Nullable Recorrencia recorrencia,
+			@Nullable LocalDate proximoVencimento, List<CumprimentoResponse> cumprimentos) {
+
+		static AgendaResponse de(AgendaDePrazo a) {
+			return new AgendaResponse(a.primeiroVencimento(), a.recorrencia(), a.proximoVencimento().orElse(null),
+					a.cumprimentos()
+						.reversed()
+						.stream()
+						.map(c -> new CumprimentoResponse(c.vencimento(), c.cumpridoEm(), c.cumpridoPor()))
+						.toList());
+		}
+	}
+
+	record CumprimentoResponse(LocalDate vencimento, Instant cumpridoEm, @Nullable String cumpridoPor) {
+	}
+
+	/**
+	 * @param primeiroVencimento nulo = a data limite aprovada do item
+	 * @param recorrencia nula = vencimento único
+	 */
+	record AgendaRequest(@Nullable LocalDate primeiroVencimento, @Nullable Recorrencia recorrencia) {
 	}
 
 	record ItemRequest(@NotNull TipoItem tipo, @NotBlank @Size(max = 200) String titulo,
@@ -232,19 +263,27 @@ class ContratoController {
 		return ResponseEntity.noContent().build();
 	}
 
-	/** ADR 0024: prazo cumprido encerra o alerta de prazo; desfazer reabre. */
+	/**
+	 * ADR 0024, ADR 0026: cumpre o vencimento em aberto (o alerta dele se encerra e, se o
+	 * item se repete, passa ao seguinte); desfazer reabre o último cumprido.
+	 */
 	@PostMapping("/itens/{item}/cumprimento")
 	@ExigePermissao(GERENCIAR)
-	ResponseEntity<Void> cumprir(@PathVariable UUID item) {
-		prazos.definirCumprimento(item, true);
-		return ResponseEntity.noContent().build();
+	AgendaResponse cumprir(@PathVariable UUID item) {
+		return AgendaResponse.de(prazos.cumprir(item));
 	}
 
 	@DeleteMapping("/itens/{item}/cumprimento")
 	@ExigePermissao(GERENCIAR)
-	ResponseEntity<Void> reabrir(@PathVariable UUID item) {
-		prazos.definirCumprimento(item, false);
-		return ResponseEntity.noContent().build();
+	AgendaResponse reabrir(@PathVariable UUID item) {
+		return AgendaResponse.de(prazos.reabrir(item));
+	}
+
+	/** Quando o prazo ou a obrigação aprovado vence e se repete. */
+	@PutMapping("/itens/{item}/agenda")
+	@ExigePermissao(GERENCIAR)
+	AgendaResponse definirAgenda(@PathVariable UUID item, @RequestBody AgendaRequest pedido) {
+		return AgendaResponse.de(prazos.definirAgenda(item, pedido.primeiroVencimento(), pedido.recorrencia()));
 	}
 
 	private ItemResponse item(ItemContratual i) {
@@ -254,7 +293,8 @@ class ContratoController {
 				d.unidadeId(), i.unidadeNome(), d.valorAlerta(), d.vigenciaInicio(), i.status(), i.origem(),
 				i.modeloIa(), i.confianca(), i.propostaIa() == null ? null : json.readTree(i.propostaIa()),
 				d.semReferencia(), i.propostoEm(), i.revisadoPor(), i.revisadoEm(), i.motivoRevisao(),
-				i.substituidoPor(), i.cumpridoPor(), i.cumpridoEm());
+				i.substituidoPor(), i.agenda() == null ? null : AgendaResponse.de(i.agenda()),
+				ItemContratual.temVencimento(d.tipo()) ? Recorrencia.sugerir(d.periodicidade()).orElse(null) : null);
 	}
 
 }

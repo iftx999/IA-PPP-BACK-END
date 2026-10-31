@@ -14,6 +14,7 @@ import dev.aurora.adesao.Situacao;
 import dev.aurora.alertas.model.Condicao;
 import dev.aurora.alertas.model.Severidade;
 import dev.aurora.contratos.PrazoContratual;
+import dev.aurora.contratos.Recorrencia;
 import dev.aurora.integracoes.FonteAtrasada;
 import dev.aurora.metas.SituacaoDaUnidade;
 import org.junit.jupiter.api.Test;
@@ -87,9 +88,9 @@ class RegrasDeAlertaTest {
 		var dezDias = prazo(contrato, unidade, "Cadastro de usuários", hoje.plusDays(10));
 		var vencido = prazo(contrato, unidade, "Revisão tarifária", hoje.minusDays(3));
 		var fim = new PrazoContratual(contrato, "001/2025", null, "Fim da vigência do contrato", null, unidade,
-				hoje.plusDays(100));
+				hoje.plusDays(100), null);
 		var fimPassado = new PrazoContratual(contrato, "002/2010", null, "Fim da vigência do contrato", null, unidade,
-				hoje.minusDays(1));
+				hoje.minusDays(1), null);
 
 		var condicoes = RegrasDeAlerta.dePrazos(List.of(longe, trintaDias, dezDias, vencido, fim, fimPassado), hoje);
 
@@ -107,8 +108,34 @@ class RegrasDeAlertaTest {
 		assertThat(condicoes).allMatch(c -> c.unidadeId().equals(unidade) && c.link().equals("/contratos/" + contrato));
 	}
 
+	@Test
+	void recorrenteTemAntecedenciaProporcionalEUmAlertaPorVencimento() {
+		var hoje = LocalDate.of(2026, 10, 31);
+		var contrato = UUID.randomUUID();
+		var unidade = UUID.randomUUID();
+		// Mensal: alerta a partir de 15 dias, crítico a 7.
+		var mensalLonge = prazo(contrato, unidade, "Nota fiscal", hoje.plusDays(16), Recorrencia.MENSAL);
+		var mensalPerto = prazo(contrato, unidade, "Relatório mensal", hoje.plusDays(12), Recorrencia.MENSAL);
+		var mensalCritico = prazo(contrato, unidade, "Medição", hoje.plusDays(7), Recorrencia.MENSAL);
+		// Anual: mesma regra do vencimento único (60/15).
+		var anual = prazo(contrato, unidade, "Demonstrações", hoje.plusDays(50), Recorrencia.ANUAL);
+
+		var condicoes = RegrasDeAlerta.dePrazos(List.of(mensalLonge, mensalPerto, mensalCritico, anual), hoje);
+
+		assertThat(condicoes).extracting(Condicao::severidade)
+			.containsExactly(Severidade.ATENCAO, Severidade.CRITICO, Severidade.ATENCAO);
+		assertThat(condicoes.get(0).chave()).isEqualTo("PRAZO:" + mensalPerto.itemId() + ":2026-11-12");
+		assertThat(condicoes.get(0).descricao())
+			.endsWith("Repete mensalmente; ao marcar como cumprido, o acompanhamento passa ao próximo vencimento.");
+	}
+
 	private static PrazoContratual prazo(UUID contrato, UUID unidade, String titulo, LocalDate data) {
-		return new PrazoContratual(contrato, "001/2025", UUID.randomUUID(), titulo, "9.1", unidade, data);
+		return prazo(contrato, unidade, titulo, data, null);
+	}
+
+	private static PrazoContratual prazo(UUID contrato, UUID unidade, String titulo, LocalDate data,
+			Recorrencia recorrencia) {
+		return new PrazoContratual(contrato, "001/2025", UUID.randomUUID(), titulo, "9.1", unidade, data, recorrencia);
 	}
 
 	private static ProjecaoDaUnidade projecao(String nome, String tipo, String ritmo, String projecao, String meta,

@@ -37,6 +37,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -105,24 +106,86 @@ class PrazosApiTest {
 		mvc.perform(post("/api/v1/contratos/itens/{id}/cumprimento", obrigacao).with(token("sub-admin")))
 			.andExpect(status().isUnprocessableContent());
 		mvc.perform(post("/api/v1/contratos/itens/{id}/cumprimento", prazo).with(token("sub-admin")))
-			.andExpect(status().isNoContent());
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.proximoVencimento").value(nullValue()))
+			.andExpect(jsonPath("$.cumprimentos[0].vencimento").value(hoje.plusDays(10).toString()));
 		mvc.perform(post("/api/v1/contratos/itens/{id}/cumprimento", prazo).with(token("sub-admin")))
 			.andExpect(status().isConflict());
 		mvc.perform(get("/api/v1/contratos/{id}/itens", contrato).with(token("sub-leitura")))
-			.andExpect(jsonPath("$[?(@.id == '%s')].cumpridoPor".formatted(prazo), hasItem("admin@prazos.teste")));
+			.andExpect(jsonPath("$[?(@.id == '%s')].agenda.cumprimentos[0].cumpridoPor".formatted(prazo),
+					hasItem("admin@prazos.teste")));
 
 		assertThat(avaliar().resolvidos()).isEqualTo(1);
 		assertThat(chavesAbertas()).doesNotContain("PRAZO:" + prazo).contains("CONTRATO:" + contrato);
 
 		// Desfazer reabre o acompanhamento.
 		mvc.perform(delete("/api/v1/contratos/itens/{id}/cumprimento", prazo).with(token("sub-admin")))
-			.andExpect(status().isNoContent());
+			.andExpect(status().isOk());
 		avaliar();
 		assertThat(chavesAbertas()).contains("PRAZO:" + prazo);
 		mvc.perform(get("/api/v1/contratos/{id}/itens", contrato).with(token("sub-admin")))
-			.andExpect(jsonPath("$[?(@.id == '%s')].cumpridoEm".formatted(prazo), hasItem(nullValue())));
-		assertThat(eventos("PRAZO_CONTRATUAL_CUMPRIDO")).isEqualTo(1);
-		assertThat(eventos("PRAZO_CONTRATUAL_REABERTO")).isEqualTo(1);
+			.andExpect(jsonPath("$[?(@.id == '%s')].agenda.proximoVencimento".formatted(prazo),
+					hasItem(hoje.plusDays(10).toString())));
+		assertThat(eventos("PRAZO_CONTRATUAL_CUMPRIDO", prazo)).isEqualTo(1);
+		assertThat(eventos("PRAZO_CONTRATUAL_REABERTO", prazo)).isEqualTo(1);
+	}
+
+	@Test
+	void obrigacaoMensalSemDataGanhaAgendaEAvancaACadaCumprimento() throws Exception {
+		var hoje = LocalDate.now();
+		var contrato = criarContrato(hoje.plusYears(2));
+		var documento = documento(contrato);
+		var obrigacao = criarItem(contrato, documento, "OBRIGACAO", null, "mensalmente");
+		var penalidade = criarItem(contrato, documento, "PENALIDADE", null, "mensal");
+		aprovar(obrigacao);
+		aprovar(penalidade);
+
+		// Sem data não há o que acompanhar; a repetição é sugerida pelo texto do
+		// contrato.
+		mvc.perform(get("/api/v1/contratos/{id}/itens", contrato).with(token("sub-admin")))
+			.andExpect(jsonPath("$[?(@.id == '%s')].recorrenciaSugerida".formatted(obrigacao), hasItem("MENSAL")))
+			.andExpect(jsonPath("$[?(@.id == '%s')].agenda".formatted(obrigacao), hasItem(nullValue())))
+			.andExpect(jsonPath("$[?(@.id == '%s')].recorrenciaSugerida".formatted(penalidade), hasItem(nullValue())));
+		agenda(obrigacao, null, "MENSAL").andExpect(status().isUnprocessableContent());
+		agenda(penalidade, hoje.toString(), "MENSAL").andExpect(status().isUnprocessableContent());
+		agenda(obrigacao, hoje.plusYears(3).toString(), "MENSAL").andExpect(status().isUnprocessableContent());
+		mvc.perform(put("/api/v1/contratos/itens/{id}/agenda", obrigacao).contentType(MediaType.APPLICATION_JSON)
+			.content("{\"primeiroVencimento\":\"%s\",\"recorrencia\":\"MENSAL\"}".formatted(hoje.plusDays(5)))
+			.with(token("sub-leitura"))).andExpect(status().isForbidden());
+
+		var primeiro = hoje.plusDays(5);
+		agenda(obrigacao, primeiro.toString(), "MENSAL").andExpect(status().isOk())
+			.andExpect(jsonPath("$.recorrencia").value("MENSAL"))
+			.andExpect(jsonPath("$.proximoVencimento").value(primeiro.toString()));
+		avaliar();
+		assertThat(chavesAbertas()).contains("PRAZO:" + obrigacao + ":" + primeiro);
+
+		// Cumprir passa ao mês seguinte: o alerta deste vencimento se encerra.
+		mvc.perform(post("/api/v1/contratos/itens/{id}/cumprimento", obrigacao).with(token("sub-admin")))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.proximoVencimento").value(primeiro.plusMonths(1).toString()));
+		mvc.perform(post("/api/v1/contratos/itens/{id}/cumprimento", obrigacao).with(token("sub-admin")))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.proximoVencimento").value(primeiro.plusMonths(2).toString()))
+			.andExpect(jsonPath("$.cumprimentos.length()").value(2))
+			.andExpect(jsonPath("$.cumprimentos[0].vencimento").value(primeiro.plusMonths(1).toString()));
+		avaliar();
+		assertThat(chavesAbertas()).noneMatch(c -> c.startsWith("PRAZO:" + obrigacao));
+
+		// Desfazer volta só o último.
+		mvc.perform(delete("/api/v1/contratos/itens/{id}/cumprimento", obrigacao).with(token("sub-admin")))
+			.andExpect(jsonPath("$.proximoVencimento").value(primeiro.plusMonths(1).toString()));
+		assertThat(eventos("AGENDA_DE_PRAZO_DEFINIDA", obrigacao)).isEqualTo(1);
+		assertThat(eventos("PRAZO_CONTRATUAL_CUMPRIDO", obrigacao)).isEqualTo(2);
+		assertThat(eventos("PRAZO_CONTRATUAL_REABERTO", obrigacao)).isEqualTo(1);
+	}
+
+	private org.springframework.test.web.servlet.ResultActions agenda(UUID item, String primeiro, String recorrencia)
+			throws Exception {
+		return mvc.perform(put("/api/v1/contratos/itens/{id}/agenda", item).contentType(MediaType.APPLICATION_JSON)
+			.content("{\"primeiroVencimento\":%s,\"recorrencia\":\"%s\"}"
+				.formatted(primeiro == null ? "null" : "\"" + primeiro + "\"", recorrencia))
+			.with(token("sub-admin")));
 	}
 
 	private AvaliadorAlertas.Resultado avaliar() throws Exception {
@@ -170,12 +233,19 @@ class PrazosApiTest {
 	}
 
 	private UUID criarItem(UUID contrato, UUID documento, String tipo, LocalDate dataLimite) throws Exception {
+		return criarItem(contrato, documento, tipo, dataLimite, null);
+	}
+
+	private UUID criarItem(UUID contrato, UUID documento, String tipo, LocalDate dataLimite, String periodicidade)
+			throws Exception {
 		var resposta = mvc
 			.perform(post("/api/v1/contratos/{id}/itens", contrato).contentType(MediaType.APPLICATION_JSON)
 				.content("""
 						{"documentoId":"%s","item":{"tipo":"%s","titulo":"Entrega do cadastro","resumo":"Prazo",
-						 "clausula":"9.1","pagina":1,"trecho":"entregara o cadastro","dataLimite":%s}}"""
-					.formatted(documento, tipo, dataLimite == null ? "null" : "\"" + dataLimite + "\""))
+						 "clausula":"9.1","pagina":1,"trecho":"entregara o cadastro","dataLimite":%s,
+						 "periodicidade":%s}}""".formatted(documento, tipo,
+						dataLimite == null ? "null" : "\"" + dataLimite + "\"",
+						periodicidade == null ? "null" : "\"" + periodicidade + "\""))
 				.with(token("sub-admin")))
 			.andExpect(status().isCreated())
 			.andReturn();
@@ -206,12 +276,13 @@ class PrazosApiTest {
 		}
 	}
 
-	private static long eventos(String tipo) throws Exception {
+	private static long eventos(String tipo, UUID item) throws Exception {
 		try (var c = BancoDeTeste.comoSuperusuario();
-				var consulta = c
-					.prepareStatement("SELECT count(*) FROM evento_auditoria WHERE tenant_id = ?::uuid AND tipo = ?")) {
+				var consulta = c.prepareStatement("SELECT count(*) FROM evento_auditoria "
+						+ "WHERE tenant_id = ?::uuid AND tipo = ? AND recurso = ?")) {
 			consulta.setString(1, t.id().toString());
 			consulta.setString(2, tipo);
+			consulta.setString(3, "item-contratual/" + item);
 			var linhas = consulta.executeQuery();
 			linhas.next();
 			return linhas.getLong(1);
