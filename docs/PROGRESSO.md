@@ -416,3 +416,9 @@ token não leva os papéis de `realm-management` e a Admin API responde 403. Flu
 - ClamAV no compose (dev e produção), cliente INSTREAM próprio. PDF de contrato e logo do cliente passam pelo
   antivírus antes de gravar; ameaça recusa (422) e vai para a trilha; obrigatório em produção (503 se fora do ar).
 - Testes: `ClamAvAntivirusTest` (4, um contra o ClamAV real com EICAR), `AntivirusNoEnvioApiTest` (3).
+
+### Testes de carga (doc 09, 9.9) — ADR 0034 — branch `feat/testes-de-carga`
+- k6 nas leituras (`infra/carga`) e `DesempenhoDaCargaTest` (1 milhão de imóveis). Todas as metas medidas foram
+  cumpridas (`docs/desempenho.md`).
+- Corrigido: recálculo da adesão quadrático no pior plano (727 s → 72,6 s na carga de 1 milhão), tarefas agendadas
+  rodando nos testes, tempos por fase no log da carga.

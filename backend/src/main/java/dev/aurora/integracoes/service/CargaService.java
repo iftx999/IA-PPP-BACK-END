@@ -137,7 +137,10 @@ public class CargaService {
 			return null;
 		});
 
+		var marcoValidacao = System.nanoTime();
 		var validacao = ValidadorCarga.validar(registros, unidadesQueRecebemImoveis());
+		var msValidacao = (System.nanoTime() - marcoValidacao) / 1_000_000;
+		LOG.info("Carga {}: validação de {} registros em {} ms", execucao, registros.size(), msValidacao);
 		var rejeicoesJson = json.writeValueAsString(validacao.rejeicoes());
 		if (validacao.validos().isEmpty()) {
 			falhar(execucao, "Nenhum registro válido.", validacao.rejeitados(), rejeicoesJson);
@@ -171,6 +174,7 @@ public class CargaService {
 			ValidadorCarga.Resultado validacao, String rejeicoesJson, Origem origem, String detalheAuditoria) {
 		var validos = validacao.validos();
 		// RN-02: antes de gravar, para comparar só com competências anteriores.
+		var marco = System.nanoTime();
 		var jaConectados = cargas.jaTiveramConexao(competencia,
 				validos.stream()
 					.filter(v -> "FACTIVEL".equals(v.situacao()))
@@ -178,13 +182,20 @@ public class CargaService {
 					.toList(),
 				ValidadorCarga.REJEICOES_DETALHADAS);
 		var avisos = jaConectados.exemplos().stream().map(m -> new Aviso(m, AVISO_JA_CONECTADO)).toList();
+		var msConsistencia = (System.nanoTime() - marco) / 1_000_000;
+		marco = System.nanoTime();
 		var contagem = cargas.gravar(fonte, execucao, competencia,
 				validos.stream().map(ValidadorCarga.Valido::matricula).toList(),
 				validos.stream().map(ValidadorCarga.Valido::unidade).toList(),
 				validos.stream().map(ValidadorCarga.Valido::situacao).toList(),
 				validos.stream().map(ValidadorCarga.Valido::motivoCorte).toList());
 		var inalterados = validos.size() - contagem.novos() - contagem.atualizados();
+		var msGravacao = (System.nanoTime() - marco) / 1_000_000;
+		marco = System.nanoTime();
 		var recalculadas = medicoes.recalcular(competencia);
+		var msRecalculo = (System.nanoTime() - marco) / 1_000_000;
+		LOG.info("Carga {}: consistência {} ms, gravação {} ms, recálculo {} ms", execucao, msConsistencia, msGravacao,
+				msRecalculo);
 		cargas.concluir(execucao, contagem.novos() + contagem.atualizados(), contagem.novos(), contagem.atualizados(),
 				inalterados, validacao.rejeitados(), rejeicoesJson, jaConectados.total(),
 				json.writeValueAsString(avisos));

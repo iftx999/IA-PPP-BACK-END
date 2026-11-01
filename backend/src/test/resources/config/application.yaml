@@ -1,0 +1,5 @@
+# Testes: sem tarefas agendadas (alertas, trilha de acesso, expurgo). A propriedade precisa estar aqui, e não só no
+# DynamicPropertyRegistrar do TestcontainersConfiguration, porque @ConditionalOnProperty é avaliado antes dele.
+aurora:
+  tarefas:
+    habilitadas: false

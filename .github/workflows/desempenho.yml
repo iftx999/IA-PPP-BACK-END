@@ -1,0 +1,23 @@
+name: Desempenho
+
+# Carga mensal de 1 milhão de imóveis e recálculo da adesão contra as metas do doc 09 (ADR 0034). Manual e semanal:
+# leva ~3 min e não precisa rodar a cada PR.
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '41 5 * * 1'
+
+jobs:
+  carga:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - run: ./mvnw -B test -Dtestes.excluidos= -Dgroups=desempenho -Dtest=DesempenhoDaCargaTest -Djacoco.skip=true

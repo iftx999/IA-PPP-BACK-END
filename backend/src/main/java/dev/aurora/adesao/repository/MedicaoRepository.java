@@ -26,18 +26,28 @@ public class MedicaoRepository {
 	 */
 	public int recalcular(UUID indicador, YearMonth competencia) {
 		return jdbc.sql("""
+				WITH por_unidade AS (
+				     -- Uma passada pelos imóveis da competência: contagem por unidade de lotação.
+				     SELECT s.unidade_id,
+				            count(*) FILTER (WHERE s.situacao = 'LIGADO') AS ligados,
+				            count(*) FILTER (WHERE s.situacao IN ('LIGADO', 'FACTIVEL', 'CORTADO')) AS com_rede
+				       FROM imovel_situacao_mensal s
+				      WHERE s.competencia = :competencia
+				      GROUP BY s.unidade_id),
+				     agregado AS (
+				     -- Cada unidade soma as contagens da própria subárvore (RN-01: soma, não média).
+				     SELECT u.id, sum(p.ligados)::bigint AS ligados, sum(p.com_rede)::bigint AS com_rede
+				       FROM unidade u
+				       JOIN unidade d ON d.caminho <@ u.caminho
+				       JOIN por_unidade p ON p.unidade_id = d.id
+				      WHERE u.ativo AND u.tipo NOT IN ('ETE', 'EEE')
+				      GROUP BY u.id)
 				INSERT INTO medicao (tenant_id, indicador_id, unidade_id, periodo_inicio, valor, numerador, denominador,
 				                     versao_regra, calculado_em)
-				SELECT app_tenant(), :indicador, u.id, :competencia, c.ligados * 100.0 / c.com_rede, c.ligados,
-				       c.com_rede, :versao, now()
-				  FROM unidade u
-				  JOIN LATERAL (
-				       SELECT count(*) FILTER (WHERE s.situacao = 'LIGADO') AS ligados,
-				              count(*) FILTER (WHERE s.situacao IN ('LIGADO', 'FACTIVEL', 'CORTADO')) AS com_rede
-				         FROM imovel_situacao_mensal s
-				         JOIN unidade d ON d.id = s.unidade_id
-				        WHERE s.competencia = :competencia AND d.caminho <@ u.caminho) c ON true
-				 WHERE u.ativo AND u.tipo NOT IN ('ETE', 'EEE') AND c.com_rede > 0
+				SELECT app_tenant(), :indicador, a.id, :competencia, a.ligados * 100.0 / a.com_rede, a.ligados,
+				       a.com_rede, :versao, now()
+				  FROM agregado a
+				 WHERE a.com_rede > 0
 				ON CONFLICT (tenant_id, indicador_id, unidade_id, periodo_inicio) DO UPDATE
 				   SET valor = EXCLUDED.valor, numerador = EXCLUDED.numerador, denominador = EXCLUDED.denominador,
 				       versao_regra = EXCLUDED.versao_regra, calculado_em = now()""")
