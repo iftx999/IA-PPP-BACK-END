@@ -78,11 +78,22 @@ services:
       AURORA_AMBIENTE: ${AURORA_AMBIENTE:-producao}
       AURORA_TRACING_LIGADO: ${AURORA_TRACING_LIGADO:-false}
       OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: http://tempo:4318/v1/traces
+      # Antivírus obrigatório nos arquivos enviados (ADR 0033).
+      AURORA_ANTIVIRUS_HOST: clamav
     read_only: true
     tmpfs: [/tmp]
     depends_on:
       postgres: { condition: service_healthy }
       keycloak: { condition: service_started }
+      clamav: { condition: service_started }
+
+  # Antivírus (ADR 0033): só na rede interna. Precisa de ~1,5 GB de memória para as assinaturas, que o freshclam
+  # atualiza sozinho; na primeira subida, envios ficam recusados (503) até o clamd terminar de carregar.
+  clamav:
+    <<: *reinicio
+    image: clamav/clamav:1.4
+    volumes:
+      - clamav-assinaturas:/var/lib/clamav
 
   postgres:
     <<: *reinicio
@@ -196,6 +207,7 @@ services:
       - grafana-dados:/var/lib/grafana
 
 volumes:
+  clamav-assinaturas:
   caddy-dados:
   caddy-config:
   postgres-dados:

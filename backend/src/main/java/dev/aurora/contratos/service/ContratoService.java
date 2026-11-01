@@ -16,6 +16,7 @@ import dev.aurora.auditoria.TipoEvento;
 import dev.aurora.comum.ConflitoException;
 import dev.aurora.comum.RecursoNaoEncontradoException;
 import dev.aurora.comum.RegraVioladaException;
+import dev.aurora.comum.TriagemDeArquivos;
 import dev.aurora.contexto.ContextoAcesso;
 import dev.aurora.contratos.model.Contrato;
 import dev.aurora.contratos.model.DadosContrato;
@@ -30,6 +31,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
@@ -62,9 +64,14 @@ public class ContratoService {
 
 	private final long tamanhoMaximo;
 
+	private final TriagemDeArquivos triagem;
+
+	private final TransactionTemplate transacao;
+
 	ContratoService(ContratoRepository contratos, Unidades unidades, LeitorPdf leitor,
 			ProcessadorDocumentos processador, Auditoria auditoria, Clock relogio,
-			@Value("${aurora.contratos.tamanho-maximo-bytes}") long tamanhoMaximo) {
+			@Value("${aurora.contratos.tamanho-maximo-bytes}") long tamanhoMaximo, TriagemDeArquivos triagem,
+			TransactionTemplate transacao) {
 		this.contratos = contratos;
 		this.unidades = unidades;
 		this.leitor = leitor;
@@ -72,6 +79,8 @@ public class ContratoService {
 		this.auditoria = auditoria;
 		this.relogio = relogio;
 		this.tamanhoMaximo = tamanhoMaximo;
+		this.triagem = triagem;
+		this.transacao = transacao;
 	}
 
 	public record DetalheContrato(Contrato contrato, List<Documento> documentos) {
@@ -112,13 +121,27 @@ public class ContratoService {
 	}
 
 	/**
-	 * A1: valida o PDF (tipo, tamanho, integridade), guarda o arquivo com o SHA-256 e
-	 * agenda a leitura e a extração, que começam depois que o envio é gravado.
+	 * A1: valida o PDF (tipo, tamanho, antivírus, integridade), guarda o arquivo com o
+	 * SHA-256 e agenda a leitura e a extração, que começam depois que o envio é gravado.
+	 * A varredura fica fora da transação; arquivo recusado pelo antivírus fica na trilha
+	 * (ADR 0033).
 	 */
-	@Transactional
 	public UUID enviarDocumento(UUID contratoId, TipoDocumento tipo, String titulo, String nomeArquivo,
 			byte[] conteudo) {
 		var contrato = contratos.buscar(contratoId).orElseThrow(RecursoNaoEncontradoException::new);
+		validarPdf(conteudo);
+		var ameaca = triagem.ameaca(conteudo);
+		if (ameaca.isPresent()) {
+			transacao.executeWithoutResult(t -> auditoria.registrar(TipoEvento.ARQUIVO_RECUSADO_PELO_ANTIVIRUS,
+					"contrato/" + contrato.id(), Map.of("ameaca", ameaca.get(), "sha256", sha256(conteudo), "bytes",
+							conteudo.length, "tipo", "PDF_DE_CONTRATO")));
+			throw new RegraVioladaException("O arquivo foi recusado pelo antivírus (" + ameaca.get() + ").");
+		}
+		return java.util.Objects.requireNonNull(
+				transacao.execute(t -> gravarDocumento(contrato.id(), tipo, titulo, nomeArquivo, conteudo)));
+	}
+
+	private void validarPdf(byte[] conteudo) {
 		if (conteudo.length == 0) {
 			throw new RegraVioladaException("O arquivo está vazio.");
 		}
@@ -128,6 +151,11 @@ public class ContratoService {
 		if (!comecaCom(conteudo, ASSINATURA_PDF)) {
 			throw new RegraVioladaException("O arquivo não é um PDF.");
 		}
+	}
+
+	private UUID gravarDocumento(UUID contratoId, TipoDocumento tipo, String titulo, String nomeArquivo,
+			byte[] conteudo) {
+		var contrato = contratos.buscar(contratoId).orElseThrow(RecursoNaoEncontradoException::new);
 		int paginas;
 		try {
 			paginas = leitor.contarPaginas(conteudo);

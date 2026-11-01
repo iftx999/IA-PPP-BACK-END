@@ -25,3 +25,9 @@ management:
   tracing:
     export:
       enabled: ${AURORA_TRACING_LIGADO:true}
+
+# ADR 0033: em produção nenhum arquivo enviado é gravado sem passar pelo antivírus.
+aurora:
+  antivirus:
+    host: ${AURORA_ANTIVIRUS_HOST:clamav}
+    obrigatorio: ${AURORA_ANTIVIRUS_OBRIGATORIO:true}

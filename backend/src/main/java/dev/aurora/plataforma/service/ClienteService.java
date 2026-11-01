@@ -16,6 +16,7 @@ import dev.aurora.auditoria.TipoEvento;
 import dev.aurora.comum.ConflitoException;
 import dev.aurora.comum.RecursoNaoEncontradoException;
 import dev.aurora.comum.RegraVioladaException;
+import dev.aurora.comum.TriagemDeArquivos;
 import dev.aurora.contexto.ContextoAcesso;
 import dev.aurora.contexto.ContextoPlataforma;
 import dev.aurora.plataforma.model.Cliente;
@@ -65,8 +66,11 @@ public class ClienteService {
 
 	private final TransactionTemplate transacao;
 
+	private final TriagemDeArquivos triagem;
+
 	ClienteService(ClienteRepository clientes, ProvedorDeRealms realms, ProvisionamentoDeCliente provisionamento,
-			Auditoria auditoria, TransactionTemplate transacao) {
+			Auditoria auditoria, TransactionTemplate transacao, TriagemDeArquivos triagem) {
+		this.triagem = triagem;
 		this.clientes = clientes;
 		this.realms = realms;
 		this.provisionamento = provisionamento;
@@ -230,6 +234,12 @@ public class ClienteService {
 			var tipo = tipoDaImagem(conteudo);
 			if (tipo == null) {
 				throw new RegraVioladaException("Envie a logo em PNG, JPEG ou WebP.");
+			}
+			// ADR 0033: a logo fica pública na tela de entrada do cliente.
+			var ameaca = triagem.ameaca(conteudo);
+			if (ameaca.isPresent()) {
+				LOG.warn("Logo do cliente {} recusada pelo antivírus: {}", id, ameaca.get());
+				throw new RegraVioladaException("A imagem foi recusada pelo antivírus (" + ameaca.get() + ").");
 			}
 			logo = new Logo(conteudo, tipo);
 		}

@@ -38,6 +38,9 @@ public enum TipoEvento {
 	 */
 	RETENCAO_AUDITORIA_ALTERADA, TRILHA_EXPURGADA,
 
+	/** ADR 0033: arquivo enviado e recusado pelo antivírus (nome da ameaça e SHA-256). */
+	ARQUIVO_RECUSADO_PELO_ANTIVIRUS,
+
 	/** Exibição de dado pessoal sem máscara (ex.: matrícula completa). */
 	ACESSO_DADO_PESSOAL,
 

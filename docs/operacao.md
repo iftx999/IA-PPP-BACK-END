@@ -66,6 +66,16 @@ os endereços que a TI do cliente registra no IdP. Só pessoas já convidadas en
 **Voltar versão:** recoloque a tag anterior e `up -d`. Se a versão nova aplicou migração incompatível, restaure o
 backup do passo 2 (seção 4).
 
+## 3.1 Antivírus (ADR 0033)
+
+- O serviço `clamav` verifica todo PDF de contrato e toda logo antes de gravar. A API recusa o envio (503) se ele
+  não responder; não há como desligar em produção sem mudar `AURORA_ANTIVIRUS_OBRIGATORIO` (não recomendado).
+- Memória: reserve ~1,5 GB para ele. Assinaturas atualizadas pelo `freshclam` do próprio contêiner (volume
+  `clamav-assinaturas`); depois de recriar o volume, os envios ficam recusados por alguns minutos.
+- Ameaça encontrada vira evento `ARQUIVO_RECUSADO_PELO_ANTIVIRUS` na trilha do cliente (nome da ameaça e SHA-256) e
+  a métrica `aurora_antivirus_verificacoes_total{resultado="Infectado"}`.
+- Teste rápido: `CLAMAV_HOST=<host> ./mvnw test -Dtest=ClamAvAntivirusTest` envia o arquivo de teste EICAR.
+
 ## 4. Backup e restauração
 
 - Backup automático às 02:00 (Aurora e Keycloak) em `backups/`, retenção de `AURORA_BACKUP_DIAS` (14) dias.

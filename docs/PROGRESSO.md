@@ -411,3 +411,8 @@ token não leva os papéis de `realm-management` e a Admin API responde 403. Flu
   `--accent`, `--ok`, `--warn`, `--danger` e `--neutral` no claro), botão da conta com nome acessível diferente do
   texto, ícones sem `aria-hidden`, lista rolável sem foco e link só por cor; tudo corrigido (doc 07 atualizado).
 - Os E2E (e o axe) rodam com o ambiente completo, fora do CI do front.
+
+### Antivírus nos envios (doc 09, 9.7) — ADR 0033 — branch `feat/antivirus`
+- ClamAV no compose (dev e produção), cliente INSTREAM próprio. PDF de contrato e logo do cliente passam pelo
+  antivírus antes de gravar; ameaça recusa (422) e vai para a trilha; obrigatório em produção (503 se fora do ar).
+- Testes: `ClamAvAntivirusTest` (4, um contra o ClamAV real com EICAR), `AntivirusNoEnvioApiTest` (3).

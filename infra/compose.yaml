@@ -55,5 +55,14 @@ services:
       - "8025:8025"   # interface web
       - "1025:1025"   # SMTP
 
+  # Antivírus dos arquivos enviados (ADR 0033). Na primeira subida baixa as assinaturas (alguns minutos, ~300 MB).
+  clamav:
+    image: clamav/clamav:1.4
+    ports:
+      - "3310:3310"
+    volumes:
+      - clamav-assinaturas:/var/lib/clamav
+
 volumes:
+  clamav-assinaturas:
   postgres-dados:

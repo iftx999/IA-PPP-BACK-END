@@ -65,6 +65,12 @@ aurora:
   contratos:
     # Maior PDF aceito (A1).
     tamanho-maximo-bytes: 52428800
+  # Antivírus dos arquivos enviados (ADR 0033): clamd por TCP. Host vazio desliga; obrigatório recusa o envio quando
+  # o antivírus não responde.
+  antivirus:
+    host: ${AURORA_ANTIVIRUS_HOST:}
+    porta: ${AURORA_ANTIVIRUS_PORTA:3310}
+    obrigatorio: ${AURORA_ANTIVIRUS_OBRIGATORIO:false}
   ia:
     # Extração de contratos (ADR 0014) e assistente (ADR 0018). Provedor claude (padrão) ou openai (ADR 0019).
     # Sem chave, a extração vira cadastro manual e o assistente fica desligado.
