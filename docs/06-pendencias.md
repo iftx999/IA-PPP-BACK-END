@@ -2,20 +2,20 @@
 
 ## 6.1 Pendências a confirmar
 
-| # | Pergunta | Como resolver |
+| # | Pergunta | Resposta |
 |---|----------|---------------|
-| 1 | O que mais a IA extraía do contrato além de metas ("regras, metas e etc")? | Autor e/ou esquema do banco |
-| 2 | Qual modelo/API de IA e qual linguagem do serviço de IA (Java ou Python/FastAPI)? | Autor |
-| 3 | Como era a tela de Contratos (lista, upload, revisão ao lado do PDF)? | Autor ou schema |
-| 4 | Esquema real do banco (tabelas, colunas, PostGIS, extração/aprovação) | `pg_dump --schema-only` do volume `aurora_postgres-dados` |
+| 1 | O que mais a IA extraía do contrato além de metas ("regras, metas e etc")? | ✅ Schema antigo: `item_contratual.tipo` = OBRIGACAO, INDICADOR, META, PRAZO, PENALIDADE, REAJUSTE, RISCO, OUTRO (ADR 0014, 0026) |
+| 2 | Qual modelo/API de IA e qual linguagem do serviço de IA (Java ou Python/FastAPI)? | ✅ Decidido na reconstrução: Java no monólito; Claude por padrão ou OpenAI, configurável (ADR 0014, 0019) |
+| 3 | Como era a tela de Contratos (lista, upload, revisão ao lado do PDF)? | ✅ Decidido na reconstrução: lista, envio, revisão ao lado do PDF na página citada (A1–A4) |
+| 4 | Esquema real do banco (tabelas, colunas, PostGIS, extração/aprovação) | ✅ `referencia-schema-antigo.sql` (ADR 0004) |
 | 5 | Regra exata de "factível" vs. "cortado" | ✅ Resolvida pelo autor (RN-02): factível = rede disponível sem conexão física; cortado = conectado, com corte por falta de pagamento ou suspensão a pedido |
 | 6 | Vigências sobrepostas e aditivos contratuais | ✅ Resolvida (ADR 0020) |
-| 7 | Origem dos trechos de rede (OSM derivado? importados?) | Autor / schema |
-| 8 | Perfis e permissões existentes | Schema (`perfil`, `permissao`) |
-| 9 | Fonte e frequência das cargas ("Integrações") | Autor / schema |
+| 7 | Origem dos trechos de rede (OSM derivado? importados?) | ✅ Schema antigo: `rede_esgoto.origem` = DEDUZIDA, DESENHADA, IMPORTADA ou CAMPO; situação PRESUMIDA ou CONFIRMADA (ADR 0017) |
+| 8 | Perfis e permissões existentes | ✅ Schema antigo: `perfil` (do sistema ou do cliente) e `perfil_permissao` (doc 08, 8.4) |
+| 9 | Fonte e frequência das cargas ("Integrações") | ✅ Schema antigo: `fonte_dados.tipo_adaptador` = AGENTE, ARQUIVO, CDC, API, ETL_JDBC; carga por competência mensal com atraso máximo por fonte (RN-08). Implementados: Agente e arquivo (ADR 0016) |
 | 10 | PDFs escaneados: OCR ou apenas PDFs com texto? | ✅ OCR local com Tesseract (ADR 0021) |
-| 11 | Multi-tenant: o tenant era o grupo ou a concessionária? Como era o isolamento (coluna, schema, banco)? | Autor / schema |
-| 12 | Perfis, permissões e escopo por unidade existentes; perfis customizáveis? | Autor / schema |
+| 11 | Multi-tenant: o tenant era o grupo ou a concessionária? Como era o isolamento (coluna, schema, banco)? | ✅ O grupo (ex.: Grupo Saneamento Exemplo); coluna `tenant_id` com RLS e um emissor por tenant (ADR 0002, 0003, 0027) |
+| 12 | Perfis, permissões e escopo por unidade existentes; perfis customizáveis? | ✅ `usuario_perfil_escopo` (perfil concedido por unidade) e perfis próprios do cliente (ADR 0013) |
 | 13 | Autenticação: e-mail/senha, MFA, SSO, convite, administrador da plataforma | MFA ✅ (ADR 0023); SSO ✅ (ADR 0025); administrador da plataforma ✅ (ADR 0027) |
 
 ## 6.2 Riscos

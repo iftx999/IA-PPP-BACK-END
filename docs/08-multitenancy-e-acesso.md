@@ -186,13 +186,13 @@ RN-16 (administração e perfis), RN-17 (autenticação).
 
 ## 8.12 Pendências
 
-| # | Pergunta | Como resolver |
+| # | Pergunta | Resposta |
 |---|----------|---------------|
-| 1 | O tenant era o "Grupo" (ex.: Grupo Saneamento Exemplo) ou a concessionária? Um usuário podia estar em vários? | Autor / schema |
-| 2 | Como era o isolamento: coluna `tenant_id`, schema por tenant ou banco por tenant? | Schema do banco antigo |
-| 3 | Quais perfis existiam e quais permissões cada um tinha? | Tabelas de perfil/permissão do banco antigo |
-| 4 | O acesso era limitado por unidade (escopo) além do perfil? | Autor / schema |
-| 5 | Login: e-mail/senha, SSO, MFA? | Autor |
-| 6 | Existia convite por e-mail, redefinição de senha, bloqueio por tentativas? | Autor |
-| 7 | Havia **administrador da plataforma** para criar tenants? | Autor |
-| 8 | Perfis customizáveis pelo tenant ou só fixos? | Autor / schema |
+| 1 | O tenant era o "Grupo" (ex.: Grupo Saneamento Exemplo) ou a concessionária? Um usuário podia estar em vários? | ✅ O grupo. Cada cliente tem seu realm: a mesma pessoa em dois clientes tem duas contas e troca pela tela do código (ADR 0027) |
+| 2 | Como era o isolamento: coluna `tenant_id`, schema por tenant ou banco por tenant? | ✅ Coluna `tenant_id` com RLS (ADR 0002) |
+| 3 | Quais perfis existiam e quais permissões cada um tinha? | ✅ Tabelas `perfil` e `perfil_permissao` do banco antigo (8.4) |
+| 4 | O acesso era limitado por unidade (escopo) além do perfil? | ✅ Sim: `usuario_perfil_escopo` (ADR 0013) |
+| 5 | Login: e-mail/senha, SSO, MFA? | ✅ E-mail e senha no Keycloak, MFA por TOTP e SSO corporativo (ADR 0003, 0023, 0025) |
+| 6 | Existia convite por e-mail, redefinição de senha, bloqueio por tentativas? | ✅ Convite e redefinição pelo Keycloak (ADR 0011); bloqueio por força bruta, registrado na trilha (ADR 0028) |
+| 7 | Havia **administrador da plataforma** para criar tenants? | ✅ Sim (ADR 0027) |
+| 8 | Perfis customizáveis pelo tenant ou só fixos? | ✅ Perfis do sistema (fixos) e perfis próprios do cliente |
