@@ -27,6 +27,7 @@ import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.startsWith;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
@@ -132,6 +133,35 @@ class CargasApiTest {
 			.andExpect(status().isNoContent());
 		mvc.perform(get("/api/agente/v1/situacao").header(HttpHeaders.AUTHORIZATION, "Bearer " + chave))
 			.andExpect(status().isUnauthorized());
+	}
+
+	/**
+	 * RN-02: motivo do corte gravado; imóvel que já teve conexão física e volta como
+	 * factível é gravado, mas com aviso para conferir na origem.
+	 */
+	@Test
+	void motivoDoCorteEAvisoDeFactivelQueJaTeveConexao() throws Exception {
+		var chave = gerarCredencial(criarFonte());
+		carga(chave, "2026-03", """
+				{"matricula":"R1","unidade":"%1$s","situacao":"LIGADO"},
+				{"matricula":"R2","unidade":"%1$s","situacao":"CORTADO","motivoCorte":"INADIMPLENCIA"},
+				{"matricula":"R3","unidade":"%1$s","situacao":"FACTIVEL"}""".formatted(t.setorA1()))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.comAviso", is(0)));
+		assertThat(contar(("SELECT count(*) FROM imovel_situacao_mensal WHERE tenant_id = '%s' AND codigo_origem = 'R2'"
+				+ " AND motivo_corte = 'INADIMPLENCIA'")
+			.formatted(t.id()))).isEqualTo(1);
+
+		carga(chave, "2026-04", """
+				{"matricula":"R1","unidade":"%1$s","situacao":"FACTIVEL"},
+				{"matricula":"R2","unidade":"%1$s","situacao":"FACTIVEL"},
+				{"matricula":"R3","unidade":"%1$s","situacao":"FACTIVEL"}""".formatted(t.setorA1()))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.novos", is(3)))
+			.andExpect(jsonPath("$.comAviso", is(2)))
+			.andExpect(jsonPath("$.avisos[0].matricula", is("R1")))
+			.andExpect(jsonPath("$.avisos[1].matricula", is("R2")))
+			.andExpect(jsonPath("$.avisos[0].mensagem", startsWith("Já esteve ligado ou cortado")));
 	}
 
 	@Test

@@ -86,7 +86,8 @@ public class FonteRepository {
 	public List<Execucao> listarExecucoes(UUID fonte, int limite) {
 		return jdbc.sql("""
 				SELECT id, inicio, fim, status, origem, competencia, registros_lidos, registros_gravados,
-				       registros_rejeitados, registros_novos, registros_atualizados, registros_inalterados, erro
+				       registros_rejeitados, registros_novos, registros_atualizados, registros_inalterados, erro,
+				       registros_com_aviso
 				  FROM execucao_sincronizacao WHERE fonte_dados_id = ? ORDER BY inicio DESC LIMIT ?""")
 			.params(fonte, limite)
 			.query((r, n) -> new Execucao(r.getObject("id", UUID.class), r.getTimestamp("inicio").toInstant(),
@@ -94,7 +95,7 @@ public class FonteRepository {
 					r.getObject("competencia", LocalDate.class), (Long) r.getObject("registros_lidos"),
 					(Long) r.getObject("registros_gravados"), r.getLong("registros_rejeitados"),
 					r.getLong("registros_novos"), r.getLong("registros_atualizados"),
-					r.getLong("registros_inalterados"), r.getString("erro")))
+					r.getLong("registros_inalterados"), r.getString("erro"), r.getLong("registros_com_aviso")))
 			.list();
 	}
 

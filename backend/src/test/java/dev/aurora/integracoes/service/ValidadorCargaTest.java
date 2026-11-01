@@ -36,6 +36,21 @@ class ValidadorCargaTest {
 	}
 
 	@Test
+	void motivoDoCorteSoParaCortadoPorCodigoOuRotulo() {
+		var r = ValidadorCarga.validar(List.of(new RegistroCarga(2, "C1", "CA-CENTRO", "CORTADO", "Falta de pagamento"),
+				new RegistroCarga(3, "C2", "CA-CENTRO", "Cortado", "a pedido do cliente"),
+				new RegistroCarga(4, "C3", "CA-CENTRO", "CORTADO", " "),
+				new RegistroCarga(5, "C4", "CA-CENTRO", "LIGADO", "INADIMPLENCIA"),
+				new RegistroCarga(6, "C5", "CA-CENTRO", "CORTADO", "obra")), Map.of("CA-CENTRO", SETOR));
+
+		assertThat(r.validos()).extracting(ValidadorCarga.Valido::motivoCorte)
+			.containsExactly("INADIMPLENCIA", "A_PEDIDO", null);
+		assertThat(r.rejeicoes()).extracting(Rejeicao::motivo)
+			.containsExactly("Motivo do corte só vale para imóveis CORTADO.",
+					"Motivo do corte inválido: obra (use INADIMPLENCIA ou A_PEDIDO).");
+	}
+
+	@Test
 	void detalhaNoMaximoCemRecusasMasContaTodas() {
 		var registros = new java.util.ArrayList<RegistroCarga>();
 		for (int i = 0; i < 150; i++) {

@@ -29,7 +29,8 @@ curl -s https://<aurora>/api/agente/v1/cargas -H "Authorization: Bearer $AURORA_
     "competencia": "2026-09",
     "registros": [
       {"matricula": "100001", "unidade": "CA-CENTRO", "situacao": "LIGADO"},
-      {"matricula": "100002", "unidade": "CA-CENTRO", "situacao": "FACTIVEL"}
+      {"matricula": "100002", "unidade": "CA-CENTRO", "situacao": "FACTIVEL"},
+      {"matricula": "100003", "unidade": "CA-CENTRO", "situacao": "CORTADO", "motivoCorte": "INADIMPLENCIA"}
     ]}'
 ```
 
@@ -37,11 +38,15 @@ curl -s https://<aurora>/api/agente/v1/cargas -H "Authorization: Bearer $AURORA_
 - `situacao`: `LIGADO`, `FACTIVEL`, `CORTADO` ou `POTENCIAL` (sem rede); aceita também "Factível" e "Sem rede".
   `FACTIVEL` = rede na rua, sem conexão física; `CORTADO` = conectado, com corte por falta de pagamento ou suspensão a
   pedido do cliente (RN-02).
+- `motivoCorte` (opcional, só com `CORTADO`): `INADIMPLENCIA` ou `A_PEDIDO`; aceita também "Falta de pagamento" e
+  "A pedido do cliente". No CSV da tela, coluna `motivo_corte`.
 - Até 500 mil registros por chamada; para mais, divida em várias chamadas da mesma competência (a carga é
   incremental: cada chamada grava ou atualiza só as matrículas enviadas).
 
 Resposta: execução, `lidos`, `novos`, `atualizados`, `inalterados`, `rejeitados`, as 100 primeiras recusas
-(`linha`, `matricula`, `motivo`) e quantas unidades tiveram a adesão recalculada. Linhas inválidas não derrubam a
+(`linha`, `matricula`, `motivo`), quantas unidades tiveram a adesão recalculada e `comAviso` com os 100 primeiros
+`avisos` (`matricula`, `mensagem`): linhas gravadas que merecem conferência na origem, como um imóvel que já esteve
+ligado ou cortado (tem conexão física) e veio como `FACTIVEL`. Linhas inválidas não derrubam a
 carga; carga sem nenhuma linha válida responde `422` e fica como falha no histórico.
 
 | Status | Quando |

@@ -19,6 +19,7 @@ import dev.aurora.comum.EscritorCsv;
 import dev.aurora.comum.RecursoNaoEncontradoException;
 import dev.aurora.imoveis.model.FiltroSemLigacao;
 import dev.aurora.comum.Matricula;
+import dev.aurora.imoveis.model.MotivoCorte;
 import dev.aurora.imoveis.model.PaginaSemLigacao;
 import dev.aurora.imoveis.model.ResultadoExportacao;
 import dev.aurora.imoveis.model.SituacaoImovel;
@@ -106,11 +107,12 @@ public class SemLigacaoService {
 		var resumo = sha256();
 		var linhas = new long[1];
 		try (var csv = new EscritorCsv(new DigestOutputStream(destino, resumo))) {
-			csv.linha("matricula", "unidade", "situacao", "sem_ligacao_ha_meses", "ultimo_mes_ligado", "competencia");
+			csv.linha("matricula", "unidade", "situacao", "motivo_corte", "sem_ligacao_ha_meses", "ultimo_mes_ligado",
+					"competencia");
 			imoveis.percorrer(filtro, imovel -> {
 				csv.linha(visiveis ? imovel.matricula() : Matricula.mascarar(imovel.matricula()), imovel.unidadeNome(),
-						rotulo(imovel.situacao()), imovel.mesesSemLigacao(filtro.competencia()),
-						imovel.ultimoMesLigado(), filtro.competencia());
+						rotulo(imovel.situacao()), rotulo(imovel.motivoCorte()),
+						imovel.mesesSemLigacao(filtro.competencia()), imovel.ultimoMesLigado(), filtro.competencia());
 				linhas[0]++;
 			});
 		}
@@ -146,6 +148,16 @@ public class SemLigacaoService {
 		detalhes.put("competencia", filtro.competencia().toString());
 		detalhes.put("situacao", filtro.situacao() == null ? "TODAS" : filtro.situacao().name());
 		return detalhes;
+	}
+
+	private static @Nullable String rotulo(@Nullable MotivoCorte motivo) {
+		if (motivo == null) {
+			return null;
+		}
+		return switch (motivo) {
+			case INADIMPLENCIA -> "Falta de pagamento";
+			case A_PEDIDO -> "A pedido do cliente";
+		};
 	}
 
 	private static String rotulo(SituacaoImovel situacao) {

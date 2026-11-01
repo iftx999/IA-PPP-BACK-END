@@ -1,5 +1,7 @@
 package dev.aurora.integracoes.service;
 
+import org.jspecify.annotations.Nullable;
+
 import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -27,8 +29,13 @@ final class ValidadorCarga {
 	/** Quantas recusas detalhar na execução (o total é sempre contado). */
 	static final int REJEICOES_DETALHADAS = 100;
 
-	record Valido(String matricula, UUID unidade, String situacao) {
+	record Valido(String matricula, UUID unidade, String situacao, @Nullable String motivoCorte) {
 	}
+
+	/** RN-02: motivo do corte por código ou por rótulo. */
+	private static final Map<String, String> MOTIVOS = Map.of("INADIMPLENCIA", "INADIMPLENCIA", "FALTA DE PAGAMENTO",
+			"INADIMPLENCIA", "A PEDIDO", "A_PEDIDO", "A_PEDIDO", "A_PEDIDO", "A PEDIDO DO CLIENTE", "A_PEDIDO",
+			"SUSPENSAO A PEDIDO", "A_PEDIDO", "SOLICITACAO DO CLIENTE", "A_PEDIDO");
 
 	record Resultado(List<Valido> validos, long rejeitados, List<Rejeicao> rejeicoes) {
 	}
@@ -50,6 +57,7 @@ final class ValidadorCarga {
 			String motivo = null;
 			UUID unidade = null;
 			String situacao = null;
+			String motivoCorte = null;
 			if (!MATRICULA.matcher(matricula).matches()) {
 				motivo = "Matrícula vazia ou com caracteres inválidos.";
 			}
@@ -62,8 +70,17 @@ final class ValidadorCarga {
 			else if ((situacao = SITUACOES.get(normalizar(r.situacao()))) == null) {
 				motivo = "Situação inválida: " + texto(r.situacao()) + " (use LIGADO, FACTIVEL, CORTADO ou POTENCIAL).";
 			}
+			else if (r.motivoCorte() != null && !r.motivoCorte().isBlank()) {
+				if (!"CORTADO".equals(situacao)) {
+					motivo = "Motivo do corte só vale para imóveis CORTADO.";
+				}
+				else if ((motivoCorte = MOTIVOS.get(normalizar(r.motivoCorte()))) == null) {
+					motivo = "Motivo do corte inválido: " + texto(r.motivoCorte())
+							+ " (use INADIMPLENCIA ou A_PEDIDO).";
+				}
+			}
 			if (motivo == null) {
-				validos.add(new Valido(matricula, unidade, situacao));
+				validos.add(new Valido(matricula, unidade, situacao, motivoCorte));
 			}
 			else {
 				rejeitados++;

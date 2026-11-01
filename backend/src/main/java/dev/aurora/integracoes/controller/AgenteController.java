@@ -7,6 +7,7 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import dev.aurora.integracoes.config.AgenteAutenticado;
+import dev.aurora.integracoes.model.Aviso;
 import dev.aurora.integracoes.model.RegistroCarga;
 import dev.aurora.integracoes.model.RegistroLocalizacao;
 import dev.aurora.integracoes.model.Rejeicao;
@@ -36,7 +37,11 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/agente/v1")
 class AgenteController {
 
-	record RegistroAgente(@Nullable String matricula, @Nullable String unidade, @Nullable String situacao) {
+	/**
+	 * @param motivoCorte opcional, só para CORTADO: INADIMPLENCIA ou A_PEDIDO (RN-02)
+	 */
+	record RegistroAgente(@Nullable String matricula, @Nullable String unidade, @Nullable String situacao,
+			@Nullable String motivoCorte) {
 	}
 
 	record CargaAgenteRequest(@NotNull YearMonth competencia,
@@ -44,11 +49,12 @@ class AgenteController {
 	}
 
 	record ResultadoCargaResponse(UUID execucao, YearMonth competencia, long lidos, long novos, long atualizados,
-			long inalterados, long rejeitados, List<Rejeicao> rejeicoes, int medicoesRecalculadas) {
+			long inalterados, long rejeitados, List<Rejeicao> rejeicoes, int medicoesRecalculadas, long comAviso,
+			List<Aviso> avisos) {
 
 		static ResultadoCargaResponse de(ResultadoCarga r) {
 			return new ResultadoCargaResponse(r.execucaoId(), r.competencia(), r.lidos(), r.novos(), r.atualizados(),
-					r.inalterados(), r.rejeitados(), r.rejeicoes(), r.medicoes());
+					r.inalterados(), r.rejeitados(), r.rejeicoes(), r.medicoes(), r.comAviso(), r.avisos());
 		}
 	}
 
@@ -91,7 +97,8 @@ class AgenteController {
 		var linha = new AtomicInteger();
 		var registros = pedido.registros()
 			.stream()
-			.map(r -> new RegistroCarga(linha.incrementAndGet(), r.matricula(), r.unidade(), r.situacao()))
+			.map(r -> new RegistroCarga(linha.incrementAndGet(), r.matricula(), r.unidade(), r.situacao(),
+					r.motivoCorte()))
 			.toList();
 		return ResultadoCargaResponse.de(cargas.carregar(AgenteAutenticado.fonte(requisicao), pedido.competencia(),
 				registros, CargaService.Origem.AGENTE, AgenteAutenticado.prefixo(requisicao)));

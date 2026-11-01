@@ -379,3 +379,10 @@ token não leva os papéis de `realm-management` e a Admin API responde 403. Flu
   `DELETE`), com âncora conferida pela verificação e evento `TRILHA_EXPURGADA`. Partições anuais criadas com 2 anos
   de antecedência.
 - Testes: `RetencaoDaAuditoriaApiTest` (5), front +1 unitário, E2E `retencao.spec.ts`.
+
+### Motivo do corte e aviso de consistência (RN-02) — branch `feat/motivo-do-corte`
+- Carga (agente `motivoCorte`, CSV `motivo_corte`): `INADIMPLENCIA` ou `A_PEDIDO`, só para CORTADO (V26, `CHECK` no
+  banco). Sem ligação mostra o motivo na lista, a contagem por motivo na dica da aba Cortados e a coluna no CSV.
+- Factível que já esteve ligado ou cortado em competência anterior: gravado com aviso (`comAviso`, 100 primeiros em
+  `avisos`), visível no resultado da carga e no histórico de execuções.
+- Testes: validador (+1), `CargasApiTest` (+1), `SemLigacaoApiTest` (+1), spec do front atualizado.

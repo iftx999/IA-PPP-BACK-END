@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.UUID;
 
 import dev.aurora.imoveis.model.ImovelSemLigacao;
+import dev.aurora.imoveis.model.MotivoCorte;
 import dev.aurora.imoveis.model.PaginaSemLigacao;
 import dev.aurora.imoveis.model.SituacaoImovel;
 import dev.aurora.imoveis.model.Totais;
@@ -18,10 +19,11 @@ import org.jspecify.annotations.Nullable;
 record SemLigacaoResponse(UUID unidadeId, String unidadeNome, YearMonth competencia, TotaisDto totais,
 		List<ItemDto> itens, @Nullable String proximo, boolean matriculasVisiveis) {
 
-	record TotaisDto(long todos, long factiveis, long cortados) {
+	record TotaisDto(long todos, long factiveis, long cortados, long cortadosPorInadimplencia, long cortadosAPedido) {
 
 		static TotaisDto de(Totais t) {
-			return new TotaisDto(t.todos(), t.factiveis(), t.cortados());
+			return new TotaisDto(t.todos(), t.factiveis(), t.cortados(), t.cortadosPorInadimplencia(),
+					t.cortadosAPedido());
 		}
 	}
 
@@ -30,7 +32,8 @@ record SemLigacaoResponse(UUID unidadeId, String unidadeNome, YearMonth competen
 	 * {@code primeiraCompetencia}.
 	 */
 	record ItemDto(String matricula, UUID unidadeId, String unidadeNome, SituacaoImovel situacao,
-			@Nullable YearMonth ultimoMesLigado, YearMonth primeiraCompetencia, @Nullable Long mesesSemLigacao) {
+			@Nullable YearMonth ultimoMesLigado, YearMonth primeiraCompetencia, @Nullable Long mesesSemLigacao,
+			@Nullable MotivoCorte motivoCorte) {
 	}
 
 	static SemLigacaoResponse de(PaginaSemLigacao p) {
@@ -40,7 +43,7 @@ record SemLigacaoResponse(UUID unidadeId, String unidadeNome, YearMonth competen
 
 	private static ItemDto item(ImovelSemLigacao i, YearMonth competencia) {
 		return new ItemDto(i.matricula(), i.unidadeId(), i.unidadeNome(), i.situacao(), i.ultimoMesLigado(),
-				i.primeiraCompetencia(), i.mesesSemLigacao(competencia));
+				i.primeiraCompetencia(), i.mesesSemLigacao(competencia), i.motivoCorte());
 	}
 
 }

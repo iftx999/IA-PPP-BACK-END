@@ -38,27 +38,31 @@ public class CargaRepository {
 	 * reescrita; {@code xmax = 0} distingue inserção de atualização.
 	 */
 	public Contagem gravar(UUID fonte, UUID execucao, YearMonth competencia, List<String> matriculas,
-			List<UUID> unidades, List<String> situacoes) {
+			List<UUID> unidades, List<String> situacoes, List<@Nullable String> motivosCorte) {
 		return jdbc.sql("""
 				WITH dados AS (
 				     SELECT * FROM unnest(CAST(:matriculas AS text[]), CAST(:unidades AS uuid[]),
-				                          CAST(:situacoes AS text[])) AS d(codigo, unidade, situacao)),
+				                          CAST(:situacoes AS text[]), CAST(:motivos AS text[]))
+				              AS d(codigo, unidade, situacao, motivo)),
 				     gravados AS (
 				     INSERT INTO imovel_situacao_mensal (tenant_id, competencia, codigo_origem, unidade_id, situacao,
-				                                         fonte_dados_id, execucao_id)
-				     SELECT app_tenant(), :competencia, codigo, unidade, situacao, :fonte, :execucao FROM dados
+				                                         motivo_corte, fonte_dados_id, execucao_id)
+				     SELECT app_tenant(), :competencia, codigo, unidade, situacao, motivo, :fonte, :execucao FROM dados
 				     ON CONFLICT (tenant_id, competencia, codigo_origem) DO UPDATE
 				        SET unidade_id = EXCLUDED.unidade_id, situacao = EXCLUDED.situacao,
+				            motivo_corte = EXCLUDED.motivo_corte,
 				            fonte_dados_id = EXCLUDED.fonte_dados_id, execucao_id = EXCLUDED.execucao_id,
 				            atualizado_em = now()
-				      WHERE (imovel_situacao_mensal.unidade_id, imovel_situacao_mensal.situacao)
-				            IS DISTINCT FROM (EXCLUDED.unidade_id, EXCLUDED.situacao)
+				      WHERE (imovel_situacao_mensal.unidade_id, imovel_situacao_mensal.situacao,
+				             imovel_situacao_mensal.motivo_corte)
+				            IS DISTINCT FROM (EXCLUDED.unidade_id, EXCLUDED.situacao, EXCLUDED.motivo_corte)
 				     RETURNING (xmax = 0) AS novo)
 				SELECT count(*) FILTER (WHERE novo) AS novos, count(*) FILTER (WHERE NOT novo) AS atualizados
 				  FROM gravados""")
 			.param("matriculas", matriculas.toArray(String[]::new))
 			.param("unidades", unidades.toArray(UUID[]::new))
 			.param("situacoes", situacoes.toArray(String[]::new))
+			.param("motivos", motivosCorte.toArray(String[]::new))
 			.param("competencia", Date.valueOf(competencia.atDay(1)))
 			.param("fonte", fonte)
 			.param("execucao", execucao)
@@ -67,15 +71,43 @@ public class CargaRepository {
 	}
 
 	public void concluir(UUID execucao, long gravados, long novos, long atualizados, long inalterados, long rejeitados,
-			String rejeicoesJson) {
+			String rejeicoesJson, long comAviso, String avisosJson) {
 		jdbc.sql("""
 				UPDATE execucao_sincronizacao
 				   SET status = 'SUCESSO', fim = now(), registros_gravados = ?, registros_novos = ?,
 				       registros_atualizados = ?, registros_inalterados = ?, registros_rejeitados = ?,
-				       rejeicoes = ?::jsonb
+				       rejeicoes = ?::jsonb, registros_com_aviso = ?, avisos = ?::jsonb
 				 WHERE id = ?""")
-			.params(gravados, novos, atualizados, inalterados, rejeitados, rejeicoesJson, execucao)
+			.params(gravados, novos, atualizados, inalterados, rejeitados, rejeicoesJson, comAviso, avisosJson,
+					execucao)
 			.update();
+	}
+
+	/** Matrículas desta carga que já tiveram conexão física, com um exemplo de cada. */
+	public record JaConectados(long total, List<String> exemplos) {
+	}
+
+	/**
+	 * RN-02: factível nunca teve conexão física. Entre as matrículas informadas como
+	 * factíveis, as que aparecem ligadas ou cortadas numa competência anterior (usa o
+	 * índice por matrícula).
+	 */
+	public JaConectados jaTiveramConexao(YearMonth competencia, List<String> factiveis, int exemplos) {
+		if (factiveis.isEmpty()) {
+			return new JaConectados(0, List.of());
+		}
+		var encontrados = jdbc.sql("""
+				SELECT d.codigo FROM unnest(CAST(:matriculas AS text[])) AS d(codigo)
+				 WHERE EXISTS (SELECT 1 FROM imovel_situacao_mensal s
+				                WHERE s.tenant_id = app_tenant() AND s.codigo_origem = d.codigo
+				                  AND s.competencia < :competencia AND s.situacao IN ('LIGADO', 'CORTADO'))
+				 ORDER BY d.codigo""")
+			.param("matriculas", factiveis.toArray(String[]::new))
+			.param("competencia", Date.valueOf(competencia.atDay(1)))
+			.query(String.class)
+			.list();
+		return new JaConectados(encontrados.size(),
+				List.copyOf(encontrados.subList(0, Math.min(exemplos, encontrados.size()))));
 	}
 
 	public void falhar(UUID execucao, String erro, long rejeitados, String rejeicoesJson) {

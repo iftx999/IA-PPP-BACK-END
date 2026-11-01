@@ -19,6 +19,7 @@ import dev.aurora.comum.RecursoNaoEncontradoException;
 import dev.aurora.comum.RegraVioladaException;
 import dev.aurora.contexto.ContextoAcesso;
 import dev.aurora.integracoes.CargaConcluida;
+import dev.aurora.integracoes.model.Aviso;
 import dev.aurora.integracoes.model.RegistroCarga;
 import dev.aurora.integracoes.model.ResultadoCarga;
 import dev.aurora.integracoes.repository.CargaRepository;
@@ -43,6 +44,12 @@ import org.springframework.transaction.support.TransactionTemplate;
  */
 @Service
 public class CargaService {
+
+	/**
+	 * RN-02: factível nunca teve conexão física; a origem pode ter classificado errado.
+	 */
+	static final String AVISO_JA_CONECTADO = "Já esteve ligado ou cortado (tem conexão física) e veio como FACTIVEL. "
+			+ "Confira a situação no sistema comercial.";
 
 	private static final Logger LOG = LoggerFactory.getLogger(CargaService.class);
 
@@ -163,14 +170,24 @@ public class CargaService {
 	private ResultadoCarga gravar(UUID fonte, UUID execucao, YearMonth competencia, long lidos,
 			ValidadorCarga.Resultado validacao, String rejeicoesJson, Origem origem, String detalheAuditoria) {
 		var validos = validacao.validos();
+		// RN-02: antes de gravar, para comparar só com competências anteriores.
+		var jaConectados = cargas.jaTiveramConexao(competencia,
+				validos.stream()
+					.filter(v -> "FACTIVEL".equals(v.situacao()))
+					.map(ValidadorCarga.Valido::matricula)
+					.toList(),
+				ValidadorCarga.REJEICOES_DETALHADAS);
+		var avisos = jaConectados.exemplos().stream().map(m -> new Aviso(m, AVISO_JA_CONECTADO)).toList();
 		var contagem = cargas.gravar(fonte, execucao, competencia,
 				validos.stream().map(ValidadorCarga.Valido::matricula).toList(),
 				validos.stream().map(ValidadorCarga.Valido::unidade).toList(),
-				validos.stream().map(ValidadorCarga.Valido::situacao).toList());
+				validos.stream().map(ValidadorCarga.Valido::situacao).toList(),
+				validos.stream().map(ValidadorCarga.Valido::motivoCorte).toList());
 		var inalterados = validos.size() - contagem.novos() - contagem.atualizados();
 		var recalculadas = medicoes.recalcular(competencia);
 		cargas.concluir(execucao, contagem.novos() + contagem.atualizados(), contagem.novos(), contagem.atualizados(),
-				inalterados, validacao.rejeitados(), rejeicoesJson);
+				inalterados, validacao.rejeitados(), rejeicoesJson, jaConectados.total(),
+				json.writeValueAsString(avisos));
 		var detalhes = new HashMap<String, Object>();
 		detalhes.put("fonte", fonte.toString());
 		detalhes.put("competencia", competencia.toString());
@@ -179,13 +196,14 @@ public class CargaService {
 		detalhes.put("novos", contagem.novos());
 		detalhes.put("atualizados", contagem.atualizados());
 		detalhes.put("rejeitados", validacao.rejeitados());
+		detalhes.put("comAviso", jaConectados.total());
 		if (detalheAuditoria != null) {
 			detalhes.put("credencial", detalheAuditoria);
 		}
 		auditoria.registrar(TipoEvento.CARGA_CONCLUIDA, "carga/" + execucao, detalhes);
 		eventos.publishEvent(new CargaConcluida(ContextoAcesso.exigir().tenantId(), fonte, execucao, competencia));
 		return new ResultadoCarga(execucao, competencia, lidos, contagem.novos(), contagem.atualizados(), inalterados,
-				validacao.rejeitados(), List.copyOf(validacao.rejeicoes()), recalculadas);
+				validacao.rejeitados(), List.copyOf(validacao.rejeicoes()), recalculadas, jaConectados.total(), avisos);
 	}
 
 	/** Código (maiúsculo) -> id das unidades ativas do escopo que recebem imóveis. */

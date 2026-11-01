@@ -74,6 +74,35 @@ class SemLigacaoApiTest {
 			.andExpect(jsonPath("$.itens[1].primeiraCompetencia", is("2026-06")));
 	}
 
+	/** RN-02: motivo do corte informado pela carga, na lista, nos totais e no CSV. */
+	@Test
+	void motivoDoCorteNaListaNosTotaisENoCsv() throws Exception {
+		try (var c = BancoDeTeste.comoSuperusuario(); var s = c.prepareStatement("""
+				UPDATE imovel_situacao_mensal SET motivo_corte = 'A_PEDIDO'
+				 WHERE tenant_id = ? AND codigo_origem = '2001001' AND situacao = 'CORTADO'""")) {
+			s.setObject(1, t.id());
+			assertThat(s.executeUpdate()).isEqualTo(1);
+		}
+		mvc.perform(get("/api/v1/imoveis/sem-ligacao").param("unidade", t.cidadeA().toString())
+			.param("competencia", "2026-08")
+			.param("situacao", "CORTADO")
+			.with(token("sub-comercial")))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.totais.cortados", is(1)))
+			.andExpect(jsonPath("$.totais.cortadosAPedido", is(1)))
+			.andExpect(jsonPath("$.totais.cortadosPorInadimplencia", is(0)))
+			.andExpect(jsonPath("$.itens[0].motivoCorte", is("A_PEDIDO")));
+		var csv = mvc
+			.perform(get("/api/v1/imoveis/sem-ligacao/exportacao.csv").param("unidade", t.cidadeA().toString())
+				.param("competencia", "2026-08")
+				.with(token("sub-comercial")))
+			.andExpect(status().isOk())
+			.andReturn()
+			.getResponse()
+			.getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
+		assertThat(csv).contains("motivo_corte").contains("Cortado;A pedido do cliente");
+	}
+
 	@Test
 	void semPermissaoDeDadosPessoaisAsMatriculasVemMascaradas() throws Exception {
 		mvc.perform(
@@ -150,9 +179,11 @@ class SemLigacaoApiTest {
 			.andExpect(header().string("Content-Disposition", startsWith("attachment")))
 			.andReturn();
 		var csv = new String(resposta.getResponse().getContentAsByteArray(), StandardCharsets.UTF_8);
-		assertThat(csv).startsWith("﻿matricula;unidade;situacao;")
+		assertThat(csv).startsWith("﻿matricula;unidade;situacao;motivo_corte;")
 			.contains("2001001;")
-			.contains("Cortado;1;2026-07;2026-08");
+			// O motivo do corte (coluna 4) pode ter sido preenchido por outro teste desta
+			// classe.
+			.containsPattern("Cortado;[^;]*;1;2026-07;2026-08");
 		assertThat(csv.lines()).hasSize(6);
 		assertThat(eventos("RELATORIO_EXPORTADO")).isEqualTo(antes + 1);
 	}

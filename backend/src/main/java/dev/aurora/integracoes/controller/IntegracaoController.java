@@ -14,6 +14,7 @@ import dev.aurora.integracoes.model.Credencial;
 import dev.aurora.integracoes.model.DadosFonte;
 import dev.aurora.integracoes.model.Execucao;
 import dev.aurora.integracoes.model.FonteDados;
+import dev.aurora.integracoes.model.Aviso;
 import dev.aurora.integracoes.model.Rejeicao;
 import dev.aurora.integracoes.model.TipoAdaptador;
 import dev.aurora.integracoes.service.CargaService;
@@ -63,11 +64,12 @@ class IntegracaoController {
 
 	record ExecucaoResponse(UUID id, Instant inicio, @Nullable Instant fim, String situacao, @Nullable String origem,
 			@Nullable LocalDate competencia, @Nullable Long lidos, @Nullable Long gravados, long rejeitados, long novos,
-			long atualizados, long inalterados, @Nullable String erro) {
+			long atualizados, long inalterados, @Nullable String erro, long comAviso) {
 
 		static ExecucaoResponse de(Execucao e) {
 			return new ExecucaoResponse(e.id(), e.inicio(), e.fim(), e.situacao(), e.origem(), e.competencia(),
-					e.lidos(), e.gravados(), e.rejeitados(), e.novos(), e.atualizados(), e.inalterados(), e.erro());
+					e.lidos(), e.gravados(), e.rejeitados(), e.novos(), e.atualizados(), e.inalterados(), e.erro(),
+					e.comAviso());
 		}
 	}
 
@@ -85,7 +87,8 @@ class IntegracaoController {
 	}
 
 	record CargaResponse(UUID execucao, YearMonth competencia, long lidos, long novos, long atualizados,
-			long inalterados, long rejeitados, List<Rejeicao> rejeicoes, int medicoesRecalculadas) {
+			long inalterados, long rejeitados, List<Rejeicao> rejeicoes, int medicoesRecalculadas, long comAviso,
+			List<Aviso> avisos) {
 	}
 
 	private final IntegracaoService integracoes;
@@ -142,7 +145,7 @@ class IntegracaoController {
 		try (var conteudo = arquivo.getInputStream()) {
 			var r = cargas.carregarArquivo(id, competencia, conteudo);
 			return new CargaResponse(r.execucaoId(), r.competencia(), r.lidos(), r.novos(), r.atualizados(),
-					r.inalterados(), r.rejeitados(), r.rejeicoes(), r.medicoes());
+					r.inalterados(), r.rejeitados(), r.rejeicoes(), r.medicoes(), r.comAviso(), r.avisos());
 		}
 	}
 

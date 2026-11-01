@@ -14,7 +14,8 @@ import dev.aurora.integracoes.model.RegistroCarga;
 
 /**
  * CSV da carga por arquivo: separador ";" ou ",", UTF-8 (com ou sem BOM), cabeçalho com
- * as colunas matricula, unidade e situacao (em qualquer ordem; aceita alguns sinônimos).
+ * as colunas matricula, unidade e situacao (em qualquer ordem; aceita alguns sinônimos)
+ * e, opcional, motivo_corte.
  */
 final class LeitorCsvCarga {
 
@@ -35,6 +36,8 @@ final class LeitorCsvCarga {
 			int matricula = coluna(colunas, "matricula", "codigo_origem", "codigo");
 			int unidade = coluna(colunas, "unidade", "setor", "codigo_unidade");
 			int situacao = coluna(colunas, "situacao", "status");
+			// Opcional (RN-02): motivo do corte dos imóveis cortados.
+			int motivoCorte = colunaOpcional(colunas, "motivo_corte", "motivo");
 			var registros = new ArrayList<RegistroCarga>();
 			String linha;
 			int numero = 1;
@@ -49,10 +52,20 @@ final class LeitorCsvCarga {
 				}
 				var campos = dividir(linha, separador);
 				registros.add(new RegistroCarga(numero, campo(campos, matricula), campo(campos, unidade),
-						campo(campos, situacao)));
+						campo(campos, situacao), motivoCorte < 0 ? null : campo(campos, motivoCorte)));
 			}
 			return registros;
 		}
+	}
+
+	private static int colunaOpcional(List<String> colunas, String... nomes) {
+		for (var nome : nomes) {
+			var i = colunas.indexOf(nome);
+			if (i >= 0) {
+				return i;
+			}
+		}
+		return -1;
 	}
 
 	private static int coluna(List<String> colunas, String... nomes) {

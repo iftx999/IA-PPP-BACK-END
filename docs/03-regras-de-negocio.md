@@ -34,6 +34,10 @@ sem ligação = com rede disponível − ligados = factíveis + cortados
 - **Factível × cortado** (definição do autor, 01/11/2026): a diferença é a conexão física. Factível nunca se conectou;
   cortado está conectado, com o serviço interrompido por inadimplência ou a pedido do cliente. Os dois contam em "com
   rede disponível" e em "sem ligação", e não entram nos ligados. A situação vem do sistema comercial em cada carga.
+- **Motivo do corte** (opcional na carga): `INADIMPLENCIA` (falta de pagamento) ou `A_PEDIDO` (suspensão a pedido do
+  cliente). A tela Sem ligação mostra o motivo e quantos cortados há por motivo.
+- **Consistência:** como factível nunca teve conexão física, um imóvel que aparece ligado ou cortado numa competência
+  anterior e chega como factível é gravado (a origem manda), mas a carga registra um aviso para conferência.
 
 ## RN-03 · Situação da unidade (semáforo)
 

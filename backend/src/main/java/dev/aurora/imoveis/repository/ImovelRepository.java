@@ -12,6 +12,7 @@ import java.util.function.Consumer;
 
 import dev.aurora.imoveis.model.FiltroSemLigacao;
 import dev.aurora.imoveis.model.ImovelSemLigacao;
+import dev.aurora.imoveis.model.MotivoCorte;
 import dev.aurora.imoveis.model.SituacaoImovel;
 import dev.aurora.imoveis.model.Totais;
 import org.jspecify.annotations.Nullable;
@@ -50,12 +51,14 @@ public class ImovelRepository {
 			""";
 
 	private static final String LISTAGEM = """
-			SELECT s.codigo_origem, s.situacao, u.id AS unidade_id, u.nome AS unidade_nome, h.ultimo_ligado, h.primeira
-			""" + JUNCAO + HISTORICO + CONDICOES + """
-			   AND (CAST(:situacao AS text) IS NULL OR s.situacao = CAST(:situacao AS text))
-			   AND (CAST(:depois AS text) IS NULL OR s.codigo_origem > CAST(:depois AS text))
-			 ORDER BY s.codigo_origem
-			""";
+			SELECT s.codigo_origem, s.situacao, s.motivo_corte, u.id AS unidade_id, u.nome AS unidade_nome, h.ultimo_ligado,
+			       h.primeira
+			"""
+			+ JUNCAO + HISTORICO + CONDICOES + """
+					   AND (CAST(:situacao AS text) IS NULL OR s.situacao = CAST(:situacao AS text))
+					   AND (CAST(:depois AS text) IS NULL OR s.codigo_origem > CAST(:depois AS text))
+					 ORDER BY s.codigo_origem
+					""";
 
 	private final JdbcClient jdbc;
 
@@ -75,7 +78,9 @@ public class ImovelRepository {
 		return jdbc.sql("""
 				SELECT count(*) AS todos,
 				       count(*) FILTER (WHERE s.situacao = 'FACTIVEL') AS factiveis,
-				       count(*) FILTER (WHERE s.situacao = 'CORTADO') AS cortados
+				       count(*) FILTER (WHERE s.situacao = 'CORTADO') AS cortados,
+				       count(*) FILTER (WHERE s.motivo_corte = 'INADIMPLENCIA') AS cortados_por_inadimplencia,
+				       count(*) FILTER (WHERE s.motivo_corte = 'A_PEDIDO') AS cortados_a_pedido
 				""" + JUNCAO + CONDICOES)
 			.param("competencia", inicio(filtro.competencia()))
 			.param("unidade", filtro.unidadeId())
@@ -114,7 +119,8 @@ public class ImovelRepository {
 		return new ImovelSemLigacao(linha.getString("codigo_origem"), linha.getObject("unidade_id", UUID.class),
 				linha.getString("unidade_nome"), SituacaoImovel.valueOf(linha.getString("situacao")),
 				ultimo == null ? null : YearMonth.from(ultimo.toLocalDate()),
-				YearMonth.from(linha.getDate("primeira").toLocalDate()));
+				YearMonth.from(linha.getDate("primeira").toLocalDate()),
+				linha.getString("motivo_corte") == null ? null : MotivoCorte.valueOf(linha.getString("motivo_corte")));
 	}
 
 	private static Date inicio(YearMonth competencia) {

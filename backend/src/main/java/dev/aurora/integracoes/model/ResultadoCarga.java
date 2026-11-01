@@ -9,7 +9,7 @@ import java.util.UUID;
  * recalculadas.
  */
 public record ResultadoCarga(UUID execucaoId, YearMonth competencia, long lidos, long novos, long atualizados,
-		long inalterados, long rejeitados, List<Rejeicao> rejeicoes, int medicoes) {
+		long inalterados, long rejeitados, List<Rejeicao> rejeicoes, int medicoes, long comAviso, List<Aviso> avisos) {
 
 	public long gravados() {
 		return novos + atualizados;

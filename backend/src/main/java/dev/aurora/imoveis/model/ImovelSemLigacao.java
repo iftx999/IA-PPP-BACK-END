@@ -11,7 +11,7 @@ import org.jspecify.annotations.Nullable;
  * não aparece ligado no histórico disponível (desde {@code primeiraCompetencia}).
  */
 public record ImovelSemLigacao(String matricula, UUID unidadeId, String unidadeNome, SituacaoImovel situacao,
-		@Nullable YearMonth ultimoMesLigado, YearMonth primeiraCompetencia) {
+		@Nullable YearMonth ultimoMesLigado, YearMonth primeiraCompetencia, @Nullable MotivoCorte motivoCorte) {
 
 	/**
 	 * "Sem ligação há": meses desde a última competência em que estava ligado (nulo se
@@ -22,7 +22,8 @@ public record ImovelSemLigacao(String matricula, UUID unidadeId, String unidadeN
 	}
 
 	public ImovelSemLigacao comMatricula(String outra) {
-		return new ImovelSemLigacao(outra, unidadeId, unidadeNome, situacao, ultimoMesLigado, primeiraCompetencia);
+		return new ImovelSemLigacao(outra, unidadeId, unidadeNome, situacao, ultimoMesLigado, primeiraCompetencia,
+				motivoCorte);
 	}
 
 }
