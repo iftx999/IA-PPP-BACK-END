@@ -22,6 +22,8 @@ import com.anthropic.models.messages.StopReason;
 import com.anthropic.models.messages.TextBlockParam;
 import com.anthropic.models.messages.Tool;
 import com.anthropic.models.messages.ToolResultBlockParam;
+import dev.aurora.comum.Disjuntores;
+import dev.aurora.comum.Disjuntor;
 import dev.aurora.assistente.model.DefinicaoFerramenta;
 import dev.aurora.assistente.model.Papel;
 import dev.aurora.assistente.model.RespostaDoModelo;
@@ -52,9 +54,17 @@ class AssistenteClaude implements ModeloDoAssistente {
 
 	private final String modelo;
 
-	AssistenteClaude(AnthropicClient cliente, String modelo) {
+	private final Disjuntor disjuntor;
+
+	AssistenteClaude(AnthropicClient cliente, String modelo, Disjuntor disjuntor) {
 		this.cliente = cliente;
 		this.modelo = modelo;
+		this.disjuntor = disjuntor;
+	}
+
+	/** Para testes: disjuntor próprio, sem métricas. */
+	AssistenteClaude(AnthropicClient cliente, String modelo) {
+		this(cliente, modelo, Disjuntor.isolado(Disjuntores.IA, Disjuntor.ERRO_DO_PEDIDO_DE_IA));
 	}
 
 	@Override
@@ -122,7 +132,7 @@ class AssistenteClaude implements ModeloDoAssistente {
 
 	private Message chamar(MessageCreateParams parametros) {
 		try {
-			return cliente.messages().create(parametros);
+			return disjuntor.executar(() -> cliente.messages().create(parametros), AssistenteClaude::instavel);
 		}
 		catch (UnauthorizedException erro) {
 			throw new AssistenteIndisponivelException("A chave da API de IA foi recusada. Avise o administrador.",
@@ -139,6 +149,13 @@ class AssistenteClaude implements ModeloDoAssistente {
 		catch (AnthropicIoException erro) {
 			throw new AssistenteIndisponivelException("Não foi possível falar com o serviço de IA.", erro);
 		}
+	}
+
+	/**
+	 * ADR 0030: o provedor falhou muitas vezes seguidas; nem tenta por alguns segundos.
+	 */
+	static AssistenteIndisponivelException instavel() {
+		return new AssistenteIndisponivelException("O serviço de IA está instável. Tente de novo em alguns instantes.");
 	}
 
 	/** Executa todos os pedidos de ferramenta da rodada; os resultados vão juntos. */

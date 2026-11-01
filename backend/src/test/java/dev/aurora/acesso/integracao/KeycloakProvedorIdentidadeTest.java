@@ -288,6 +288,34 @@ class KeycloakProvedorIdentidadeTest {
 		servidor.verify();
 	}
 
+	/**
+	 * ADR 0030: com o Keycloak falhando, as chamadas param de chegar a ele por um tempo.
+	 */
+	@Test
+	void disjuntorAbreComOKeycloakFalhandoMasNaoComContaInexistente() {
+		esperarToken();
+		servidor
+			.expect(org.springframework.test.web.client.ExpectedCount.times(10),
+					requestTo(ADMIN + "/users/sumiu/logout"))
+			.andRespond(withStatus(HttpStatus.NOT_FOUND));
+		servidor
+			.expect(org.springframework.test.web.client.ExpectedCount.times(10), requestTo(ADMIN + "/users/abc/logout"))
+			.andRespond(withServerError());
+
+		// Conta inexistente é resposta normal: não conta como falha do Keycloak.
+		for (int i = 0; i < 10; i++) {
+			provedor.encerrarSessoes(EMISSOR, "sumiu");
+		}
+		for (int i = 0; i < 10; i++) {
+			assertThatThrownBy(() -> provedor.encerrarSessoes(EMISSOR, "abc"))
+				.isInstanceOf(ServicoExternoIndisponivelException.class);
+		}
+		// Aberto: falha na hora, sem chamar o Keycloak (o servidor simulado recusaria).
+		assertThatThrownBy(() -> provedor.encerrarSessoes(EMISSOR, "abc"))
+			.isInstanceOf(ServicoExternoIndisponivelException.class);
+		servidor.verify();
+	}
+
 	@Test
 	void encerraAsSessoesDaConta() {
 		esperarToken();

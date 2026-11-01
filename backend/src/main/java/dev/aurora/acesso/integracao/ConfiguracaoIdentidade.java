@@ -1,5 +1,6 @@
 package dev.aurora.acesso.integracao;
 
+import dev.aurora.comum.Disjuntores;
 import java.net.http.HttpClient;
 import java.time.Duration;
 
@@ -34,11 +35,12 @@ class ConfiguracaoIdentidade {
 	}
 
 	@Bean
-	KeycloakProvedorIdentidade provedorIdentidade(Propriedades propriedades) {
+	KeycloakProvedorIdentidade provedorIdentidade(Propriedades propriedades, Disjuntores disjuntores) {
 		var http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build();
 		var fabrica = new JdkClientHttpRequestFactory(http);
 		fabrica.setReadTimeout(Duration.ofSeconds(10));
-		return new KeycloakProvedorIdentidade(RestClient.builder().requestFactory(fabrica), propriedades);
+		return new KeycloakProvedorIdentidade(RestClient.builder().requestFactory(fabrica), propriedades,
+				disjuntores.de(Disjuntores.IDENTIDADE, KeycloakProvedorIdentidade.ERRO_DO_PEDIDO));
 	}
 
 }

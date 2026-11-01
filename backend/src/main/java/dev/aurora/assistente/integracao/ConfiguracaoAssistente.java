@@ -4,6 +4,8 @@ import java.time.Duration;
 
 import com.anthropic.client.okhttp.AnthropicOkHttpClient;
 import com.openai.client.okhttp.OpenAIOkHttpClient;
+import dev.aurora.comum.Disjuntores;
+import dev.aurora.comum.Disjuntor;
 import dev.aurora.assistente.service.ModeloDoAssistente;
 import dev.aurora.comum.PropriedadesIa;
 import org.slf4j.Logger;
@@ -28,7 +30,8 @@ class ConfiguracaoAssistente {
 	private static final Duration TEMPO_MAXIMO = Duration.ofSeconds(90);
 
 	@Bean
-	ModeloDoAssistente modeloDoAssistente(PropriedadesIa ia, JsonMapper json) {
+	ModeloDoAssistente modeloDoAssistente(PropriedadesIa ia, JsonMapper json, Disjuntores disjuntores) {
+		var disjuntor = disjuntores.de(Disjuntores.IA, Disjuntor.ERRO_DO_PEDIDO_DE_IA);
 		if (!ia.ligada()) {
 			LOG.warn("Assistente desligado: configure {}.",
 					ia.usaOpenAi() ? "AURORA_IA_OPENAI_CHAVE e AURORA_IA_OPENAI_MODELO" : "AURORA_IA_CHAVE");
@@ -41,13 +44,13 @@ class ConfiguracaoAssistente {
 				cliente.baseUrl(openAi.urlBase());
 			}
 			LOG.info("Assistente com a OpenAI ({})", openAi.modelo());
-			return new AssistenteOpenAi(cliente.build(), openAi, json);
+			return new AssistenteOpenAi(cliente.build(), openAi, json, disjuntor);
 		}
 		var cliente = AnthropicOkHttpClient.builder().apiKey(ia.chave()).timeout(TEMPO_MAXIMO).maxRetries(2);
 		if (PropriedadesIa.preenchido(ia.urlBase())) {
 			cliente.baseUrl(ia.urlBase());
 		}
-		return new AssistenteClaude(cliente.build(), ia.modelo());
+		return new AssistenteClaude(cliente.build(), ia.modelo(), disjuntor);
 	}
 
 }

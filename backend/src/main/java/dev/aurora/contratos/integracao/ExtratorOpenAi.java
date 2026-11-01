@@ -12,6 +12,8 @@ import com.openai.errors.UnauthorizedException;
 import com.openai.models.ReasoningEffort;
 import com.openai.models.chat.completions.ChatCompletion.Choice.FinishReason;
 import com.openai.models.chat.completions.ChatCompletionCreateParams;
+import dev.aurora.comum.Disjuntores;
+import dev.aurora.comum.Disjuntor;
 import dev.aurora.comum.PropriedadesIa;
 import dev.aurora.contratos.model.Proposta;
 import dev.aurora.contratos.model.ResultadoExtracao;
@@ -33,9 +35,17 @@ class ExtratorOpenAi implements ExtratorContrato {
 
 	private final PropriedadesIa.OpenAi configuracao;
 
-	ExtratorOpenAi(OpenAIClient cliente, PropriedadesIa.OpenAi configuracao) {
+	private final Disjuntor disjuntor;
+
+	ExtratorOpenAi(OpenAIClient cliente, PropriedadesIa.OpenAi configuracao, Disjuntor disjuntor) {
 		this.cliente = cliente;
 		this.configuracao = configuracao;
+		this.disjuntor = disjuntor;
+	}
+
+	/** Para testes: disjuntor próprio, sem métricas. */
+	ExtratorOpenAi(OpenAIClient cliente, PropriedadesIa.OpenAi configuracao) {
+		this(cliente, configuracao, Disjuntor.isolado(Disjuntores.IA, Disjuntor.ERRO_DO_PEDIDO_DE_IA));
 	}
 
 	@Override
@@ -71,7 +81,9 @@ class ExtratorOpenAi implements ExtratorContrato {
 			parametros.reasoningEffort(ReasoningEffort.of(configuracao.esforco().strip().toLowerCase()));
 		}
 		try {
-			var resposta = cliente.chat().completions().create(parametros.build());
+			var pedido = parametros.build();
+			var resposta = disjuntor.executar(() -> cliente.chat().completions().create(pedido),
+					ExtratorClaude.DisjuntorAberto::new);
 			var escolha = resposta.choices().getFirst();
 			if (escolha.message().refusal().isPresent() || FinishReason.CONTENT_FILTER.equals(escolha.finishReason())) {
 				throw new ExtracaoFalhouException("A IA recusou analisar o lote " + lote + " de " + total + ".");
@@ -86,6 +98,9 @@ class ExtratorOpenAi implements ExtratorContrato {
 				.content()
 				.orElseThrow(
 						() -> new ExtracaoFalhouException("A IA não devolveu resultado para o lote " + lote + "."));
+		}
+		catch (ExtratorClaude.DisjuntorAberto aberto) {
+			throw ExtratorClaude.instavel();
 		}
 		catch (UnauthorizedException erro) {
 			throw new ExtracaoFalhouException("A chave da API de IA foi recusada. Verifique a configuração.", erro);

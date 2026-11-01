@@ -10,6 +10,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
+import dev.aurora.comum.Disjuntores;
+import dev.aurora.comum.Disjuntor;
 import dev.aurora.acesso.model.EventoDeAcesso;
 import dev.aurora.acesso.model.ProvedorCorporativo;
 import dev.aurora.acesso.model.ProvedorCorporativo.Protocolo;
@@ -46,10 +48,27 @@ public class KeycloakProvedorIdentidade implements ProvedorIdentidade {
 
 	private final Map<String, TokenDeServico> tokens = new ConcurrentHashMap<>();
 
-	KeycloakProvedorIdentidade(RestClient.Builder http, ConfiguracaoIdentidade.Propriedades propriedades) {
+	private final Disjuntor disjuntor;
+
+	KeycloakProvedorIdentidade(RestClient.Builder http, ConfiguracaoIdentidade.Propriedades propriedades,
+			Disjuntor disjuntor) {
 		this.http = http.build();
 		this.propriedades = propriedades;
+		this.disjuntor = disjuntor;
 	}
+
+	/** Para testes: disjuntor próprio, sem métricas. */
+	KeycloakProvedorIdentidade(RestClient.Builder http, ConfiguracaoIdentidade.Propriedades propriedades) {
+		this(http, propriedades, Disjuntor.isolado(Disjuntores.IDENTIDADE, ERRO_DO_PEDIDO));
+	}
+
+	/**
+	 * Respostas 4xx são do pedido (conta inexistente, conflito, dado inválido), não falha
+	 * do Keycloak; 401, 403 e 429 contam (credencial ou limite: todas as chamadas
+	 * falham).
+	 */
+	static final java.util.function.Predicate<Throwable> ERRO_DO_PEDIDO = erro -> erro instanceof HttpClientErrorException e
+			&& e.getStatusCode().value() != 401 && e.getStatusCode().value() != 403 && e.getStatusCode().value() != 429;
 
 	record TokenDeServico(String valor, Instant expiraEm) {
 	}
@@ -461,7 +480,7 @@ public class KeycloakProvedorIdentidade implements ProvedorIdentidade {
 
 	private <T> @Nullable T executar(java.util.function.Supplier<T> chamada) {
 		try {
-			return chamada.get();
+			return disjuntor.executar(chamada, () -> new ServicoExternoIndisponivelException(INDISPONIVEL, null));
 		}
 		catch (HttpClientErrorException erro) {
 			if (erro.getStatusCode() == HttpStatus.UNAUTHORIZED || erro.getStatusCode() == HttpStatus.FORBIDDEN) {

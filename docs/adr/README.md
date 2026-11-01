@@ -34,3 +34,4 @@ gera um novo ADR que o substitui.
 | [0027](0027-administracao-da-plataforma.md) | Administração da plataforma: clientes pela tela, realm por cliente e contexto de plataforma | Aceito |
 | [0028](0028-trilha-de-acesso-e-sessoes.md) | Trilha de acesso e sessões: eventos do Keycloak copiados para a auditoria | Aceito |
 | [0029](0029-retencao-da-auditoria.md) | Retenção da trilha de auditoria: prazo por cliente, expurgo do começo da cadeia e âncora | Aceito |
+| [0030](0030-disjuntores.md) | Disjuntores nas chamadas à IA e ao provedor de identidade | Aceito |

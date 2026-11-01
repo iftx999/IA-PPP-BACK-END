@@ -386,3 +386,9 @@ token não leva os papéis de `realm-management` e a Admin API responde 403. Flu
 - Factível que já esteve ligado ou cortado em competência anterior: gravado com aviso (`comAviso`, 100 primeiros em
   `avisos`), visível no resultado da carga e no histórico de execuções.
 - Testes: validador (+1), `CargasApiTest` (+1), `SemLigacaoApiTest` (+1), spec do front atualizado.
+
+### Disjuntores (doc 09, 9.3) — ADR 0030 — branch `feat/disjuntores`
+- Resilience4j (núcleo + Micrometer) nos clientes de IA (assistente e extração, disjuntor `ia`) e no Keycloak
+  (`identidade`). Erros do próprio pedido não contam; aberto, falha na hora com a mensagem de indisponibilidade.
+- Alerta `DisjuntorAberto` no Prometheus de produção.
+- Testes: `DisjuntorTest` (3), `DisjuntoresTest` (1), provedor Keycloak (+1).

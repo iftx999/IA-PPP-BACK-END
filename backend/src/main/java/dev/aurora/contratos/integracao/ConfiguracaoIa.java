@@ -4,6 +4,8 @@ import java.time.Duration;
 
 import com.anthropic.client.okhttp.AnthropicOkHttpClient;
 import com.openai.client.okhttp.OpenAIOkHttpClient;
+import dev.aurora.comum.Disjuntores;
+import dev.aurora.comum.Disjuntor;
 import dev.aurora.comum.PropriedadesIa;
 import dev.aurora.contratos.service.ExtratorContrato;
 import dev.aurora.contratos.service.ReconhecedorDeTexto;
@@ -38,7 +40,8 @@ class ConfiguracaoIa {
 	}
 
 	@Bean
-	ExtratorContrato extratorContrato(PropriedadesIa ia) {
+	ExtratorContrato extratorContrato(PropriedadesIa ia, Disjuntores disjuntores) {
+		var disjuntor = disjuntores.de(Disjuntores.IA, Disjuntor.ERRO_DO_PEDIDO_DE_IA);
 		if (!ia.ligada()) {
 			LOG.warn("Extração de contratos por IA desligada: configure o provedor {} para ligar.", ia.usaOpenAi()
 					? "OpenAI (AURORA_IA_OPENAI_CHAVE e AURORA_IA_OPENAI_MODELO)" : "Claude (AURORA_IA_CHAVE)");
@@ -50,13 +53,13 @@ class ConfiguracaoIa {
 			if (PropriedadesIa.preenchido(openAi.urlBase())) {
 				cliente.baseUrl(openAi.urlBase());
 			}
-			return new ExtratorOpenAi(cliente.build(), openAi);
+			return new ExtratorOpenAi(cliente.build(), openAi, disjuntor);
 		}
 		var cliente = AnthropicOkHttpClient.builder().apiKey(ia.chave()).timeout(TEMPO_MAXIMO).maxRetries(3);
 		if (PropriedadesIa.preenchido(ia.urlBase())) {
 			cliente.baseUrl(ia.urlBase());
 		}
-		return new ExtratorClaude(cliente.build(), ia.modelo());
+		return new ExtratorClaude(cliente.build(), ia.modelo(), disjuntor);
 	}
 
 }

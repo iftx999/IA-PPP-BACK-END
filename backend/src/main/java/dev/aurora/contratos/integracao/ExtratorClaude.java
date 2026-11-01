@@ -17,6 +17,8 @@ import com.anthropic.models.messages.MessageCreateParams;
 import com.anthropic.models.messages.OutputConfig;
 import com.anthropic.models.messages.StopReason;
 import com.anthropic.models.messages.TextBlockParam;
+import dev.aurora.comum.Disjuntores;
+import dev.aurora.comum.Disjuntor;
 import dev.aurora.contratos.model.Proposta;
 import dev.aurora.contratos.model.ResultadoExtracao;
 import dev.aurora.contratos.model.Trecho;
@@ -85,9 +87,34 @@ class ExtratorClaude implements ExtratorContrato {
 
 	private final String modelo;
 
-	ExtratorClaude(AnthropicClient cliente, String modelo) {
+	private final Disjuntor disjuntor;
+
+	ExtratorClaude(AnthropicClient cliente, String modelo, Disjuntor disjuntor) {
 		this.cliente = cliente;
 		this.modelo = modelo;
+		this.disjuntor = disjuntor;
+	}
+
+	/** Para testes: disjuntor próprio, sem métricas. */
+	ExtratorClaude(AnthropicClient cliente, String modelo) {
+		this(cliente, modelo, Disjuntor.isolado(Disjuntores.IA, Disjuntor.ERRO_DO_PEDIDO_DE_IA));
+	}
+
+	/** Disjuntor aberto, convertido em {@link ExtracaoFalhouException} por quem chama. */
+	static final class DisjuntorAberto extends RuntimeException {
+
+		DisjuntorAberto() {
+			super(null, null, false, false);
+		}
+
+	}
+
+	/**
+	 * ADR 0030: o provedor falhou muitas vezes seguidas; o documento pode ser
+	 * reprocessado depois.
+	 */
+	static ExtracaoFalhouException instavel() {
+		return new ExtracaoFalhouException("O serviço de IA está instável. Tente reprocessar em alguns minutos.");
 	}
 
 	@Override
@@ -131,7 +158,7 @@ class ExtratorClaude implements ExtratorContrato {
 			.addUserMessage(mensagem)
 			.build();
 		try {
-			var resposta = cliente.messages().create(parametros);
+			var resposta = disjuntor.executar(() -> cliente.messages().create(parametros), DisjuntorAberto::new);
 			var parada = resposta.stopReason().orElse(null);
 			if (StopReason.REFUSAL.equals(parada)) {
 				throw new ExtracaoFalhouException("A IA recusou analisar o lote " + lote + " de " + total + ".");
@@ -149,6 +176,9 @@ class ExtratorClaude implements ExtratorContrato {
 				.findFirst()
 				.orElseThrow(
 						() -> new ExtracaoFalhouException("A IA não devolveu resultado para o lote " + lote + "."));
+		}
+		catch (DisjuntorAberto aberto) {
+			throw instavel();
 		}
 		catch (UnauthorizedException erro) {
 			throw new ExtracaoFalhouException("A chave da API de IA foi recusada. Verifique a configuração.", erro);

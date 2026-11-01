@@ -21,6 +21,8 @@ import com.openai.models.chat.completions.ChatCompletion.Choice.FinishReason;
 import com.openai.models.chat.completions.ChatCompletionCreateParams;
 import com.openai.models.chat.completions.ChatCompletionFunctionTool;
 import com.openai.models.chat.completions.ChatCompletionToolMessageParam;
+import dev.aurora.comum.Disjuntores;
+import dev.aurora.comum.Disjuntor;
 import dev.aurora.assistente.model.DefinicaoFerramenta;
 import dev.aurora.assistente.model.Papel;
 import dev.aurora.assistente.model.RespostaDoModelo;
@@ -60,10 +62,18 @@ class AssistenteOpenAi implements ModeloDoAssistente {
 
 	private final JsonMapper json;
 
-	AssistenteOpenAi(OpenAIClient cliente, PropriedadesIa.OpenAi configuracao, JsonMapper json) {
+	private final Disjuntor disjuntor;
+
+	AssistenteOpenAi(OpenAIClient cliente, PropriedadesIa.OpenAi configuracao, JsonMapper json, Disjuntor disjuntor) {
 		this.cliente = cliente;
 		this.configuracao = configuracao;
 		this.json = json;
+		this.disjuntor = disjuntor;
+	}
+
+	/** Para testes: disjuntor próprio, sem métricas. */
+	AssistenteOpenAi(OpenAIClient cliente, PropriedadesIa.OpenAi configuracao, JsonMapper json) {
+		this(cliente, configuracao, json, Disjuntor.isolado(Disjuntores.IA, Disjuntor.ERRO_DO_PEDIDO_DE_IA));
 	}
 
 	@Override
@@ -131,7 +141,8 @@ class AssistenteOpenAi implements ModeloDoAssistente {
 
 	private ChatCompletion chamar(ChatCompletionCreateParams parametros) {
 		try {
-			return cliente.chat().completions().create(parametros);
+			return disjuntor.executar(() -> cliente.chat().completions().create(parametros),
+					AssistenteClaude::instavel);
 		}
 		catch (UnauthorizedException erro) {
 			throw new AssistenteIndisponivelException("A chave da API de IA foi recusada. Avise o administrador.",
