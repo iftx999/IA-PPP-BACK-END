@@ -113,6 +113,7 @@ public class GestaoUsuarioService {
 		if (usuarios.existeEmail(email)) {
 			throw new ConflitoException("Já existe um usuário com o e-mail " + email + ".");
 		}
+		exigirVaga();
 
 		var emissor = emissorDoTenant(contexto.tenantId());
 		var sub = identidade.criarConta(emissor, email, nome);
@@ -127,6 +128,15 @@ public class GestaoUsuarioService {
 		auditoria.registrar(TipoEvento.USUARIO_CONVIDADO, RECURSO + id, Map.of("concessoes", descrever(concessoes)));
 		identidade.enviarConvite(emissor, sub);
 		return id;
+	}
+
+	/** Limite de usuários ativos do cliente (S1, ADR 0027), definido pela plataforma. */
+	private void exigirVaga() {
+		var limite = tenants.limiteUsuarios();
+		if (limite.isPresent() && usuarios.contarAtivos() >= limite.get()) {
+			throw new RegraVioladaException("O limite de " + limite.get() + " usuários ativos do contrato foi "
+					+ "atingido. Desative alguém ou peça a ampliação à administração da Aurora.");
+		}
 	}
 
 	@Transactional
@@ -180,6 +190,9 @@ public class GestaoUsuarioService {
 			if (perfis.contarAdministradores(null, false, id, null) == 0) {
 				throw new ConflitoException(SEM_ADMINISTRADOR);
 			}
+		}
+		if (ativo) {
+			exigirVaga();
 		}
 		usuarios.definirAtivo(id, ativo);
 		auditoria.registrar(ativo ? TipoEvento.USUARIO_REATIVADO : TipoEvento.USUARIO_DESATIVADO, RECURSO + id,

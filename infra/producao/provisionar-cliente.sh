@@ -22,7 +22,10 @@ echo "1/2 Banco: cliente, unidade raiz, perfis do sistema e administrador"
 BEGIN;
 -- Um emissor (realm) por cliente: se o emissor já tem cliente, reaproveita (idempotência).
 SELECT coalesce((SELECT tenant_id FROM tenant_emissor WHERE emissor = :'emissor'), gen_random_uuid()) AS tenant \gset
-INSERT INTO tenant (id, nome) VALUES (:'tenant', :'nome') ON CONFLICT (id) DO NOTHING;
+-- Código do cliente = nome do realm (ADR 0027): é o que a pessoa digita na tela de entrada.
+INSERT INTO tenant (id, nome, codigo, provisionado_em)
+VALUES (:'tenant', :'nome', substring(:'emissor' FROM '/realms/([A-Za-z0-9-]+)$'), now())
+ON CONFLICT (id) DO NOTHING;
 INSERT INTO tenant_emissor (emissor, tenant_id) VALUES (:'emissor', :'tenant') ON CONFLICT (emissor) DO NOTHING;
 
 -- Unidade raiz (grupo econômico); as demais são cadastradas pela tela de Unidades (H1).

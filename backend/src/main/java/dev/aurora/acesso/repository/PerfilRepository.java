@@ -61,6 +61,17 @@ public class PerfilRepository {
 			.update();
 	}
 
+	public Optional<UUID> buscarIdPorNome(String nome) {
+		return jdbc.sql("SELECT id FROM perfil WHERE nome = ?").param(nome).query(UUID.class).optional();
+	}
+
+	/** Perfil do sistema (não editável pelo cliente). */
+	public void inserirDoSistema(UUID id, String nome, String descricao) {
+		jdbc.sql("INSERT INTO perfil (id, tenant_id, nome, descricao, sistema) VALUES (?, app_tenant(), ?, ?, true)")
+			.params(id, nome, descricao)
+			.update();
+	}
+
 	public void atualizar(UUID id, String nome, @Nullable String descricao) {
 		jdbc.sql("UPDATE perfil SET nome = ?, descricao = ? WHERE id = ? AND NOT sistema")
 			.params(nome, descricao, id)

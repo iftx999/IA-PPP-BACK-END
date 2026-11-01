@@ -31,4 +31,11 @@ public interface Unidades {
 	/** Unidades ativas do escopo (ex.: resolver os códigos de unidade de uma carga). */
 	List<Unidade> doEscopo();
 
+	/**
+	 * Unidade raiz (grupo econômico) de um cliente recém-criado (S1, ADR 0027), no tenant
+	 * do contexto; se já existe, devolve a existente.
+	 * @return id da raiz
+	 */
+	UUID garantirRaiz(String nome);
+
 }

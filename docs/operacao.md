@@ -23,6 +23,21 @@ a rede de administração.
 
 ## 2. Novo cliente
 
+**Com vários clientes na instalação (ADR 0027), pela tela:** a administração da plataforma entra em
+`https://<AURORA_DOMINIO>/plataforma` e usa "Novo cliente" (código, nome, primeiro administrador e limites). A Aurora
+cria o realm do cliente, a unidade principal, os perfis do sistema e envia o convite. Se o provisionamento ficar
+pendente (ex.: Keycloak fora do ar), use "Concluir provisionamento" no menu do cliente. As pessoas entram com o código
+da empresa (ou pelo link do convite, que já o traz).
+
+Preparação, uma vez por instalação:
+1. `AURORA_PLATAFORMA_SEGREDO` e `AURORA_VARIOS_CLIENTES=true` no `.env`; `docker compose --env-file .env up -d`
+   (o realm `plataforma` é importado se ainda não existir; em instalação existente, importe
+   `infra/keycloak/realm-plataforma-producao.json` pelo console do Keycloak).
+2. Conta de serviço que cria os realms (só `create-realm`): ver o cabeçalho de `infra/keycloak/configurar-plataforma.sh`.
+3. Primeiro operador: `./criar-operador-plataforma.sh operacao@empresa.com.br "Nome Sobrenome"` (TOTP obrigatório).
+
+**Instalação de um cliente só, pelo script:**
+
 ```bash
 ./provisionar-cliente.sh "Grupo Saneamento X" admin@grupox.com.br "Nome Sobrenome"
 ```

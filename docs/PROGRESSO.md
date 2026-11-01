@@ -327,7 +327,25 @@ token não leva os papéis de `realm-management` e a Admin API responde 403. Flu
 - Validação: migração da V20 conferida no banco de dev; E2E de contratos cobre definir, cumprir, avançar e desfazer.
 - Testes: back-end 218; front 47 unitários e 37 E2E.
 
+### Administração da plataforma (S1) — ADR 0027 — mesma sessão (branch `feat/administracao-plataforma`)
+- Realm `plataforma` (usuário de dev `plataforma@exemplo.dev` / `aurora-dev`), área `/plataforma` no front, API
+  `/api/v1/plataforma/clientes` (listar, criar, alterar, logo, concluir provisionamento, reenviar convite) só para esse
+  emissor, com `otp` obrigatório fora do dev.
+- Banco V23: `tenant.codigo` (clientes antigos = nome do realm), limites, logo, contato, `provisionado_em`; contexto de
+  plataforma (`app.plataforma`) só em tenant/tenant_emissor/assistente_limite; gatilho impede o cliente de alterar o
+  próprio cadastro.
+- Criar cliente = realm novo (modelo gerado do realm de produção; conta do master só com `create-realm`), raiz,
+  perfis do sistema e convite do 1º administrador pelo fluxo de Usuários; etapas idempotentes e retomáveis.
+- Front: tela "Código da empresa" (`/acesso`), `?cliente=` (o link do convite já traz), logo e "Trocar de empresa"
+  no menu; limite de usuários conferido ao convidar e reativar.
+- Produção: `realm-plataforma-producao.json`, `configurar-plataforma.sh`, `criar-operador-plataforma.sh`,
+  `AURORA_VARIOS_CLIENTES`, `AURORA_PLATAFORMA_SEGREDO`; corrigido `provisionar-cliente.sh` (código do cliente).
+- Validação real: operador criou "Grupo Saneamento Norte" (realm `grupo-norte`), falha de SMTP deixou o
+  provisionamento pendente e "concluir" retomou; E2E cria cliente, a 1ª administradora aceita o convite, entra no realm
+  novo e vê a logo.
+- Testes: back-end 225; front 53 unitários e 41 E2E (todos os E2E agora passam pela tela do código).
+
 ### Pendências
-- Próximo: regra factível × cortado (autor), validação da IA com chave real, administrador da plataforma (tela de
-  tenants, depende do autor).
+- Próximo: eventos de login na trilha de auditoria (doc 08, 8.7), "sair de todos os dispositivos", retenção da
+  auditoria, testes de carga; dependem do autor: regra factível × cortado; da chave real: validação da IA.
 - Se o E2E de SSO falhar no meio, o botão "Empresa Exemplo (E2E)" fica no login até remover o SSO em Usuários.

@@ -32,7 +32,22 @@ services:
       - ./keycloak/realm-aurora.json:/opt/keycloak/data/import/realm-aurora.json:ro
       # Diretório corporativo fictício para testar o SSO (S10, ADR 0025); só no desenvolvimento.
       - ./keycloak/realm-corporativo-exemplo.json:/opt/keycloak/data/import/realm-corporativo-exemplo.json:ro
+      # Administração da plataforma (S1, ADR 0027).
+      - ./keycloak/realm-plataforma.json:/opt/keycloak/data/import/realm-plataforma.json:ro
       - ./keycloak/temas/aurora:/opt/keycloak/themes/aurora:ro
+
+  # Conta de serviço do master que a API usa para criar o realm de cada cliente novo (ADR 0027). Roda e termina.
+  keycloak-configuracao:
+    image: quay.io/keycloak/keycloak:26.8.1
+    entrypoint: ["/bin/bash", "/configurar-plataforma.sh"]
+    environment:
+      KC_SERVIDOR: http://keycloak:8180
+      KC_USUARIO: admin
+      KC_SENHA: ${KEYCLOAK_ADMIN_PASSWORD}
+      AURORA_PLATAFORMA_SEGREDO: plataforma-dev
+    volumes:
+      - ./keycloak/configurar-plataforma.sh:/configurar-plataforma.sh:ro
+    depends_on: [keycloak]
 
   mailpit:
     image: axllent/mailpit:v1.27

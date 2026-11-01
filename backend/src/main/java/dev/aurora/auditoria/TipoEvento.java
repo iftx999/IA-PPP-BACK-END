@@ -18,6 +18,12 @@ public enum TipoEvento {
 	 */
 	POLITICA_SEGUNDO_FATOR_ALTERADA, SEGUNDO_FATOR_REMOVIDO,
 
+	/**
+	 * Administração da plataforma (S1, ADR 0027): cliente criado ou alterado (na trilha
+	 * do cliente).
+	 */
+	CLIENTE_CRIADO, CLIENTE_ALTERADO,
+
 	/** SSO corporativo (S10): IdP configurado, alterado ou removido. */
 	SSO_CONFIGURADO, SSO_REMOVIDO,
 

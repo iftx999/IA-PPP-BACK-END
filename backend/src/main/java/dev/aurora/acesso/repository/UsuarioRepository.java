@@ -107,13 +107,14 @@ public class UsuarioRepository {
 
 	public Optional<UsuarioAutenticado> buscarAutenticado(UUID usuarioId, List<String> permissoes) {
 		return jdbc.sql("""
-				SELECT u.id, u.nome, u.email, t.id AS tenant_id, t.nome AS tenant
+				SELECT u.id, u.nome, u.email, t.id AS tenant_id, t.nome AS tenant, t.codigo,
+				       t.logo IS NOT NULL AS tem_logo
 				  FROM usuario u JOIN tenant t ON t.id = u.tenant_id
 				 WHERE u.id = ?""")
 			.param(usuarioId)
 			.query((linha, n) -> new UsuarioAutenticado(linha.getObject("id", UUID.class), linha.getString("nome"),
 					linha.getString("email"), linha.getObject("tenant_id", UUID.class), linha.getString("tenant"),
-					permissoes))
+					linha.getString("codigo"), linha.getBoolean("tem_logo"), permissoes))
 			.optional();
 	}
 
@@ -132,6 +133,21 @@ public class UsuarioRepository {
 	 */
 	public Optional<Usuario> travar(UUID id) {
 		return jdbc.sql(SELECAO_USUARIO + " WHERE id = ? FOR UPDATE").param(id).query((r, n) -> usuario(r)).optional();
+	}
+
+	/**
+	 * Usuários ativos do tenant (com convite pendente inclusive): o que conta para o
+	 * limite.
+	 */
+	public long contarAtivos() {
+		return jdbc.sql("SELECT count(*) FROM usuario WHERE ativo").query(Long.class).single();
+	}
+
+	public Optional<UUID> buscarIdPorEmail(String email) {
+		return jdbc.sql("SELECT id FROM usuario WHERE lower(email) = lower(?)")
+			.param(email)
+			.query(UUID.class)
+			.optional();
 	}
 
 	public boolean existeEmail(String email) {

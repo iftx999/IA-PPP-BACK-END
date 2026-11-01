@@ -382,7 +382,10 @@ public class KeycloakProvedorIdentidade implements ProvedorIdentidade {
 			.fromUriString(admin(EnderecoDoEmissor.paraServidor(emissor, propriedades.urlInterna()))
 					+ "/users/{id}/execute-actions-email")
 			.queryParam("client_id", propriedades.clienteWeb())
-			.queryParam("redirect_uri", propriedades.urlRetorno())
+			// Volta já com a empresa escolhida (ADR 0027): o código do cliente é o nome
+			// do realm.
+			.queryParam("redirect_uri",
+					propriedades.urlRetorno() + "?cliente=" + emissor.substring(emissor.lastIndexOf('/') + 1))
 			.queryParam("lifespan", propriedades.validadeConvite().toSeconds())
 			.buildAndExpand(sub)
 			.encode()

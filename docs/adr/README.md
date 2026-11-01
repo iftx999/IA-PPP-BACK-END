@@ -31,3 +31,4 @@ gera um novo ADR que o substitui.
 | [0024](0024-alertas-de-ritmo-prazo-e-email.md) | Alertas de ritmo e de prazo contratual e notificação por e-mail | Aceito |
 | [0025](0025-sso-corporativo.md) | SSO corporativo: IdP da empresa no realm do tenant, só para pessoas convidadas | Aceito |
 | [0026](0026-prazos-recorrentes.md) | Prazos e obrigações recorrentes: agenda no item aprovado e cumprimento por vencimento | Aceito |
+| [0027](0027-administracao-da-plataforma.md) | Administração da plataforma: clientes pela tela, realm por cliente e contexto de plataforma | Aceito |

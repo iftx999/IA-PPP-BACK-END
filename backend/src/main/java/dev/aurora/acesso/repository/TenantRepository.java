@@ -50,6 +50,11 @@ public class TenantRepository {
 		jdbc.sql("UPDATE tenant SET sso_confia_segundo_fator = ?").param(confia).update();
 	}
 
+	/** Limite de usuários ativos contratado (S1); vazio = sem limite. */
+	public Optional<Integer> limiteUsuarios() {
+		return jdbc.sql("SELECT limite_usuarios FROM tenant").query(Integer.class).optional();
+	}
+
 	/**
 	 * Emissor OIDC (realm) do tenant: é onde a administração de usuários cria e altera
 	 * contas.

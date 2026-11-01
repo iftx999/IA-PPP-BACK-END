@@ -23,7 +23,9 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
 import org.springframework.security.oauth2.jwt.JwtClaimNames;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtClaimValidator;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtDecoders;
 import org.springframework.security.oauth2.jwt.JwtValidators;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
@@ -57,6 +59,91 @@ class ConfiguracaoSeguranca {
 			.sessionManagement(sessao -> sessao.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 			.csrf(csrf -> csrf.disable())
 			.build();
+	}
+
+	/**
+	 * Administração da plataforma (S1, ADR 0027): só o emissor do realm da plataforma,
+	 * que nenhum cliente usa. Chaves buscadas na primeira requisição (a API sobe sem o
+	 * Keycloak).
+	 */
+	@Bean
+	@Order(1)
+	SecurityFilterChain plataforma(HttpSecurity http, @Value("${aurora.plataforma.emissor}") String emissor,
+			@Value("${aurora.plataforma.segundo-fator:true}") boolean segundoFator,
+			@Value("${aurora.seguranca.audiencia}") String audiencia,
+			@Value("${aurora.identidade.url-interna:}") String urlInterna) throws Exception {
+		var decodificador = new DecodificadorPreguicoso(() -> decodificador(emissor, audiencia, urlInterna));
+		return http.securityMatcher("/api/v1/plataforma/**")
+			.authorizeHttpRequests(regras -> regras.anyRequest().authenticated())
+			.oauth2ResourceServer(servidor -> servidor.jwt(jwt -> jwt.decoder(decodificador)))
+			.sessionManagement(sessao -> sessao.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+			.csrf(csrf -> csrf.disable())
+			.cors(cors -> {
+			})
+			.addFilterAfter(new FiltroContextoPlataforma(emissor, segundoFator), BearerTokenAuthenticationFilter.class)
+			.build();
+	}
+
+	/**
+	 * Antes do login (ADR 0027): o código da empresa leva ao emissor onde entrar, e a
+	 * logo. Token, se vier, é ignorado.
+	 */
+	@Bean
+	@Order(1)
+	SecurityFilterChain publico(HttpSecurity http) throws Exception {
+		return http.securityMatcher("/api/v1/publico/**")
+			.authorizeHttpRequests(regras -> regras.requestMatchers(org.springframework.http.HttpMethod.GET, "/**")
+				.permitAll()
+				.anyRequest()
+				.denyAll())
+			.sessionManagement(sessao -> sessao.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+			.csrf(csrf -> csrf.disable())
+			.cors(cors -> {
+			})
+			.build();
+	}
+
+	/** Decodificador de um emissor: assinatura, emissor e audiência da API. */
+	static JwtDecoder decodificador(String emissor, String audiencia, String urlInterna) {
+		var decodificador = urlInterna.isBlank() ? (NimbusJwtDecoder) JwtDecoders.fromIssuerLocation(emissor)
+				: NimbusJwtDecoder
+					.withJwkSetUri(
+							EnderecoDoEmissor.paraServidor(emissor, urlInterna) + "/protocol/openid-connect/certs")
+					.build();
+		decodificador.setJwtValidator(new DelegatingOAuth2TokenValidator<>(
+				JwtValidators.createDefaultWithIssuer(emissor),
+				new JwtClaimValidator<List<String>>(JwtClaimNames.AUD, aud -> aud != null && aud.contains(audiencia))));
+		return decodificador;
+	}
+
+	/**
+	 * Cria o decodificador na primeira requisição (o Keycloak pode subir depois da API).
+	 */
+	static final class DecodificadorPreguicoso implements JwtDecoder {
+
+		private final java.util.function.Supplier<JwtDecoder> fabrica;
+
+		private volatile @org.jspecify.annotations.Nullable JwtDecoder alvo;
+
+		DecodificadorPreguicoso(java.util.function.Supplier<JwtDecoder> fabrica) {
+			this.fabrica = fabrica;
+		}
+
+		@Override
+		public Jwt decode(String token) {
+			var atual = alvo;
+			if (atual == null) {
+				synchronized (this) {
+					atual = alvo;
+					if (atual == null) {
+						atual = fabrica.get();
+						alvo = atual;
+					}
+				}
+			}
+			return atual.decode(token);
+		}
+
 	}
 
 	@Bean
@@ -94,19 +181,10 @@ class ConfiguracaoSeguranca {
 			if (resolvedor.tenantDoEmissor(emissor).isEmpty()) {
 				return null;
 			}
-			return porEmissor.computeIfAbsent(emissor, e -> {
-				// Chaves pela rede interna quando configurada; o emissor (iss) continua o
-				// público.
-				var decodificador = urlInterna.isBlank() ? (NimbusJwtDecoder) JwtDecoders.fromIssuerLocation(e)
-						: NimbusJwtDecoder
-							.withJwkSetUri(
-									EnderecoDoEmissor.paraServidor(e, urlInterna) + "/protocol/openid-connect/certs")
-							.build();
-				decodificador.setJwtValidator(new DelegatingOAuth2TokenValidator<>(
-						JwtValidators.createDefaultWithIssuer(e), new JwtClaimValidator<List<String>>(JwtClaimNames.AUD,
-								aud -> aud != null && aud.contains(audiencia))));
-				return new JwtAuthenticationProvider(decodificador)::authenticate;
-			});
+			// Chaves pela rede interna quando configurada; o emissor (iss) continua o
+			// público.
+			return porEmissor.computeIfAbsent(emissor,
+					e -> new JwtAuthenticationProvider(decodificador(e, audiencia, urlInterna))::authenticate);
 		});
 	}
 

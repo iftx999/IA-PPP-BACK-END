@@ -125,6 +125,23 @@ public class UnidadeRepository {
 			.update();
 	}
 
+	/** Raiz do tenant do contexto (sem pai), se existe. Não depende do escopo. */
+	public Optional<UUID> buscarRaizDoTenant() {
+		return jdbc.sql("SELECT id FROM unidade WHERE unidade_pai_id IS NULL ORDER BY criado_em LIMIT 1")
+			.query(UUID.class)
+			.optional();
+	}
+
+	public void inserirRaiz(UUID id, String nome) {
+		jdbc.sql(
+				"""
+						INSERT INTO unidade (id, tenant_id, tipo, codigo, nome, caminho)
+						VALUES (:id, app_tenant(), 'GRUPO', 'GRUPO', :nome, text2ltree('u' || replace(CAST(:id AS text), '-', '')))""")
+			.param("id", id)
+			.param("nome", nome)
+			.update();
+	}
+
 	public void atualizar(UUID id, DadosUnidade dados) {
 		jdbc.sql("""
 				UPDATE unidade SET codigo = :codigo, nome = :nome, codigo_ibge = :ibge, latitude = :latitude,

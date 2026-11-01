@@ -22,7 +22,8 @@ public final class DadosDeTeste {
 				UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(),
 				UUID.randomUUID(), UUID.randomUUID());
 		try (var c = BancoDeTeste.comoSuperusuario()) {
-			executar(c, "INSERT INTO tenant (id, nome) VALUES (?::uuid, ?)", t.id(), nome);
+			executar(c, "INSERT INTO tenant (id, nome, codigo) VALUES (?::uuid, ?, ?)", t.id(), nome,
+					"t-" + t.id().toString().replace("-", ""));
 			executar(c, "INSERT INTO tenant_emissor (emissor, tenant_id) VALUES (?, ?::uuid)", t.emissor(), t.id());
 			unidade(c, t, t.grupo(), null, "GRUPO", null, rotulo(t.grupo()));
 			unidade(c, t, t.concessao(), t.grupo(), "CONCESSAO", null, rotulo(t.grupo(), t.concessao()));

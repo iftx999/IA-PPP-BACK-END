@@ -47,6 +47,19 @@ aurora:
     # SSO corporativo (ADR 0025): o Keycloak busca o endereço informado pelo administrador. Fora do desenvolvimento,
     # só HTTPS e endereços públicos (evita usar o Keycloak para sondar a rede interna).
     sso-permitir-enderecos-internos: ${AURORA_SSO_PERMITIR_ENDERECOS_INTERNOS:false}
+  plataforma:
+    # Administração da plataforma (S1, ADR 0027): realm próprio, só ele entra em /api/v1/plataforma.
+    emissor: ${AURORA_PLATAFORMA_EMISSOR}
+    segundo-fator: true
+    # Endereço público do Keycloak; o realm de cada cliente novo é <url-identidade>/realms/<código>.
+    url-identidade: ${AURORA_URL_IDENTIDADE}
+    # Conta de serviço do realm master só com create-realm (infra/keycloak/configurar-plataforma.sh).
+    cliente-id: aurora-plataforma-admin
+    segredo: ${AURORA_PLATAFORMA_SEGREDO:}
+    tempo-limite: 60s
+    # SMTP que o Keycloak usa nos realms novos; sem a variável, o mesmo da API (aurora.email).
+    smtp-host: ${AURORA_PLATAFORMA_SMTP_HOST:${aurora.email.host}}
+    smtp-porta: ${AURORA_PLATAFORMA_SMTP_PORTA:${aurora.email.porta}}
   cors:
     origens: ${AURORA_CORS_ORIGENS}
   contratos:

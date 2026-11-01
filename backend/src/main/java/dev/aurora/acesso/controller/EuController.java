@@ -15,11 +15,16 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/v1/eu")
 class EuController {
 
-	record EuResponse(UUID usuarioId, String nome, String email, UUID tenantId, String tenant,
-			List<String> permissoes) {
+	/**
+	 * @param tenantCodigo código do cliente (tela de entrada e logo em
+	 * /api/v1/publico/clientes/{codigo}/logo)
+	 */
+	record EuResponse(UUID usuarioId, String nome, String email, UUID tenantId, String tenant, String tenantCodigo,
+			boolean tenantTemLogo, List<String> permissoes) {
 
 		static EuResponse de(UsuarioAutenticado u) {
-			return new EuResponse(u.usuarioId(), u.nome(), u.email(), u.tenantId(), u.tenant(), u.permissoes());
+			return new EuResponse(u.usuarioId(), u.nome(), u.email(), u.tenantId(), u.tenant(), u.tenantCodigo(),
+					u.tenantTemLogo(), u.permissoes());
 		}
 	}
 

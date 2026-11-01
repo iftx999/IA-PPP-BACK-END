@@ -13,6 +13,15 @@ aurora:
     segundo-fator-administradores: ${AURORA_SEGUNDO_FATOR_ADMINISTRADORES:false}
     # O IdP corporativo de exemplo roda no Keycloak local (http://localhost:8180/realms/corporativo-exemplo).
     sso-permitir-enderecos-internos: ${AURORA_SSO_PERMITIR_ENDERECOS_INTERNOS:true}
+  plataforma:
+    emissor: ${AURORA_PLATAFORMA_EMISSOR:http://localhost:8180/realms/plataforma}
+    # Desligado no ambiente local para o usuário de demonstração entrar só com senha.
+    segundo-fator: ${AURORA_PLATAFORMA_SEGUNDO_FATOR:false}
+    url-identidade: ${AURORA_URL_IDENTIDADE:http://localhost:8180}
+    segredo: ${AURORA_PLATAFORMA_SEGREDO:plataforma-dev}
+    # Quem envia os convites do cliente novo é o Keycloak, dentro do Docker: lá o Mailpit é "mailpit".
+    smtp-host: mailpit
+    smtp-porta: 1025
   auditoria:
     chave: ${AURORA_AUDITORIA_CHAVE:chave-de-desenvolvimento-nao-usar-em-producao}
   cors:

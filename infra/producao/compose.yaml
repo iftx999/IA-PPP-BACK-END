@@ -37,6 +37,9 @@ services:
       AURORA_API_ENDERECO: api:8080
       AURORA_EMISSOR: https://${AURORA_DOMINIO_ID}/realms/aurora
       AURORA_CLIENTE_ID: aurora-web
+      # Vários clientes nesta instalação (ADR 0027): tela do código da empresa e área /plataforma.
+      AURORA_ESCOLHER_CLIENTE: ${AURORA_VARIOS_CLIENTES:-false}
+      AURORA_EMISSOR_PLATAFORMA: https://${AURORA_DOMINIO_ID}/realms/plataforma
       AURORA_CSP_CONEXOES: https://${AURORA_DOMINIO_ID} ${AURORA_CSP_MAPA}
       AURORA_CSP_IMAGENS: ${AURORA_CSP_MAPA}
     read_only: true
@@ -58,6 +61,10 @@ services:
       AURORA_CORS_ORIGENS: https://${AURORA_DOMINIO}
       # Chaves dos tokens e Admin API pela rede interna (o emissor validado continua o público).
       AURORA_IDENTIDADE_URL_INTERNA: http://keycloak:8080
+      # Administração da plataforma (ADR 0027).
+      AURORA_PLATAFORMA_EMISSOR: https://${AURORA_DOMINIO_ID}/realms/plataforma
+      AURORA_URL_IDENTIDADE: https://${AURORA_DOMINIO_ID}
+      AURORA_PLATAFORMA_SEGREDO: ${AURORA_PLATAFORMA_SEGREDO:-}
       AURORA_IA_PROVEDOR: ${AURORA_IA_PROVEDOR:-claude}
       AURORA_IA_CHAVE: ${AURORA_IA_CHAVE:-}
       AURORA_IA_OPENAI_CHAVE: ${AURORA_IA_OPENAI_CHAVE:-}
@@ -132,6 +139,7 @@ services:
       AURORA_SMTP_SENHA: ${AURORA_SMTP_SENHA}
     volumes:
       - ../keycloak/realm-aurora-producao.json:/opt/keycloak/data/import/realm-aurora.json:ro
+      - ../keycloak/realm-plataforma-producao.json:/opt/keycloak/data/import/realm-plataforma.json:ro
       - ../keycloak/temas/aurora:/opt/keycloak/themes/aurora:ro
     depends_on:
       keycloak-db: { condition: service_healthy }

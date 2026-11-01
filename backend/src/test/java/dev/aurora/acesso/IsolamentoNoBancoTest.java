@@ -100,6 +100,32 @@ class IsolamentoNoBancoTest {
 		}
 	}
 
+	/**
+	 * ADR 0027: a plataforma enxerga o cadastro de todos os clientes, mas nada de dentro
+	 * deles; e um cliente não altera o próprio cadastro (nome, situação, limites).
+	 */
+	@Test
+	void plataformaSoAlcancaOCadastroDosClientes() throws SQLException {
+		try (var c = BancoDeTeste.comoAplicacao()) {
+			try (var comando = c.createStatement()) {
+				comando.execute("SELECT set_config('app.plataforma', 'on', false)");
+			}
+			assertThat(ids(c, "SELECT id FROM tenant")).contains(a.id(), b.id());
+			for (var tabela : List.of("usuario", "unidade", "perfil", "contrato", "evento_auditoria")) {
+				assertThatThrownBy(() -> ids(c, "SELECT tenant_id AS id FROM " + tabela)).as(tabela)
+					.hasMessageContaining("contexto de tenant não definido");
+			}
+		}
+		try (var c = comContexto(a, DadosDeTeste.rotulo(a.grupo())); var comando = c.createStatement()) {
+			assertThatThrownBy(() -> comando.executeUpdate("UPDATE tenant SET limite_usuarios = 999"))
+				.hasMessageContaining("somente a administração da plataforma");
+			assertThatThrownBy(() -> comando.executeUpdate("UPDATE tenant SET ativo = false"))
+				.hasMessageContaining("somente a administração da plataforma");
+			// As políticas de acesso do próprio cliente continuam sendo dele.
+			assertThat(comando.executeUpdate("UPDATE tenant SET segundo_fator_obrigatorio = false")).isEqualTo(1);
+		}
+	}
+
 	private static Connection comContexto(Tenant t, String escopos) throws SQLException {
 		var c = BancoDeTeste.comoAplicacao();
 		try (var comando = c

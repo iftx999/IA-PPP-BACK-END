@@ -61,6 +61,16 @@ public class UnidadeService implements Unidades {
 	}
 
 	@Override
+	@Transactional
+	public UUID garantirRaiz(String nome) {
+		return unidades.buscarRaizDoTenant().orElseGet(() -> {
+			var id = UUID.randomUUID();
+			unidades.inserirRaiz(id, nome);
+			return id;
+		});
+	}
+
+	@Override
 	public Optional<Unidade> principalDoEscopo() {
 		return unidades.buscarPrincipalDoEscopo();
 	}

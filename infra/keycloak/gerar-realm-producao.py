@@ -60,6 +60,38 @@ def main() -> None:
     destino.write_text(json.dumps(realm, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(destino)
 
+    # Modelo para a API criar o realm de cada cliente novo (ADR 0027). A API troca os ${VAR} pelos valores da própria
+    # configuração (mesmos segredos e SMTP), mais o nome do realm (código do cliente) e o nome exibido.
+    modelo = json.loads(json.dumps(realm))
+    modelo["realm"] = "${AURORA_REALM}"
+    modelo["displayName"] = "${AURORA_NOME_CLIENTE}"
+    modelo["smtpServer"]["auth"] = "${AURORA_SMTP_AUTENTICAR}"
+    modelo["smtpServer"]["starttls"] = "${AURORA_SMTP_TLS}"
+    destino = PASTA.parent.parent / "backend/src/main/resources/keycloak/realm-modelo.json"
+    destino.parent.mkdir(exist_ok=True)
+    destino.write_text(json.dumps(modelo, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    print(destino)
+
+    # Realm da administração da plataforma (S1): sem usuários; quem entra cadastra o TOTP no primeiro acesso.
+    plataforma = json.loads((PASTA / "realm-plataforma.json").read_text(encoding="utf-8"))
+    plataforma.pop("users", None)
+    plataforma.update({k: realm[k] for k in ("sslRequired", "passwordPolicy", "bruteForceProtected", "permanentLockout",
+                                             "failureFactor", "waitIncrementSeconds", "maxFailureWaitSeconds",
+                                             "maxDeltaTimeSeconds", "quickLoginCheckMilliSeconds",
+                                             "minimumQuickLoginWaitSeconds", "otpPolicyType", "otpPolicyAlgorithm",
+                                             "otpPolicyDigits", "otpPolicyPeriod", "smtpServer")})
+    plataforma["ssoSessionIdleTimeout"] = 900
+    plataforma["ssoSessionMaxLifespan"] = 28800
+    plataforma["requiredActions"] = [{"alias": "CONFIGURE_TOTP", "name": "Configure OTP", "providerId": "CONFIGURE_TOTP",
+                                      "enabled": True, "defaultAction": True, "priority": 10, "config": {}}]
+    for cliente in plataforma["clients"]:
+        cliente["redirectUris"] = ["${AURORA_URL_FRONT}/*"]
+        cliente["webOrigins"] = ["${AURORA_URL_FRONT}"]
+        cliente["attributes"] = {**cliente.get("attributes", {}), "post.logout.redirect.uris": "${AURORA_URL_FRONT}/*"}
+    destino = PASTA / "realm-plataforma-producao.json"
+    destino.write_text(json.dumps(plataforma, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    print(destino)
+
 
 if __name__ == "__main__":
     main()

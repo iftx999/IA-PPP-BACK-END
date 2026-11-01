@@ -57,7 +57,7 @@ class KeycloakProvedorIdentidadeTest {
 					 "enabled":true,"emailVerified":false}"""))
 			.andRespond(withStatus(HttpStatus.CREATED).location(URI.create(ADMIN + "/users/abc-123")));
 		servidor.expect(once(), requestTo(ADMIN
-				+ "/users/abc-123/execute-actions-email?client_id=aurora-web&redirect_uri=http://front.teste/&lifespan=259200"))
+				+ "/users/abc-123/execute-actions-email?client_id=aurora-web&redirect_uri=http://front.teste/?cliente%3Dcliente&lifespan=259200"))
 			.andExpect(method(HttpMethod.PUT))
 			.andExpect(content().json("[\"VERIFY_EMAIL\",\"UPDATE_PASSWORD\"]"))
 			.andRespond(withStatus(HttpStatus.NO_CONTENT));
@@ -97,7 +97,7 @@ class KeycloakProvedorIdentidadeTest {
 		esperarToken();
 		servidor
 			.expect(requestTo(ADMIN + "/users/abc/execute-actions-email?client_id=aurora-web"
-					+ "&redirect_uri=http://front.teste/&lifespan=259200"))
+					+ "&redirect_uri=http://front.teste/?cliente%3Dcliente&lifespan=259200"))
 			.andRespond(withServerError());
 
 		assertThatThrownBy(() -> provedor.enviarRedefinicaoSenha(EMISSOR, "abc"))
