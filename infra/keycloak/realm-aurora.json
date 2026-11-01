@@ -9,6 +9,18 @@
   "bruteForceProtected": true,
   "failureFactor": 5,
   "permanentLockout": false,
+  "eventsEnabled": true,
+  "eventsExpiration": 2592000,
+  "eventsListeners": [
+    "jboss-logging"
+  ],
+  "enabledEventTypes": [
+    "LOGIN",
+    "LOGIN_ERROR",
+    "LOGOUT",
+    "USER_DISABLED_BY_TEMPORARY_LOCKOUT",
+    "USER_DISABLED_BY_PERMANENT_LOCKOUT"
+  ],
   "accessTokenLifespan": 300,
   "ssoSessionIdleTimeout": 1800,
   "internationalizationEnabled": true,
@@ -449,7 +461,8 @@
           "view-users",
           "query-users",
           "manage-identity-providers",
-          "view-identity-providers"
+          "view-identity-providers",
+          "view-events"
         ]
       }
     }

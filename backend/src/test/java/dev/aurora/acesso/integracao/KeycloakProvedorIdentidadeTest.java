@@ -288,6 +288,56 @@ class KeycloakProvedorIdentidadeTest {
 		servidor.verify();
 	}
 
+	@Test
+	void encerraAsSessoesDaConta() {
+		esperarToken();
+		servidor.expect(once(), requestTo(ADMIN + "/users/abc/logout"))
+			.andExpect(method(HttpMethod.POST))
+			.andRespond(withStatus(HttpStatus.NO_CONTENT));
+		provedor.encerrarSessoes(EMISSOR, "abc");
+		servidor.verify();
+	}
+
+	@Test
+	void leEventosDeAcessoEmPaginasDoMaisAntigoSemONomeDigitado() {
+		esperarToken();
+		var tipos = "type=LOGIN&type=LOGIN_ERROR&type=LOGOUT&type=USER_DISABLED_BY_PERMANENT_LOCKOUT"
+				+ "&type=USER_DISABLED_BY_TEMPORARY_LOCKOUT&direction=asc";
+		var pagina = new StringBuilder("[");
+		for (int i = 0; i < 100; i++) {
+			pagina.append(i == 0 ? "" : ",")
+				.append("{\"id\":\"p")
+				.append(i)
+				.append("\",\"time\":1793536049000,\"type\":\"LOGIN\",")
+				.append("\"userId\":\"u1\",\"ipAddress\":\"10.0.0.1\",\"clientId\":\"aurora-web\"}");
+		}
+		pagina.append("]");
+		servidor.expect(once(), requestTo(ADMIN + "/events?" + tipos + "&first=0&max=100&dateFrom=1793536000000"))
+			.andExpect(method(HttpMethod.GET))
+			.andRespond(withSuccess(pagina.toString(), MediaType.APPLICATION_JSON));
+		servidor.expect(once(), requestTo(ADMIN + "/events?" + tipos + "&first=100&max=50&dateFrom=1793536000000"))
+			.andRespond(withSuccess(
+					"""
+							[{"id":"f1","time":1793536049142,"type":"LOGIN_ERROR","ipAddress":"10.0.0.2","clientId":"aurora-web",
+							  "error":"user_not_found","details":{"username":"digitado@errado.dev","auth_method":"openid-connect"}},
+							 {"id":"b1","time":1793536049200,"type":"USER_DISABLED_BY_TEMPORARY_LOCKOUT","userId":"u2"},
+							 {"id":"s1","time":1793536049300,"type":"LOGIN","userId":"u3",
+							  "details":{"identity_provider":"corporativo"}}]""",
+					MediaType.APPLICATION_JSON));
+
+		var eventos = provedor.eventosDeAcesso(EMISSOR, java.time.Instant.ofEpochMilli(1793536000000L), 150);
+
+		servidor.verify();
+		assertThat(eventos).hasSize(103);
+		var falha = eventos.get(100);
+		assertThat(falha.tipo()).isEqualTo(dev.aurora.acesso.model.EventoDeAcesso.Tipo.FALHA_DE_LOGIN);
+		assertThat(falha.sub()).isNull();
+		assertThat(falha.motivo()).isEqualTo("user_not_found");
+		assertThat(falha.toString()).doesNotContain("digitado");
+		assertThat(eventos.get(101).tipo()).isEqualTo(dev.aurora.acesso.model.EventoDeAcesso.Tipo.BLOQUEIO_TEMPORARIO);
+		assertThat(eventos.get(102).provedorCorporativo()).isEqualTo("corporativo");
+	}
+
 	private void esperarToken() {
 		servidor.expect(once(), requestTo(EMISSOR + "/protocol/openid-connect/token"))
 			.andExpect(method(HttpMethod.POST))

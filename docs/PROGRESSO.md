@@ -360,3 +360,15 @@ token não leva os papéis de `realm-management` e a Admin API responde 403. Flu
   (`assistente-v2`, com o glossário das situações), dicas nas abas e no selo de "Sem ligação" e ajuda da carga CSV.
 - Ideias em aberto, se o sistema comercial enviar o dado: motivo do corte (inadimplência × a pedido) e aviso na carga
   quando um imóvel que já esteve ligado volta como factível.
+
+### Trilha de acesso e sessões (doc 08, 8.6 e 8.7) — ADR 0028 — branch `feat/sessoes-e-trilha-de-acesso`
+- Keycloak grava login, falha, bloqueio por tentativas e logout (30 dias); a tarefa `importar-eventos-de-acesso`
+  copia para a trilha de cada tenant (5 min; 20 s no dev), sem duplicar (V24 `evento_acesso_importado`) e sem o nome
+  digitado no login. Tipos novos: `LOGIN_FALHOU`, `CONTA_BLOQUEADA`, `LOGOUT`, `SESSOES_ENCERRADAS`.
+- "Sair de todos os dispositivos" no menu da conta (`DELETE /api/v1/eu/sessoes`) e "Encerrar sessões" em Usuários
+  (`DELETE /api/v1/usuarios/{id}/sessoes`).
+- Realms existentes: `infra/producao/atualizar-realm-eventos.sh` uma vez por realm (rodado no dev em `aurora` e
+  `grupo-norte`). `realm-aurora.json` e os modelos gerados já trazem a configuração.
+- Menu lateral só com as telas que o perfil pode abrir; a entrada (`/`) e o retorno do login vão para a primeira tela
+  permitida (o Auditor caía num Painel com erro). Painel, Metas e Sem ligação ganharam o aviso "Sem acesso".
+- Testes: `TrilhaDeAcessoApiTest` (6), provedor Keycloak (+2), front +3 unitários, E2E `sessoes.spec.ts` (2).

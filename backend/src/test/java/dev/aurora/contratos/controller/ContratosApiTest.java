@@ -259,7 +259,9 @@ class ContratosApiTest {
 
 	/** O processamento é assíncrono: consulta até sair das etapas intermediárias. */
 	private JsonNode aguardar(UUID documento) throws Exception {
-		for (int tentativa = 0; tentativa < 100; tentativa++) {
+		// Até 60 s: o OCR (Tesseract, 300 DPI) fica bem mais lento com a máquina ocupada
+		// (ex.: CI).
+		for (int tentativa = 0; tentativa < 600; tentativa++) {
 			var corpo = json
 				.readTree(mvc.perform(get("/api/v1/contratos/documentos/{id}", documento).with(token("sub-admin")))
 					.andReturn()

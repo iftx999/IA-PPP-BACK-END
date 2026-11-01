@@ -1,8 +1,10 @@
 package dev.aurora.acesso.service;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 
+import dev.aurora.acesso.model.EventoDeAcesso;
 import dev.aurora.acesso.model.ProvedorCorporativo;
 import org.jspecify.annotations.Nullable;
 
@@ -65,5 +67,18 @@ public interface ProvedorIdentidade {
 
 	/** Remove o IdP corporativo e os vínculos das contas com ele. */
 	void removerProvedorCorporativo(String emissor);
+
+	/**
+	 * Encerra todas as sessões da conta no provedor (doc 08, 8.6): os tokens de
+	 * atualização deixam de valer; o de acesso expira em poucos minutos.
+	 */
+	void encerrarSessoes(String emissor, String sub);
+
+	/**
+	 * Eventos de login, falha, bloqueio e logout desde o instante dado, do mais antigo ao
+	 * mais recente (ADR 0028). Lê no máximo {@code limite} eventos por chamada.
+	 * @param desde null = todos os que o provedor ainda guarda
+	 */
+	List<EventoDeAcesso> eventosDeAcesso(String emissor, @Nullable Instant desde, int limite);
 
 }

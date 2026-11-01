@@ -10,6 +10,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
+import dev.aurora.acesso.model.EventoDeAcesso;
 import dev.aurora.acesso.model.ProvedorCorporativo;
 import dev.aurora.acesso.model.ProvedorCorporativo.Protocolo;
 import dev.aurora.acesso.service.ProvedorIdentidade;
@@ -64,6 +65,18 @@ public class KeycloakProvedorIdentidade implements ProvedorIdentidade {
 
 	record Credencial(String id, String type, long createdDate) {
 	}
+
+	record EventoKc(String id, long time, String type, @Nullable String clientId, @Nullable String userId,
+			@Nullable String ipAddress, @Nullable String error, @Nullable Map<String, String> details) {
+	}
+
+	/** Tipos de evento do Keycloak que viram eventos de acesso (ADR 0028). */
+	private static final Map<String, EventoDeAcesso.Tipo> TIPOS_DE_ACESSO = Map.of("LOGIN", EventoDeAcesso.Tipo.LOGIN,
+			"LOGIN_ERROR", EventoDeAcesso.Tipo.FALHA_DE_LOGIN, "USER_DISABLED_BY_TEMPORARY_LOCKOUT",
+			EventoDeAcesso.Tipo.BLOQUEIO_TEMPORARIO, "USER_DISABLED_BY_PERMANENT_LOCKOUT",
+			EventoDeAcesso.Tipo.BLOQUEIO_PERMANENTE, "LOGOUT", EventoDeAcesso.Tipo.LOGOUT);
+
+	private static final int PAGINA_DE_EVENTOS = 100;
 
 	record IdpKc(String alias, String providerId, @Nullable String displayName, boolean enabled,
 			@Nullable Map<String, String> config) {
@@ -463,6 +476,72 @@ public class KeycloakProvedorIdentidade implements ProvedorIdentidade {
 			LOG.error("Falha ao chamar o provedor de identidade", erro);
 			throw new ServicoExternoIndisponivelException(INDISPONIVEL, erro);
 		}
+	}
+
+	@Override
+	public void encerrarSessoes(String emissor, String sub) {
+		executar(() -> {
+			try {
+				http.post()
+					.uri(admin(EnderecoDoEmissor.paraServidor(emissor, propriedades.urlInterna()))
+							+ "/users/{id}/logout", sub)
+					.headers(h -> h.setBearerAuth(token(emissor)))
+					.retrieve()
+					.toBodilessEntity();
+			}
+			catch (HttpClientErrorException.NotFound semConta) {
+				LOG.warn("Conta {} não existe mais no provedor de identidade", sub);
+			}
+			return null;
+		});
+	}
+
+	@Override
+	public List<EventoDeAcesso> eventosDeAcesso(String emissor, @Nullable Instant desde, int limite) {
+		var lidos = executar(() -> {
+			var eventos = new ArrayList<EventoDeAcesso>();
+			int inicio = 0;
+			while (eventos.size() < limite) {
+				var tamanho = Math.min(PAGINA_DE_EVENTOS, limite - eventos.size());
+				var endereco = UriComponentsBuilder
+					.fromUriString(
+							admin(EnderecoDoEmissor.paraServidor(emissor, propriedades.urlInterna())) + "/events")
+					.queryParam("type", TIPOS_DE_ACESSO.keySet().stream().sorted().toArray())
+					.queryParam("direction", "asc")
+					.queryParam("first", inicio)
+					.queryParam("max", tamanho);
+				if (desde != null) {
+					endereco.queryParam("dateFrom", desde.toEpochMilli());
+				}
+				var pagina = http.get()
+					.uri(endereco.build().toUri())
+					.headers(h -> h.setBearerAuth(token(emissor)))
+					.retrieve()
+					.body(EventoKc[].class);
+				if (pagina == null || pagina.length == 0) {
+					break;
+				}
+				for (var evento : pagina) {
+					var tipo = TIPOS_DE_ACESSO.get(evento.type());
+					if (tipo != null) {
+						eventos.add(paraEvento(evento, tipo));
+					}
+				}
+				if (pagina.length < tamanho) {
+					break;
+				}
+				inicio += pagina.length;
+			}
+			return eventos;
+		});
+		return lidos == null ? List.of() : List.copyOf(lidos);
+	}
+
+	/** Só o que identifica o evento: o nome digitado no login nunca sai do provedor. */
+	private static EventoDeAcesso paraEvento(EventoKc evento, EventoDeAcesso.Tipo tipo) {
+		var detalhes = evento.details() == null ? Map.<String, String>of() : evento.details();
+		return new EventoDeAcesso(evento.id(), Instant.ofEpochMilli(evento.time()), tipo, evento.userId(),
+				evento.ipAddress(), evento.error(), evento.clientId(), detalhes.get("identity_provider"));
 	}
 
 }

@@ -20,6 +20,7 @@ import dev.aurora.acesso.repository.TenantRepository;
 import dev.aurora.acesso.repository.UsuarioRepository;
 import dev.aurora.auditoria.Auditoria;
 import dev.aurora.auditoria.TipoEvento;
+import dev.aurora.contexto.ContextoAcesso;
 import dev.aurora.comum.ConflitoException;
 import dev.aurora.comum.RecursoNaoEncontradoException;
 import dev.aurora.comum.RegraVioladaException;
@@ -212,6 +213,34 @@ public class GestaoUsuarioService {
 		}
 		auditoria.registrar(TipoEvento.REDEFINICAO_SENHA_ENVIADA, RECURSO + id, Map.of());
 		identidade.enviarRedefinicaoSenha(emissorDoTenant(contexto.tenantId()), usuario.subExterno());
+	}
+
+	/**
+	 * Encerra as sessões de alguém em todos os dispositivos (doc 08, 8.6): ex.: aparelho
+	 * perdido ou suspeita de acesso indevido. Não desativa a conta.
+	 */
+	@Transactional
+	public void encerrarSessoes(UUID id) {
+		var contexto = EscopoAdministrativo.exigirTenantInteiro();
+		var usuario = usuarios.buscar(id).orElseThrow(RecursoNaoEncontradoException::new);
+		if (usuario.subExterno() == null) {
+			throw new ConflitoException("O convite ainda não foi aceito: não há sessões a encerrar.");
+		}
+		auditoria.registrar(TipoEvento.SESSOES_ENCERRADAS, RECURSO + id, Map.of("pedidoPor", "ADMINISTRADOR"));
+		identidade.encerrarSessoes(emissorDoTenant(contexto.tenantId()), usuario.subExterno());
+	}
+
+	/** "Sair de todos os dispositivos" da própria pessoa: não exige permissão. */
+	@Transactional
+	public void encerrarMinhasSessoes() {
+		var contexto = ContextoAcesso.exigir();
+		var id = java.util.Objects.requireNonNull(contexto.usuarioId(), "usuário autenticado");
+		var usuario = usuarios.buscar(id).orElseThrow(RecursoNaoEncontradoException::new);
+		if (usuario.subExterno() == null) {
+			throw new ConflitoException("Conta sem vínculo com o provedor de identidade.");
+		}
+		auditoria.registrar(TipoEvento.SESSOES_ENCERRADAS, RECURSO + id, Map.of("pedidoPor", "PROPRIO_USUARIO"));
+		identidade.encerrarSessoes(emissorDoTenant(contexto.tenantId()), usuario.subExterno());
 	}
 
 	/** Consulta o provedor de identidade: indisponível -> 503. */

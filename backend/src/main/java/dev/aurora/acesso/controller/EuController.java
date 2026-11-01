@@ -4,8 +4,11 @@ import java.util.List;
 import java.util.UUID;
 
 import dev.aurora.acesso.model.UsuarioAutenticado;
+import dev.aurora.acesso.service.GestaoUsuarioService;
 import dev.aurora.acesso.service.UsuarioService;
 
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -30,13 +33,23 @@ class EuController {
 
 	private final UsuarioService usuarios;
 
-	EuController(UsuarioService usuarios) {
+	private final GestaoUsuarioService gestao;
+
+	EuController(UsuarioService usuarios, GestaoUsuarioService gestao) {
 		this.usuarios = usuarios;
+		this.gestao = gestao;
 	}
 
 	@GetMapping
 	EuResponse eu() {
 		return EuResponse.de(usuarios.usuarioAtual());
+	}
+
+	/** "Sair de todos os dispositivos" (doc 08, 8.6): encerra as sessões no provedor. */
+	@DeleteMapping("/sessoes")
+	ResponseEntity<Void> encerrarSessoes() {
+		gestao.encerrarMinhasSessoes();
+		return ResponseEntity.noContent().build();
 	}
 
 }

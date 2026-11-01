@@ -36,6 +36,11 @@ public class UsuarioRepository {
 		this.jdbc = jdbc;
 	}
 
+	/** Ativo ou não (a trilha de acesso registra também quem foi desativado). */
+	public Optional<UUID> buscarIdPorSub(String sub) {
+		return jdbc.sql("SELECT id FROM usuario WHERE sub_externo = ?").param(sub).query(UUID.class).optional();
+	}
+
 	public Optional<UUID> buscarAtivoPorSub(String sub) {
 		return jdbc.sql("SELECT id FROM usuario WHERE sub_externo = ? AND ativo")
 			.param(sub)

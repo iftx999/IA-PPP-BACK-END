@@ -9,6 +9,12 @@ public enum TipoEvento {
 	LOGIN, ACESSO_CONCEDIDO, USUARIO_CONVIDADO, CONVITE_ACEITO,
 
 	/**
+	 * Acesso (doc 08, 8.6 e 8.7; ADR 0028): vindos do provedor de identidade, e o
+	 * encerramento de todas as sessões de alguém.
+	 */
+	LOGIN_FALHOU, CONTA_BLOQUEADA, LOGOUT, SESSOES_ENCERRADAS,
+
+	/**
 	 * Gestão de usuários (H8, RN-16): concessões perfil × unidade, ciclo de vida e senha.
 	 */
 	ACESSO_ALTERADO, CONVITE_REENVIADO, USUARIO_DESATIVADO, USUARIO_REATIVADO, REDEFINICAO_SENHA_ENVIADA,

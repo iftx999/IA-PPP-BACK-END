@@ -24,6 +24,10 @@ aurora:
     smtp-porta: 1025
   auditoria:
     chave: ${AURORA_AUDITORIA_CHAVE:chave-de-desenvolvimento-nao-usar-em-producao}
+  # ADR 0028: no ambiente local os logins aparecem na Auditoria em segundos (produção: a cada 5 minutos).
+  trilha-de-acesso:
+    atraso-inicial: PT10S
+    intervalo: PT20S
   cors:
     origens: ${AURORA_CORS_ORIGENS:http://localhost:4200}
   identidade:

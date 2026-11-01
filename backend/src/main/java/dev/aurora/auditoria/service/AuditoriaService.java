@@ -40,15 +40,27 @@ public class AuditoriaService implements Auditoria, VerificacaoDaTrilha {
 	@Override
 	@Transactional
 	public void registrar(TipoEvento tipo, String recurso, Map<String, ?> detalhes) {
+		gravar(tipo, ContextoAcesso.exigir().usuarioId(), Instant.now(), ipDaRequisicao(), recurso, detalhes);
+	}
+
+	@Override
+	@Transactional
+	public void registrarOcorrido(TipoEvento tipo, @Nullable UUID usuarioId, Instant ocorridoEm, @Nullable String ip,
+			String recurso, Map<String, ?> detalhes) {
+		gravar(tipo, usuarioId, ocorridoEm, ip, recurso, detalhes);
+	}
+
+	private void gravar(TipoEvento tipo, @Nullable UUID usuarioId, Instant instante, @Nullable String ipOrigem,
+			String recurso, Map<String, ?> detalhes) {
 		var contexto = ContextoAcesso.exigir();
 		var elo = trilha.travarUltimoElo(contexto.tenantId());
 		var sequencia = elo.sequencia() + 1;
-		var ocorridoEm = Instant.now().truncatedTo(ChronoUnit.MICROS);
-		var ip = trilha.normalizarIp(ipDaRequisicao());
-		var hash = assinatura.assinar(elo.hash(), contexto.tenantId(), sequencia, ocorridoEm, contexto.usuarioId(),
-				tipo.name(), recurso, detalhes, ip);
-		trilha.inserir(UUID.randomUUID(), contexto.tenantId(), sequencia, ocorridoEm, contexto.usuarioId(), tipo.name(),
-				recurso, json.writeValueAsString(detalhes), ip, elo.hash(), hash, AssinaturaEvento.FORMATO);
+		var ocorridoEm = instante.truncatedTo(ChronoUnit.MICROS);
+		var ip = trilha.normalizarIp(ipOrigem);
+		var hash = assinatura.assinar(elo.hash(), contexto.tenantId(), sequencia, ocorridoEm, usuarioId, tipo.name(),
+				recurso, detalhes, ip);
+		trilha.inserir(UUID.randomUUID(), contexto.tenantId(), sequencia, ocorridoEm, usuarioId, tipo.name(), recurso,
+				json.writeValueAsString(detalhes), ip, elo.hash(), hash, AssinaturaEvento.FORMATO);
 	}
 
 	/**

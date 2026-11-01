@@ -128,6 +128,13 @@ class UsuarioController {
 		return ResponseEntity.accepted().build();
 	}
 
+	/** Encerra as sessões da pessoa em todos os dispositivos (doc 08, 8.6). */
+	@DeleteMapping("/{id}/sessoes")
+	ResponseEntity<Void> encerrarSessoes(@PathVariable UUID id) {
+		usuarios.encerrarSessoes(id);
+		return ResponseEntity.noContent().build();
+	}
+
 	/** Verificação em duas etapas da pessoa (H9); consulta o provedor de identidade. */
 	@GetMapping("/{id}/segundo-fator")
 	SegundoFatorResponse segundoFator(@PathVariable UUID id) {

@@ -60,7 +60,8 @@ os endereços que a TI do cliente registra no IdP. Só pessoas já convidadas en
 4. Confira saúde, login e o painel do Grafana (erros 5xx e latência).
 5. Se a nova versão exige mudanças no realm (o Keycloak só importa o realm na primeira subida), rode o script
    indicado nas notas da versão. Para o SSO corporativo (ADR 0025), uma vez: `./atualizar-realm-sso.sh`
-   (idempotente).
+   (idempotente). Para a trilha de acesso (ADR 0028), uma vez **em cada realm de cliente**:
+   `KC_REALM=<código> ./atualizar-realm-eventos.sh` (idempotente; clientes criados pela tela já vêm prontos).
 
 **Voltar versão:** recoloque a tag anterior e `up -d`. Se a versão nova aplicou migração incompatível, restaure o
 backup do passo 2 (seção 4).
