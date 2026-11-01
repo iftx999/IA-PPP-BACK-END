@@ -1,5 +1,8 @@
 package dev.aurora.acesso.controller;
 
+import dev.aurora.auditoria.PrazoDeRetencao;
+import dev.aurora.auditoria.RetencaoDaTrilha;
+
 import dev.aurora.acesso.model.ProvedorCorporativo;
 import dev.aurora.acesso.model.ProvedorCorporativo.Protocolo;
 import dev.aurora.acesso.service.PoliticaSegundoFatorService;
@@ -15,8 +18,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * Política de acesso do tenant: verificação em duas etapas (S9, RN-17) e SSO corporativo
- * (S10).
+ * Política de acesso do tenant: verificação em duas etapas (S9, RN-17), SSO corporativo
+ * (S10) e prazo de retenção da trilha de auditoria (ADR 0029).
  */
 @RestController
 @RequestMapping("/api/v1/seguranca")
@@ -62,13 +65,29 @@ class SegurancaController {
 			@Nullable String segredo, boolean habilitado, boolean confiaSegundoFator) {
 	}
 
+	record RetencaoAuditoriaRequest(int meses) {
+	}
+
 	private final PoliticaSegundoFatorService politica;
 
 	private final SsoCorporativoService sso;
 
-	SegurancaController(PoliticaSegundoFatorService politica, SsoCorporativoService sso) {
+	private final RetencaoDaTrilha retencao;
+
+	SegurancaController(PoliticaSegundoFatorService politica, SsoCorporativoService sso, RetencaoDaTrilha retencao) {
 		this.politica = politica;
 		this.sso = sso;
+		this.retencao = retencao;
+	}
+
+	@GetMapping("/retencao-auditoria")
+	PrazoDeRetencao obterRetencaoAuditoria() {
+		return retencao.consultar();
+	}
+
+	@PutMapping("/retencao-auditoria")
+	PrazoDeRetencao definirRetencaoAuditoria(@RequestBody RetencaoAuditoriaRequest pedido) {
+		return retencao.alterar(pedido.meses());
 	}
 
 	@GetMapping("/sso")

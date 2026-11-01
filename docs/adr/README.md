@@ -33,3 +33,4 @@ gera um novo ADR que o substitui.
 | [0026](0026-prazos-recorrentes.md) | Prazos e obrigações recorrentes: agenda no item aprovado e cumprimento por vencimento | Aceito |
 | [0027](0027-administracao-da-plataforma.md) | Administração da plataforma: clientes pela tela, realm por cliente e contexto de plataforma | Aceito |
 | [0028](0028-trilha-de-acesso-e-sessoes.md) | Trilha de acesso e sessões: eventos do Keycloak copiados para a auditoria | Aceito |
+| [0029](0029-retencao-da-auditoria.md) | Retenção da trilha de auditoria: prazo por cliente, expurgo do começo da cadeia e âncora | Aceito |

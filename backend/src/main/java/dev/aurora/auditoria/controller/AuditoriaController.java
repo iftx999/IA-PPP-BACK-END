@@ -1,5 +1,8 @@
 package dev.aurora.auditoria.controller;
 
+import dev.aurora.auditoria.PrazoDeRetencao;
+import dev.aurora.auditoria.RetencaoDaTrilha;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.StandardOpenOption;
@@ -59,20 +62,33 @@ class AuditoriaController {
 	}
 
 	record VerificacaoResponse(long eventos, long verificados, long legados, @Nullable Long primeiraQuebra,
-			boolean integra) {
+			boolean integra, long expurgados) {
 
 		static VerificacaoResponse de(ResultadoVerificacao r) {
-			return new VerificacaoResponse(r.eventos(), r.verificados(), r.legados(), r.primeiraQuebra(), r.integra());
+			return new VerificacaoResponse(r.eventos(), r.verificados(), r.legados(), r.primeiraQuebra(), r.integra(),
+					r.expurgados());
 		}
 	}
 
 	private final ConsultaAuditoriaService consulta;
 
+	private final RetencaoDaTrilha retencao;
+
 	private final JsonMapper json;
 
-	AuditoriaController(ConsultaAuditoriaService consulta, JsonMapper json) {
+	AuditoriaController(ConsultaAuditoriaService consulta, RetencaoDaTrilha retencao, JsonMapper json) {
 		this.consulta = consulta;
+		this.retencao = retencao;
 		this.json = json;
+	}
+
+	/**
+	 * Prazo de retenção da trilha e o último expurgo (ADR 0029), só leitura: alterar é da
+	 * gestão de acesso ({@code /api/v1/seguranca/retencao-auditoria}).
+	 */
+	@GetMapping("/retencao")
+	PrazoDeRetencao retencao() {
+		return retencao.consultar();
 	}
 
 	/**

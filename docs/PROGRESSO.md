@@ -372,3 +372,10 @@ token não leva os papéis de `realm-management` e a Admin API responde 403. Flu
 - Menu lateral só com as telas que o perfil pode abrir; a entrada (`/`) e o retorno do login vão para a primeira tela
   permitida (o Auditor caía num Painel com erro). Painel, Metas e Sem ligação ganharam o aviso "Sem acesso".
 - Testes: `TrilhaDeAcessoApiTest` (6), provedor Keycloak (+2), front +3 unitários, E2E `sessoes.spec.ts` (2).
+
+### Retenção da auditoria (doc 08, 8.7) — ADR 0029 — branch `feat/retencao-da-auditoria`
+- Prazo por cliente (12–240 meses, padrão 60) em Usuários › Retenção da auditoria (`usuario:gerenciar`); a Auditoria
+  só mostra (botão "Retenção"). Expurgo diário só do começo da cadeia, por função `SECURITY DEFINER` (a API segue sem
+  `DELETE`), com âncora conferida pela verificação e evento `TRILHA_EXPURGADA`. Partições anuais criadas com 2 anos
+  de antecedência.
+- Testes: `RetencaoDaAuditoriaApiTest` (5), front +1 unitário, E2E `retencao.spec.ts`.

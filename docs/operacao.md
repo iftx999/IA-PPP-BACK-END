@@ -74,6 +74,10 @@ backup do passo 2 (seção 4).
   `aurora_antes_<instante>` (nada é apagado); o backup é restaurado num banco novo; a API volta. Depois de conferir
   o app e a verificação da trilha (Administração › Auditoria), libere o anterior com `DROP DATABASE ...`.
 - Teste de restauração: ao menos uma vez por trimestre, num host de homologação (doc 09).
+- Trilha de auditoria (ADR 0029): cada cliente define o prazo de retenção (Usuários › Retenção da auditoria; padrão
+  60 meses). O expurgo diário apaga só o que venceu e registra na trilha; os backups acima guardam só os últimos
+  `AURORA_BACKUP_DIAS` dias. Cliente que precise de arquivo de longo prazo exporta o CSV da Auditoria (com SHA-256)
+  antes de reduzir o prazo. A tarefa também cria as partições anuais da trilha com 2 anos de antecedência.
 - Metas: RPO 24 h (backup diário; reduzir com backup contínuo de WAL quando necessário); RTO de minutos para a base
   atual.
 

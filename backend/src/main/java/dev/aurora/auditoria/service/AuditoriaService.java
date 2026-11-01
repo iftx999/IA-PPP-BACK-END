@@ -11,6 +11,7 @@ import dev.aurora.auditoria.Auditoria;
 import dev.aurora.auditoria.TipoEvento;
 import dev.aurora.auditoria.VerificacaoDaTrilha;
 import dev.aurora.auditoria.model.ResultadoVerificacao;
+import dev.aurora.auditoria.repository.RetencaoRepository;
 import dev.aurora.auditoria.repository.TrilhaRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import org.jspecify.annotations.Nullable;
@@ -31,10 +32,14 @@ public class AuditoriaService implements Auditoria, VerificacaoDaTrilha {
 
 	private final JsonMapper json;
 
-	AuditoriaService(TrilhaRepository trilha, AssinaturaEvento assinatura, JsonMapper json) {
+	private final RetencaoRepository retencao;
+
+	AuditoriaService(TrilhaRepository trilha, AssinaturaEvento assinatura, JsonMapper json,
+			RetencaoRepository retencao) {
 		this.trilha = trilha;
 		this.assinatura = assinatura;
 		this.json = json;
+		this.retencao = retencao;
 	}
 
 	@Override
@@ -66,10 +71,12 @@ public class AuditoriaService implements Auditoria, VerificacaoDaTrilha {
 	/**
 	 * Confere a trilha do tenant atual: cada evento precisa apontar para o hash do
 	 * anterior e, nos eventos do formato atual, o HMAC recalculado precisa bater. Eventos
-	 * legados só têm o elo conferido.
+	 * legados só têm o elo conferido. Depois de um expurgo por retenção (ADR 0029), o
+	 * primeiro evento que ficou precisa apontar para o último apagado (a âncora).
 	 */
 	@Transactional(readOnly = true)
 	public ResultadoVerificacao verificar() {
+		var ancora = retencao.ultimoExpurgo().map(e -> e.ultimoHash()).orElse(null);
 		var estado = new Object() {
 			long eventos;
 
@@ -82,6 +89,7 @@ public class AuditoriaService implements Auditoria, VerificacaoDaTrilha {
 			@Nullable Long quebra;
 
 		};
+		estado.hashAnterior = ancora;
 		trilha.percorrer(evento -> {
 			estado.eventos++;
 			if (estado.quebra != null) {
@@ -106,7 +114,8 @@ public class AuditoriaService implements Auditoria, VerificacaoDaTrilha {
 			}
 			estado.hashAnterior = evento.hash();
 		});
-		return new ResultadoVerificacao(estado.eventos, estado.verificados, estado.legados, estado.quebra);
+		return new ResultadoVerificacao(estado.eventos, estado.verificados, estado.legados, estado.quebra,
+				retencao.totalExpurgado());
 	}
 
 	@Override

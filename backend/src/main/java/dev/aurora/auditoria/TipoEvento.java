@@ -33,6 +33,11 @@ public enum TipoEvento {
 	/** SSO corporativo (S10): IdP configurado, alterado ou removido. */
 	SSO_CONFIGURADO, SSO_REMOVIDO,
 
+	/**
+	 * Retenção da trilha (ADR 0029): prazo alterado e expurgo do que passou do prazo.
+	 */
+	RETENCAO_AUDITORIA_ALTERADA, TRILHA_EXPURGADA,
+
 	/** Exibição de dado pessoal sem máscara (ex.: matrícula completa). */
 	ACESSO_DADO_PESSOAL,
 

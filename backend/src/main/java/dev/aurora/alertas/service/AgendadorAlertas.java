@@ -4,6 +4,7 @@ import java.time.Duration;
 import java.util.function.Supplier;
 
 import dev.aurora.acesso.ContextosDoSistema;
+import dev.aurora.auditoria.RetencaoDaTrilha;
 import dev.aurora.comum.TarefasAgendadas;
 import dev.aurora.contexto.ContextoAcesso;
 import org.slf4j.Logger;
@@ -15,8 +16,8 @@ import org.springframework.stereotype.Component;
 
 /**
  * Agenda das tarefas de operação (F3): alertas a cada 15 minutos e trilha de auditoria
- * uma vez por dia, para cada tenant; e-mail dos alertas novos (ADR 0024). Só uma
- * instância da API executa cada tarefa por vez.
+ * (verificação e expurgo por retenção) uma vez por dia, para cada tenant; e-mail dos
+ * alertas novos (ADR 0024). Só uma instância da API executa cada tarefa por vez.
  */
 @Component
 @ConditionalOnProperty(name = "aurora.tarefas.habilitadas", havingValue = "true", matchIfMissing = true)
@@ -32,12 +33,15 @@ class AgendadorAlertas {
 
 	private final TarefasAgendadas tarefas;
 
+	private final RetencaoDaTrilha retencao;
+
 	AgendadorAlertas(AvaliadorAlertas avaliador, NotificadorAlertas notificador, ContextosDoSistema contextos,
-			TarefasAgendadas tarefas) {
+			TarefasAgendadas tarefas, RetencaoDaTrilha retencao) {
 		this.avaliador = avaliador;
 		this.notificador = notificador;
 		this.contextos = contextos;
 		this.tarefas = tarefas;
+		this.retencao = retencao;
 	}
 
 	@Scheduled(initialDelayString = "${aurora.alertas.atraso-inicial:PT1M}",
@@ -57,6 +61,25 @@ class AgendadorAlertas {
 			fixedDelayString = "${aurora.trilha.intervalo-verificacao:PT24H}")
 	void verificarTrilha() {
 		executar("verificar-trilha", avaliador::verificarTrilha);
+	}
+
+	/**
+	 * ADR 0029: uma vez por dia, partições anuais com antecedência e expurgo do que
+	 * passou do prazo de retenção de cada tenant.
+	 */
+	@Scheduled(initialDelayString = "${aurora.trilha.atraso-inicial-expurgo:PT3M}",
+			fixedDelayString = "${aurora.trilha.intervalo-expurgo:PT24H}")
+	void expurgarTrilha() {
+		try {
+			var criadas = retencao.prepararParticoes();
+			if (criadas > 0) {
+				LOG.info("partições da trilha criadas: {}", criadas);
+			}
+		}
+		catch (RuntimeException erro) {
+			LOG.error("não foi possível criar as partições da trilha", erro);
+		}
+		executar("expurgar-trilha", retencao::expurgarVencidos);
 	}
 
 	private void executar(String tarefa, Supplier<?> acao) {
