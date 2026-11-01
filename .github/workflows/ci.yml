@@ -24,6 +24,31 @@ jobs:
       - run: ./mvnw -B verify
       # Testes de mutação nas regras de adesão, situação, projeção e alertas (ADR 0031): falha abaixo de 95%.
       - run: ./mvnw -B -Pmutacao org.pitest:pitest-maven:mutationCoverage -Djacoco.skip=true
+      # Análise estática com regras de segurança (SpotBugs + FindSecBugs, ADR 0032): achado médio ou alto bloqueia.
+      - run: ./mvnw -B -Panalise spotbugs:check -Djacoco.skip=true
+
+  dependencias:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v5
+      # Vulnerabilidades conhecidas nas dependências do pom (ADR 0032): crítica com correção bloqueia; altas vão para
+      # a aba Security pelo SARIF.
+      - name: Varredura das dependências (Trivy)
+        run: >
+          docker run --rm -v "$PWD/backend:/repo:ro" -v "$PWD:/saida" aquasec/trivy:0.67.2 fs --quiet
+          --scanners vuln --severity HIGH,CRITICAL --format sarif --output /saida/trivy-dependencias.sarif
+          --db-repository mirror.gcr.io/aquasec/trivy-db,public.ecr.aws/aquasecurity/trivy-db /repo
+          && docker run --rm -v "$PWD/backend:/repo:ro" aquasec/trivy:0.67.2 fs --quiet --scanners vuln
+          --severity CRITICAL --ignore-unfixed --exit-code 1
+          --db-repository mirror.gcr.io/aquasec/trivy-db,public.ecr.aws/aquasecurity/trivy-db /repo
+      - if: always() && hashFiles('trivy-dependencias.sarif') != ''
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: trivy-dependencias.sarif
+          category: trivy-dependencias
 
   segredos:
     runs-on: ubuntu-latest

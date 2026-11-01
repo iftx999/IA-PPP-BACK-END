@@ -6,6 +6,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.List;
 
+import dev.aurora.comum.RespostaDeProblema;
 import dev.aurora.acesso.ContextosDoSistema;
 import dev.aurora.contexto.ContextoAcesso;
 import dev.aurora.integracoes.repository.CredencialRepository;
@@ -18,7 +19,6 @@ import org.slf4j.LoggerFactory;
 
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -96,12 +96,7 @@ class FiltroAgente extends OncePerRequestFilter {
 	}
 
 	private static void recusar(HttpServletResponse resposta, HttpStatus status, String detalhe) throws IOException {
-		resposta.setStatus(status.value());
-		resposta.setContentType(MediaType.APPLICATION_PROBLEM_JSON_VALUE);
-		resposta.setCharacterEncoding(StandardCharsets.UTF_8.name());
-		resposta.getWriter()
-			.write("{\"status\":%d,\"title\":\"%s\",\"detail\":\"%s\"}".formatted(status.value(),
-					status.getReasonPhrase(), detalhe));
+		RespostaDeProblema.escrever(resposta, status, detalhe, null);
 	}
 
 	private static byte[] sha256(String texto) {

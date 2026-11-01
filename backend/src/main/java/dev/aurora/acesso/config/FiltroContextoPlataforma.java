@@ -3,6 +3,7 @@ package dev.aurora.acesso.config;
 import java.io.IOException;
 import java.util.Collection;
 
+import dev.aurora.comum.RespostaDeProblema;
 import dev.aurora.acesso.service.SegundoFatorNecessarioException;
 import dev.aurora.contexto.ContextoPlataforma;
 import jakarta.servlet.FilterChain;
@@ -12,7 +13,6 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.MDC;
 
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -45,19 +45,20 @@ class FiltroContextoPlataforma extends OncePerRequestFilter {
 		var token = autenticacao.getToken();
 		if (exigirSegundoFator
 				&& !(token.getClaim("amr") instanceof Collection<?> metodos && metodos.contains("otp"))) {
-			resposta.setStatus(HttpStatus.FORBIDDEN.value());
-			resposta.setContentType(MediaType.APPLICATION_PROBLEM_JSON_VALUE);
-			resposta.setCharacterEncoding("UTF-8");
-			resposta.getWriter()
-				.write("""
-						{"type":"about:blank","title":"Forbidden","status":403,"detail":"%s","codigo":"%s"}"""
-					.formatted("A administração da plataforma exige o código do aplicativo autenticador.",
-							SegundoFatorNecessarioException.CODIGO));
+			RespostaDeProblema.escrever(resposta, HttpStatus.FORBIDDEN,
+					"A administração da plataforma exige o código do aplicativo autenticador.",
+					SegundoFatorNecessarioException.CODIGO);
+			return;
+		}
+		var operador = token.getSubject();
+		if (operador == null || operador.isBlank()) {
+			RespostaDeProblema.escrever(resposta, HttpStatus.UNAUTHORIZED, "Token sem identificação do operador.",
+					null);
 			return;
 		}
 		MDC.put("plataforma", "sim");
 		try {
-			ContextoPlataforma.executar(new ContextoPlataforma(token.getSubject()), () -> {
+			ContextoPlataforma.executar(new ContextoPlataforma(operador), () -> {
 				cadeia.doFilter(requisicao, resposta);
 				return null;
 			});

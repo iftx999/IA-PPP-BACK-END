@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Exclusões do SpotBugs (ADR 0032). Cada uma revisada em 01/11/2026, com o motivo. Achado novo dos tipos abaixo continua
+  aparecendo se estiver fora do escopo indicado.
+-->
+<FindBugsFilter>
+	<!--
+	  Records e beans do Spring guardam o que recebem (listas imutáveis, arrays de hash, dependências injetadas). Copiar
+	  defensivamente em todo lugar não traz proteção real e o próprio SpotBugs documenta o alto índice de falsos
+	  positivos dessas regras.
+	-->
+	<Match>
+		<Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+	</Match>
+	<!--
+	  Padrão "x.campo() != null ? x.campo().algo() : ...": o SpotBugs não sabe que o accessor do record devolve o mesmo
+	  valor nas duas chamadas. Os 69 casos foram revisados (59 nesse padrão, 10 já validados antes, ex.: configuração
+	  obrigatória quando a IA está ligada); nenhum era defeito.
+	-->
+	<Match>
+		<Bug pattern="NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE"/>
+	</Match>
+	<!-- Finalização foi descontinuada (JEP 421); construtor que valida e lança não abre brecha. -->
+	<Match>
+		<Bug pattern="CT_CONSTRUCTOR_THROW"/>
+	</Match>
+	<!-- APIs sem sessão, autenticadas por token bearer em cabeçalho: CSRF não se aplica (ADR 0003). -->
+	<Match>
+		<Bug pattern="SPRING_CSRF_PROTECTION_DISABLED"/>
+		<Or>
+			<Class name="dev.aurora.acesso.config.ConfiguracaoSeguranca"/>
+			<Class name="dev.aurora.integracoes.config.ConfiguracaoSegurancaAgente"/>
+		</Or>
+	</Match>
+	<!-- Comando do Tesseract vem da configuração (AURORA_OCR_COMANDO); os argumentos são fixos, sem dado do usuário. -->
+	<Match>
+		<Bug pattern="COMMAND_INJECTION"/>
+		<Class name="dev.aurora.contratos.integracao.ReconhecedorTesseract"/>
+	</Match>
+	<!-- Quebra de linha em text blocks de SQL e de e-mail texto puro, não em mensagens de log. -->
+	<Match>
+		<Bug pattern="VA_FORMAT_STRING_USES_NEWLINE"/>
+	</Match>
+	<!-- O log da carga só tem UUIDs, competência e contagens (tipados), nada digitado por alguém. -->
+	<Match>
+		<Bug pattern="CRLF_INJECTION_LOGS"/>
+		<Class name="dev.aurora.integracoes.service.CargaService"/>
+	</Match>
+	<!-- Problem Details serializado pelo Jackson, com content type application/problem+json: não é HTML. -->
+	<Match>
+		<Bug pattern="XSS_SERVLET"/>
+		<Class name="dev.aurora.comum.RespostaDeProblema"/>
+	</Match>
+	<!--
+	  Texto para a IA, não XML: a pergunta passa por semMarcacao (sem "<" e ">"), coberto por AssistenteServiceTest;
+	  o FindSecBugs não reconhece esse saneamento.
+	-->
+	<Match>
+		<Bug pattern="POTENTIAL_XML_INJECTION"/>
+		<Class name="dev.aurora.assistente.service.AssistenteService"/>
+		<Method name="mensagemComContexto"/>
+	</Match>
+</FindBugsFilter>

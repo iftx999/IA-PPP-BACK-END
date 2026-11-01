@@ -1,0 +1,26 @@
+name: CodeQL
+
+# Análise de segurança do código (doc 09, 9.6; ADR 0032). Resultados na aba Security do GitHub.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: '17 6 * * 1'
+
+jobs:
+  analisar:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v5
+      - uses: github/codeql-action/init@v4
+        with:
+          languages: java-kotlin
+          build-mode: none
+          queries: security-extended
+      - uses: github/codeql-action/analyze@v4
+        with:
+          category: java

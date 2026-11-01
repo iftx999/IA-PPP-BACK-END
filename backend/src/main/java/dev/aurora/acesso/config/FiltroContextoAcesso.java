@@ -2,6 +2,7 @@ package dev.aurora.acesso.config;
 
 import java.io.IOException;
 
+import dev.aurora.comum.RespostaDeProblema;
 import dev.aurora.acesso.service.ContextoAcessoService;
 import dev.aurora.acesso.service.SegundoFatorNecessarioException;
 import dev.aurora.contexto.ContextoAcesso;
@@ -12,7 +13,6 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.MDC;
 
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
@@ -85,13 +85,8 @@ class FiltroContextoAcesso extends OncePerRequestFilter {
 	 */
 	private static void recusarSemSegundoFator(HttpServletResponse resposta, SegundoFatorNecessarioException erro)
 			throws IOException {
-		resposta.setStatus(HttpStatus.FORBIDDEN.value());
-		resposta.setContentType(MediaType.APPLICATION_PROBLEM_JSON_VALUE);
-		resposta.setCharacterEncoding("UTF-8");
-		resposta.getWriter()
-			.write("""
-					{"type":"about:blank","title":"Forbidden","status":403,"detail":"%s","codigo":"%s"}"""
-				.formatted(erro.getMessage(), SegundoFatorNecessarioException.CODIGO));
+		RespostaDeProblema.escrever(resposta, HttpStatus.FORBIDDEN, String.valueOf(erro.getMessage()),
+				SegundoFatorNecessarioException.CODIGO);
 	}
 
 }

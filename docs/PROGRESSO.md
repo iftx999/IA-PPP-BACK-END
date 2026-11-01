@@ -397,3 +397,10 @@ token não leva os papéis de `realm-management` e a Admin API responde 403. Flu
 - `ArquiteturaTest` (ArchUnit, 7 regras de camadas; corrigido o `MapaController` que lia constantes do repositório).
 - PIT no perfil `mutacao` (CI): adesão, situação, projeção e alertas com mínimo de 95%; medido 78% → 98% com
   `FronteirasDosAlertasTest` (13) e fronteiras em `RegrasDeAdesaoTest` (+12).
+
+### Análise estática e dependências (doc 09, 9.3 e 9.6) — ADR 0032 — branch `feat/qualidade-arquitetura`
+- SpotBugs + FindSecBugs (perfil `analise`, CI): 165 achados triados; corrigidos JSON de erro nos filtros
+  (`RespostaDeProblema`), escape da pergunta do assistente, NPE capturado, array estático, nome de arquivo
+  temporário e operador sem `sub`; demais excluídos com motivo em `spotbugs-excluir.xml`.
+- Trivy nas dependências do `pom.xml` (crítica corrigível bloqueia; SARIF) e CodeQL nos dois repositórios.
+- Varredura local em 01/11/2026: nenhuma vulnerabilidade alta ou crítica no back-end nem no front-end.

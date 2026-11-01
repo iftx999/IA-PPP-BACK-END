@@ -60,7 +60,7 @@ class PainelController {
 	ResponseEntity<Resource> exportar(@PathVariable String formato, @RequestParam Optional<UUID> unidade,
 			@RequestParam @DateTimeFormat(pattern = "yyyy-MM") Optional<YearMonth> competencia) throws IOException {
 		var tipo = ExportacaoPainelService.Formato.valueOf(formato.toUpperCase(Locale.ROOT));
-		var arquivo = Files.createTempFile("aurora-painel-", "." + formato);
+		var arquivo = Files.createTempFile("aurora-painel-", ".tmp");
 		try {
 			ExportacaoPainelService.Arquivo gerado;
 			try (var saida = Files.newOutputStream(arquivo)) {

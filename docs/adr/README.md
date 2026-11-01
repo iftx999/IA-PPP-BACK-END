@@ -36,3 +36,4 @@ gera um novo ADR que o substitui.
 | [0029](0029-retencao-da-auditoria.md) | Retenção da trilha de auditoria: prazo por cliente, expurgo do começo da cadeia e âncora | Aceito |
 | [0030](0030-disjuntores.md) | Disjuntores nas chamadas à IA e ao provedor de identidade | Aceito |
 | [0031](0031-arquitetura-verificada-e-mutacao.md) | Regras de camadas no ArchUnit e testes de mutação nas regras de negócio | Aceito |
+| [0032](0032-analise-estatica-e-dependencias.md) | Análise estática, varredura de dependências e CodeQL no CI | Aceito |

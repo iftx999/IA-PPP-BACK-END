@@ -125,11 +125,14 @@ final class ValidadorPropostas {
 		return semAcento.toLowerCase(Locale.ROOT).replaceAll("[\\s\\u00a0]+", " ").strip();
 	}
 
-	private static @Nullable TipoItem tipo(String tipo) {
+	private static @Nullable TipoItem tipo(@Nullable String tipo) {
+		if (tipo == null) {
+			return null;
+		}
 		try {
 			return TipoItem.valueOf(tipo.strip().toUpperCase(Locale.ROOT));
 		}
-		catch (IllegalArgumentException | NullPointerException erro) {
+		catch (IllegalArgumentException erro) {
 			return null;
 		}
 	}

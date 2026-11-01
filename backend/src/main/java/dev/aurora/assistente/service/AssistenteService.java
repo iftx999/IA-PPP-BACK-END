@@ -243,9 +243,20 @@ public class AssistenteService {
 	String mensagemComContexto(String pergunta, @Nullable String unidade) {
 		var texto = new StringBuilder("<contexto>\nHoje: ").append(DATA.format(LocalDate.now(relogio))).append('\n');
 		if (unidade != null) {
-			texto.append("A pessoa perguntou a partir da unidade: ").append(unidade).append('\n');
+			texto.append("A pessoa perguntou a partir da unidade: ").append(semMarcacao(unidade)).append('\n');
 		}
-		return texto.append("</contexto>\n<pergunta>\n").append(pergunta).append("\n</pergunta>").toString();
+		return texto.append("</contexto>\n<pergunta>\n")
+			.append(semMarcacao(pergunta))
+			.append("\n</pergunta>")
+			.toString();
+	}
+
+	/**
+	 * O texto da pessoa não pode fechar a tag {@code <pergunta>} nem abrir outra (ex.: um
+	 * {@code <contexto>} falso): {@code <} e {@code >} viram os sinais parecidos ‹ e ›.
+	 */
+	static String semMarcacao(String texto) {
+		return texto.replace('<', '‹').replace('>', '›');
 	}
 
 	/**

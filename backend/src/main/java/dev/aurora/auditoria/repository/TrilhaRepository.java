@@ -82,7 +82,7 @@ public class TrilhaRepository {
 	public Elo travarUltimoElo(UUID tenantId) {
 		jdbc.sql("""
 				INSERT INTO cadeia_auditoria (tenant_id, sequencia, ultimo_hash) VALUES (?, 0, ?)
-				ON CONFLICT (tenant_id) DO NOTHING""").param(tenantId).param(Elo.HASH_INICIAL).update();
+				ON CONFLICT (tenant_id) DO NOTHING""").param(tenantId).param(Elo.hashInicial()).update();
 		return jdbc.sql("SELECT sequencia, ultimo_hash FROM cadeia_auditoria WHERE tenant_id = ? FOR UPDATE")
 			.param(tenantId)
 			.query((linha, n) -> new Elo(linha.getLong("sequencia"), linha.getBytes("ultimo_hash")))
