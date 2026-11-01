@@ -404,3 +404,10 @@ token não leva os papéis de `realm-management` e a Admin API responde 403. Flu
   temporário e operador sem `sub`; demais excluídos com motivo em `spotbugs-excluir.xml`.
 - Trivy nas dependências do `pom.xml` (crítica corrigível bloqueia; SARIF) e CodeQL nos dois repositórios.
 - Varredura local em 01/11/2026: nenhuma vulnerabilidade alta ou crítica no back-end nem no front-end.
+
+### Acessibilidade com axe (doc 09, 9.5) — front, branch `feat/qualidade-acessibilidade`
+- `e2e/acessibilidade.spec.ts`: axe (WCAG 2.1 A/AA) em 12 telas nos dois temas, mais a tela do código; violação
+  séria ou crítica reprova. A primeira rodada achou contraste insuficiente (tokens `--text-3` e `--danger` no escuro;
+  `--accent`, `--ok`, `--warn`, `--danger` e `--neutral` no claro), botão da conta com nome acessível diferente do
+  texto, ícones sem `aria-hidden`, lista rolável sem foco e link só por cor; tudo corrigido (doc 07 atualizado).
+- Os E2E (e o axe) rodam com o ambiente completo, fora do CI do front.

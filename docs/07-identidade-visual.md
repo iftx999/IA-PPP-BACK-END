@@ -24,7 +24,7 @@
 | `--line` | `#1c2e36` | Bordas finas de cartão e divisores (≈ 1 px) |
 | `--text-1` | `#e8f0ee` | Texto principal e números |
 | `--text-2` | `#b4c1c3` | Texto secundário |
-| `--text-3` | `#6f8288` | Rótulos, legendas, texto desabilitado |
+| `--text-3` | `#7a8d93` | Rótulos, legendas, texto desabilitado (era `#6f8288`; clareado para 4,5:1 sobre `--bg-3`) |
 
 ### Destaque (marca)
 
@@ -43,7 +43,7 @@ Gradiente do logo: `conic-gradient(from 210deg, #1acbd8, #2c9aeb, #4ad7bc, #1acb
 |-------|-------|-------------|--------------|
 | `--ok` | `#3de693` | Ligado / meta atingida | Imóvel ligado, variação positiva, selo "Meta atingida" |
 | `--warn` | `#ecc32a` | Atenção / factível sem ligação | Selo "Atenção", imóvel factível, limite de alerta no gráfico |
-| `--danger` | `#e76069` | Abaixo do alerta / cortado / crítico | Selo "Abaixo do alerta", imóvel cortado, variação negativa |
+| `--danger` | `#ec8087` | Abaixo do alerta / cortado / crítico (era `#e76069`; clareado para 4,5:1 nos selos) | Selo "Abaixo do alerta", imóvel cortado, variação negativa |
 | `--danger-soft` | `#ee7a62` | Negação enfática (riscado) | Texto "A rede ficou pronta." riscado nas aberturas |
 | `--neutral` | `#86929e` | Sem rede / sem meta | Imóvel sem rede, município sem meta |
 | `--net-confirmed` | `#43c3c5` | Rede confirmada | Linha contínua no mapa |
@@ -65,7 +65,16 @@ e posição na legenda.
 | `--line` | `#d3e0dd` |
 | `--text-1` | `#0b1a1f` |
 | `--text-2` | `#3d5359` |
-| `--accent` | `#0f9d86` (escurecido para contraste) |
+| `--text-3` | `#5b6f74` |
+| `--accent` | `#0a6b5b` (escurecido para servir de texto: 4,5:1 também nos selos) |
+| `--ok` | `#176038` |
+| `--warn` | `#6a5813` |
+| `--danger` | `#8b3a3f` |
+| `--neutral` | `#58636e` |
+
+**Contraste (WCAG 2.1 AA):** todo texto atinge 4,5:1, inclusive o colorido sobre os selos (fundo com 12–20% da cor).
+No tema claro, os tons de estado são escuros porque servem também de texto; no mapa claro isso ainda melhora a
+leitura sobre o fundo. O axe confere as telas nos dois temas a cada execução dos E2E (`e2e/acessibilidade.spec.ts`).
 
 ## 7.3 Tipografia
 
