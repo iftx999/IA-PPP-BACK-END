@@ -17,6 +17,9 @@
 		<java.version>21</java.version>
 		<spring-modulith.version>2.1.1</spring-modulith.version>
 		<springdoc.version>3.1.1</springdoc.version>
+		<pitest.version>1.30.1</pitest.version>
+		<pitest-junit5.version>1.2.3</pitest-junit5.version>
+		<archunit.version>1.5.1</archunit.version>
 		<resilience4j.version>2.4.0</resilience4j.version>
 		<spring-javaformat.version>0.0.48</spring-javaformat.version>
 		<jacoco.version>0.8.15</jacoco.version>
@@ -188,6 +191,13 @@
 			<artifactId>testcontainers-postgresql</artifactId>
 			<scope>test</scope>
 		</dependency>
+		<!-- Regras de camadas e dependências (doc 09, 9.8; ADR 0031). -->
+		<dependency>
+			<groupId>com.tngtech.archunit</groupId>
+			<artifactId>archunit-junit5</artifactId>
+			<version>${archunit.version}</version>
+			<scope>test</scope>
+		</dependency>
 	</dependencies>
 	<dependencyManagement>
 		<dependencies>
@@ -270,5 +280,55 @@
 			</plugin>
 		</plugins>
 	</build>
+
+	<profiles>
+		<!--
+			Testes de mutação nas regras de negócio críticas (doc 09, 9.3; ADR 0031): adesão, situação, projeção e
+			alertas. ./mvnw -Pmutacao test-compile org.pitest:pitest-maven:mutationCoverage
+		-->
+		<profile>
+			<id>mutacao</id>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.pitest</groupId>
+						<artifactId>pitest-maven</artifactId>
+						<version>${pitest.version}</version>
+						<dependencies>
+							<dependency>
+								<groupId>org.pitest</groupId>
+								<artifactId>pitest-junit5-plugin</artifactId>
+								<version>${pitest-junit5.version}</version>
+							</dependency>
+						</dependencies>
+						<configuration>
+							<targetClasses>
+								<param>dev.aurora.adesao.Situacao</param>
+								<param>dev.aurora.adesao.model.Adesao</param>
+								<param>dev.aurora.adesao.model.Projecao</param>
+								<param>dev.aurora.alertas.service.RegrasDeAlerta</param>
+							</targetClasses>
+							<targetTests>
+								<param>dev.aurora.adesao.model.RegrasDeAdesaoTest</param>
+								<param>dev.aurora.alertas.service.RegrasDeAlertaTest</param>
+								<param>dev.aurora.alertas.service.MensagemDeAlertasTest</param>
+								<param>dev.aurora.alertas.service.FronteirasDosAlertasTest</param>
+							</targetTests>
+							<mutators>
+								<mutator>STRONGER</mutator>
+							</mutators>
+							<outputFormats>
+								<param>HTML</param>
+								<param>XML</param>
+							</outputFormats>
+							<timestampedReports>false</timestampedReports>
+							<!-- Medido em 98% (194 de 198; os restantes são equivalentes). -->
+							<mutationThreshold>95</mutationThreshold>
+						</configuration>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+	</profiles>
 
 </project>

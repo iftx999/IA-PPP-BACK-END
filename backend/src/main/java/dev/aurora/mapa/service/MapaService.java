@@ -37,6 +37,12 @@ public class MapaService {
 
 	public static final String PERMISSAO_DADOS_PESSOAIS = "dados_pessoais:ler";
 
+	/** Zoom a partir do qual os imóveis aparecem um a um (antes, agrupados). */
+	public static final int ZOOM_IMOVEIS = TileRepository.ZOOM_IMOVEIS;
+
+	/** Zoom a partir do qual a rede de esgoto aparece. */
+	public static final int ZOOM_REDE = TileRepository.ZOOM_REDE;
+
 	static final int IMOVEIS_NO_PONTO = 10;
 
 	private final CamadasRepository camadas;

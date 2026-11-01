@@ -392,3 +392,8 @@ token não leva os papéis de `realm-management` e a Admin API responde 403. Flu
   (`identidade`). Erros do próprio pedido não contam; aberto, falha na hora com a mensagem de indisponibilidade.
 - Alerta `DisjuntorAberto` no Prometheus de produção.
 - Testes: `DisjuntorTest` (3), `DisjuntoresTest` (1), provedor Keycloak (+1).
+
+### Arquitetura verificada e testes de mutação (doc 09, 9.3 e 9.8) — ADR 0031 — branch `feat/qualidade-arquitetura`
+- `ArquiteturaTest` (ArchUnit, 7 regras de camadas; corrigido o `MapaController` que lia constantes do repositório).
+- PIT no perfil `mutacao` (CI): adesão, situação, projeção e alertas com mínimo de 95%; medido 78% → 98% com
+  `FronteirasDosAlertasTest` (13) e fronteiras em `RegrasDeAdesaoTest` (+12).

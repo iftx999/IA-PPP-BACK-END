@@ -22,6 +22,8 @@ jobs:
       - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends tesseract-ocr tesseract-ocr-por
       # Inclui os testes de isolamento entre tenants (obrigatórios, RN-15) via Testcontainers.
       - run: ./mvnw -B verify
+      # Testes de mutação nas regras de adesão, situação, projeção e alertas (ADR 0031): falha abaixo de 95%.
+      - run: ./mvnw -B -Pmutacao org.pitest:pitest-maven:mutationCoverage -Djacoco.skip=true
 
   segredos:
     runs-on: ubuntu-latest

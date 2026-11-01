@@ -12,7 +12,6 @@ import dev.aurora.mapa.controller.MapaResponses.CamadasMapa;
 import dev.aurora.mapa.controller.MapaResponses.ImovelNoPonto;
 import dev.aurora.mapa.model.FiltroImoveis;
 import dev.aurora.mapa.model.SituacaoNoMapa;
-import dev.aurora.mapa.repository.TileRepository;
 import dev.aurora.mapa.service.MapaService;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
@@ -48,7 +47,7 @@ class MapaController {
 
 	@GetMapping("/camadas")
 	CamadasMapa camadas(@RequestParam @DateTimeFormat(pattern = "yyyy-MM") Optional<YearMonth> competencia) {
-		return CamadasMapa.de(mapa.camadas(competencia), TileRepository.ZOOM_IMOVEIS, TileRepository.ZOOM_REDE);
+		return CamadasMapa.de(mapa.camadas(competencia), MapaService.ZOOM_IMOVEIS, MapaService.ZOOM_REDE);
 	}
 
 	/**
