@@ -35,6 +35,8 @@ curl -s https://<aurora>/api/agente/v1/cargas -H "Authorization: Bearer $AURORA_
 
 - `unidade`: código da unidade cadastrado na Aurora (setor comercial, município ou concessão).
 - `situacao`: `LIGADO`, `FACTIVEL`, `CORTADO` ou `POTENCIAL` (sem rede); aceita também "Factível" e "Sem rede".
+  `FACTIVEL` = rede na rua, sem conexão física; `CORTADO` = conectado, com corte por falta de pagamento ou suspensão a
+  pedido do cliente (RN-02).
 - Até 500 mil registros por chamada; para mais, divida em várias chamadas da mesma competência (a carga é
   incremental: cada chamada grava ou atualiza só as matrículas enviadas).
 

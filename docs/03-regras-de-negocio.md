@@ -26,12 +26,14 @@ sem ligação = com rede disponível − ligados = factíveis + cortados
 | Situação do imóvel | Significado |
 |--------------------|-------------|
 | Ligado | Tem ligação ativa à rede |
-| Factível | Rede disponível, nunca se ligou (ou sem ligação ativa) |
-| Cortado | Teve ligação, foi cortado |
+| Factível | A rede pública passa na rua e está à disposição, mas o imóvel (ou economia) ainda não fez a conexão física com o sistema da concessionária |
+| Cortado | Tem conexão física, mas o serviço está interrompido: corte por falta de pagamento ou suspensão a pedido do cliente |
 | Sem rede | Rede ainda não chega ao imóvel; fora da adesão |
 
 - "Sem ligação há" = meses desde a última situação ligada. "Origem" mostra o último mês ligado (ex.: "Ligado até jul/2026").
-- *A confirmar:* a regra exata que separa "factível" de "cortado" no sistema comercial de origem.
+- **Factível × cortado** (definição do autor, 01/11/2026): a diferença é a conexão física. Factível nunca se conectou;
+  cortado está conectado, com o serviço interrompido por inadimplência ou a pedido do cliente. Os dois contam em "com
+  rede disponível" e em "sem ligação", e não entram nos ligados. A situação vem do sistema comercial em cada carga.
 
 ## RN-03 · Situação da unidade (semáforo)
 

@@ -349,3 +349,14 @@ token não leva os papéis de `realm-management` e a Admin API responde 403. Flu
 - Próximo: eventos de login na trilha de auditoria (doc 08, 8.7), "sair de todos os dispositivos", retenção da
   auditoria, testes de carga; dependem do autor: regra factível × cortado; da chave real: validação da IA.
 - Se o E2E de SSO falhar no meio, o botão "Empresa Exemplo (E2E)" fica no login até remover o SSO em Usuários.
+
+## Sessão de 01/11/2026
+
+### Regra factível × cortado (pendência 5 do doc 06) — definida pelo autor
+- **Factível:** a rede pública passa na rua e está à disposição, mas o imóvel (ou economia) ainda não fez a conexão
+  física. **Cortado:** tem conexão física, com o serviço interrompido por falta de pagamento ou suspenso a pedido do
+  cliente. Nenhum cálculo muda: os dois já contavam em "com rede" e em "sem ligação" (RN-01, RN-02).
+- Atualizados: RN-02 (doc 03), doc 06, `integracao-agente.md`, `SituacaoImovel`, instruções do assistente
+  (`assistente-v2`, com o glossário das situações), dicas nas abas e no selo de "Sem ligação" e ajuda da carga CSV.
+- Ideias em aberto, se o sistema comercial enviar o dado: motivo do corte (inadimplência × a pedido) e aviso na carga
+  quando um imóvel que já esteve ligado volta como factível.

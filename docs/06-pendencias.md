@@ -8,7 +8,7 @@
 | 2 | Qual modelo/API de IA e qual linguagem do serviço de IA (Java ou Python/FastAPI)? | Autor |
 | 3 | Como era a tela de Contratos (lista, upload, revisão ao lado do PDF)? | Autor ou schema |
 | 4 | Esquema real do banco (tabelas, colunas, PostGIS, extração/aprovação) | `pg_dump --schema-only` do volume `aurora_postgres-dados` |
-| 5 | Regra exata de "factível" vs. "cortado" | Autor (regra do sistema comercial) |
+| 5 | Regra exata de "factível" vs. "cortado" | ✅ Resolvida pelo autor (RN-02): factível = rede disponível sem conexão física; cortado = conectado, com corte por falta de pagamento ou suspensão a pedido |
 | 6 | Vigências sobrepostas e aditivos contratuais | ✅ Resolvida (ADR 0020) |
 | 7 | Origem dos trechos de rede (OSM derivado? importados?) | Autor / schema |
 | 8 | Perfis e permissões existentes | Schema (`perfil`, `permissao`) |
