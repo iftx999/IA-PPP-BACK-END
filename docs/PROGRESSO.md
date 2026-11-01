@@ -422,3 +422,17 @@ token não leva os papéis de `realm-management` e a Admin API responde 403. Flu
   cumpridas (`docs/desempenho.md`).
 - Corrigido: recálculo da adesão quadrático no pior plano (727 s → 72,6 s na carga de 1 milhão), tarefas agendadas
   rodando nos testes, tempos por fase no log da carga.
+
+### Simulador de penalidades (épico I, I1) — ADR 0035 — branch `feat/simulador-de-penalidades`
+- Escolhido pelo autor depois de concluídas as histórias A–H, junto com campanhas de ligação e ordens de serviço
+  (desenho aprovado; próximo marco, histórias I2–I4 no doc 02).
+- **Regra calculável** na penalidade aprovada (V27 `regra_penalidade`): fórmula, valor, base em reais, contagem,
+  aferição, teto. Seção "Cálculo da multa" no diálogo do item (sugere fórmula e valor pelo texto), auditada.
+- **Simulador** `/simulador` (`GET /api/v1/simulador`): ritmo atual × cenário, mês a mês até 0–60 meses após o prazo,
+  multa por aferição, ritmo necessário, atalhos para unidades com regra, link no quadro "No ritmo" do painel. RN-18.
+- Validado no ambiente local com a penalidade real do contrato 001/2025 (cláusula 12.1): sem novas ligações,
+  R$ 409.383,00 até dez/2027; no ritmo para a meta, R$ 0,00.
+- Correções vindas dos testes: o link "Simular" deixava o diálogo do item aberto; link no texto sem sublinhado (axe).
+- Testes: back-end `SimuladorTest` (7), `RegraDePenalidadeTest` (9), `SimuladorApiTest` (2); front +2 specs
+  unitários, E2E `simulador.spec.ts` (2) e a tela no axe.
+

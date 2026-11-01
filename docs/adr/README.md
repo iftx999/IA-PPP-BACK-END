@@ -39,3 +39,4 @@ gera um novo ADR que o substitui.
 | [0032](0032-analise-estatica-e-dependencias.md) | Análise estática, varredura de dependências e CodeQL no CI | Aceito |
 | [0033](0033-antivirus-nos-envios.md) | Antivírus nos arquivos enviados (ClamAV) | Aceito |
 | [0034](0034-testes-de-carga.md) | Testes de carga: k6 nas leituras e JUnit na carga mensal | Aceito |
+| [0035](0035-simulador-de-penalidades.md) | Simulador de penalidades: regra calculável na penalidade aprovada e projeção mês a mês | Aceito |

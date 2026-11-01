@@ -5,9 +5,13 @@ import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import dev.aurora.adesao.AdesaoDaUnidade;
+import dev.aurora.adesao.BaseDaSimulacao;
+import dev.aurora.adesao.BaseDaSimulacao.MesMedido;
+import dev.aurora.adesao.BaseDaSimulacao.MetaDaSimulacao;
 import dev.aurora.adesao.IndicadorDaUnidade;
 import dev.aurora.adesao.Medicoes;
 import dev.aurora.adesao.ProjecaoDaUnidade;
@@ -15,12 +19,16 @@ import dev.aurora.adesao.Situacao;
 import dev.aurora.adesao.model.Projecao;
 import dev.aurora.adesao.repository.AdesaoRepository;
 import dev.aurora.adesao.repository.MedicaoRepository;
+import org.jspecify.annotations.Nullable;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 class MedicaoService implements Medicoes {
+
+	/** Meses de série entregues ao simulador (como no painel, B3). */
+	static final int MESES_NA_BASE = 12;
 
 	private final MedicaoRepository medicoes;
 
@@ -125,6 +133,43 @@ class MedicaoService implements Medicoes {
 	@Transactional(readOnly = true)
 	public List<YearMonth> competencias() {
 		return adesao.buscarIndicadorAdesao().map(adesao::listarCompetenciasDoEscopo).orElse(List.of());
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public Optional<BaseDaSimulacao> baseDaSimulacao(@Nullable UUID unidadeId) {
+		var indicador = adesao.buscarIndicadorAdesao().orElse(null);
+		if (indicador == null) {
+			return Optional.empty();
+		}
+		var unidade = (unidadeId == null ? adesao.buscarUnidadePadrao(indicador)
+				: adesao.buscarUnidadeNoEscopo(unidadeId))
+			.orElse(null);
+		if (unidade == null) {
+			return Optional.empty();
+		}
+		var competencias = adesao.listarCompetencias(unidade.id(), indicador);
+		if (competencias.isEmpty()) {
+			return Optional.empty();
+		}
+		var atual = competencias.getFirst();
+		var serie = adesao.listarSerie(unidade.id(), indicador, atual.minusMonths(MESES_NA_BASE - 1), atual);
+		if (serie.isEmpty() || serie.getLast().comRede() == 0) {
+			return Optional.empty();
+		}
+		var meta = adesao.buscarMetaVigente(unidade.id(), indicador, atual).orElse(null);
+		// O ritmo não depende da meta (RN-05); a meta de referência só entra no cálculo
+		// de "faltam".
+		var ritmo = Projecao.calcular(serie, meta == null ? BigDecimal.ZERO : meta.valorMeta(), null)
+			.map(Projecao::ritmoAtual)
+			.orElse(null);
+		var metaDaSimulacao = meta == null ? null
+				: new MetaDaSimulacao(meta.valorMeta(),
+						meta.vigenciaFim() == null ? null : YearMonth.from(meta.vigenciaFim()), meta.unidadeId(),
+						meta.unidadeNome(), meta.herdada(), meta.origem());
+		return Optional.of(new BaseDaSimulacao(unidade.id(), unidade.nome(), unidade.tipo(), atual,
+				serie.stream().map(p -> new MesMedido(p.competencia(), p.ligados(), p.comRede())).toList(), ritmo,
+				metaDaSimulacao));
 	}
 
 }

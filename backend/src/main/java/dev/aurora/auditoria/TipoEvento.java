@@ -78,6 +78,9 @@ public enum TipoEvento {
 	 */
 	AGENDA_DE_PRAZO_DEFINIDA, PRAZO_CONTRATUAL_CUMPRIDO, PRAZO_CONTRATUAL_REABERTO,
 
+	/** ADR 0035: regra calculável de uma penalidade definida ou removida. */
+	REGRA_DE_PENALIDADE_DEFINIDA, REGRA_DE_PENALIDADE_REMOVIDA,
+
 	/** ADR 0021: páginas digitalizadas lidas por OCR (nome herdado). */
 	TEXTO_RECONHECIDO_POR_OCR,
 

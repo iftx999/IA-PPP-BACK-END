@@ -3,7 +3,10 @@ package dev.aurora.adesao;
 import java.time.YearMonth;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
+
+import org.jspecify.annotations.Nullable;
 
 /** API do módulo de adesão para os demais módulos. */
 public interface Medicoes {
@@ -34,6 +37,13 @@ public interface Medicoes {
 	 * meta vigente com fim de vigência (metas sem prazo não têm "no prazo").
 	 */
 	List<ProjecaoDaUnidade> projecoes();
+
+	/**
+	 * Base do simulador (ADR 0035) para a unidade do escopo na competência mais recente
+	 * com medição; vazia se a unidade está fora do escopo ou não tem medição.
+	 * @param unidadeId nula = a unidade mais alta do escopo (como no painel)
+	 */
+	Optional<BaseDaSimulacao> baseDaSimulacao(@Nullable UUID unidadeId);
 
 	/** Competências com medição no escopo, da mais recente para a mais antiga. */
 	List<YearMonth> competencias();

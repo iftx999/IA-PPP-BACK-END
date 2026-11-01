@@ -176,3 +176,13 @@ Cada meta tem **percentual de meta** e **limite de alerta** (alerta ≤ meta).
 - Todos os indicadores são calculados por **mês de competência**.
 - O seletor lista apenas competências com carga concluída.
 - A série histórica usa as competências disponíveis; meses em que a rede mudou são sinalizados (RN-05).
+
+## RN-18 · Simulação de penalidades (ADR 0035)
+
+- Só penalidades **aprovadas** podem ter regra de cálculo; a base em reais (ex.: faturamento mensal) é informada por
+  quem gerencia contratos, porque não vem do contrato.
+- Multa de uma aferição: percentual da base × pontos abaixo da meta, ou valor × pontos, ou valor fixo; "por ponto ou
+  fração" arredonda os pontos para cima; o teto limita cada aferição. Meta atingida = sem multa.
+- A multa é aferida na unidade do item (ou do contrato), no mês do prazo da meta e, depois, a cada mês ou 12 meses.
+- Projeção: ritmo constante, rede do tamanho atual (como RN-05), meta aplicável hoje (RN-06) mantida após o prazo.
+- O resultado é **estimativa** e nunca substitui a apuração oficial.
