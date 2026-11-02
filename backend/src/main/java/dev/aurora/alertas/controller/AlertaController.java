@@ -3,10 +3,12 @@ package dev.aurora.alertas.controller;
 import java.time.Instant;
 import java.time.YearMonth;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import dev.aurora.alertas.model.Alerta;
 import dev.aurora.alertas.model.EstadoAlerta;
+import dev.aurora.alertas.model.FiltroAlertas;
 import dev.aurora.alertas.model.Severidade;
 import dev.aurora.alertas.model.TipoAlerta;
 import dev.aurora.alertas.service.AlertaService;
@@ -60,8 +62,11 @@ class AlertaController {
 
 	@GetMapping
 	List<AlertaResponse> listar(@RequestParam(defaultValue = "ABERTOS") EstadoAlerta estado,
-			@RequestParam(defaultValue = "200") int limite) {
-		return alertas.listar(estado, limite).stream().map(AlertaResponse::de).toList();
+			@RequestParam(required = false) @Nullable Set<TipoAlerta> tipo,
+			@RequestParam(required = false) @Nullable Severidade severidade,
+			@RequestParam(required = false) @Nullable UUID unidade, @RequestParam(defaultValue = "200") int limite) {
+		var filtro = new FiltroAlertas(estado, tipo == null ? Set.of() : tipo, severidade, unidade);
+		return alertas.listar(filtro, limite).stream().map(AlertaResponse::de).toList();
 	}
 
 	@GetMapping("/resumo")

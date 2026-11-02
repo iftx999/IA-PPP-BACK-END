@@ -119,6 +119,34 @@ class AlertasApiTest {
 	}
 
 	@Test
+	void filtraPorTipoSeveridadeEUnidade() throws Exception {
+		avaliar();
+		mvc.perform(get("/api/v1/alertas").param("tipo", "META_FORA_DO_RITMO", "INDICADOR_ABAIXO_DA_META")
+			.with(token("sub-admin")))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.length()", is(3)))
+			.andExpect(jsonPath("$[*].tipo", not(hasItem("FONTE_ATRASADA"))));
+		mvc.perform(get("/api/v1/alertas").param("severidade", "CRITICO").with(token("sub-admin")))
+			.andExpect(jsonPath("$.length()", is(1)))
+			.andExpect(jsonPath("$[0].unidadeId", is(t.cidadeB().toString())));
+
+		// A unidade inclui as de baixo; alertas sem unidade (fonte) ficam de fora.
+		mvc.perform(get("/api/v1/alertas").param("unidade", t.concessao().toString()).with(token("sub-admin")))
+			.andExpect(jsonPath("$.length()", is(3)))
+			.andExpect(jsonPath("$[*].unidadeId", hasItem(t.cidadeB().toString())))
+			.andExpect(jsonPath("$[*].tipo", not(hasItem("FONTE_ATRASADA"))));
+		mvc.perform(get("/api/v1/alertas").param("unidade", t.cidadeB().toString()).with(token("sub-admin")))
+			.andExpect(jsonPath("$.length()", is(1)));
+
+		// O filtro não amplia o escopo: a Cidade B continua invisível para quem atua na
+		// A.
+		mvc.perform(get("/api/v1/alertas").param("unidade", t.cidadeB().toString()).with(token("sub-cidade-a")))
+			.andExpect(jsonPath("$.length()", is(0)));
+		mvc.perform(get("/api/v1/alertas").param("tipo", "NAO_EXISTE").with(token("sub-admin")))
+			.andExpect(status().isBadRequest());
+	}
+
+	@Test
 	void avaliarAgoraExigeGestaoDeIndicadores() throws Exception {
 		mvc.perform(post("/api/v1/alertas/avaliacao").with(token("sub-cidade-a"))).andExpect(status().isForbidden());
 		mvc.perform(post("/api/v1/alertas/avaliacao").with(token("sub-admin"))).andExpect(status().isOk());

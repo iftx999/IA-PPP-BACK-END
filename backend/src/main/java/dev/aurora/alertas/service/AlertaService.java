@@ -9,7 +9,7 @@ import java.util.UUID;
 
 import dev.aurora.acesso.ContextosDoSistema;
 import dev.aurora.alertas.model.Alerta;
-import dev.aurora.alertas.model.EstadoAlerta;
+import dev.aurora.alertas.model.FiltroAlertas;
 import dev.aurora.alertas.repository.AlertaRepository;
 import dev.aurora.auditoria.Auditoria;
 import dev.aurora.auditoria.TipoEvento;
@@ -60,8 +60,8 @@ public class AlertaService {
 	}
 
 	@Transactional(readOnly = true)
-	public List<Alerta> listar(EstadoAlerta estado, int limite) {
-		return alertas.listar(estado, Math.clamp(limite, 1, 500));
+	public List<Alerta> listar(FiltroAlertas filtro, int limite) {
+		return alertas.listar(filtro, Math.clamp(limite, 1, 500));
 	}
 
 	@Transactional(readOnly = true)

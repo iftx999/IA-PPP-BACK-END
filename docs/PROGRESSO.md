@@ -454,3 +454,20 @@ token não leva os papéis de `realm-management` e a Admin API responde 403. Flu
   `textos.spec.ts`, menu da equipe de campo, E2E `campanhas.spec.ts` e as três telas no axe.
 - Fora (ADR 0036): app de campo offline, foto/assinatura, integração das OS com o sistema comercial, roteirização,
   polígono livre no mapa, reabrir resultado registrado.
+
+## Sessão de 02/11/2026
+
+### Filtros nas listas — branch `feature/filtros-nas-listas` (back e front)
+- Pedido do usuário: "estou sentindo falta de filtros nas telas". Metas, Auditoria e o detalhe da campanha já tinham;
+  as demais listas tinham só busca ou só situação.
+- **Alertas:** `GET /api/v1/alertas` aceita `tipo` (repetível), `severidade` e `unidade` (inclui as de baixo pelo
+  `ltree`; o RLS continua limitando ao escopo). Filtro na API porque a lista tem limite (200): no cliente, alertas
+  resolvidos antigos sumiriam do filtro. `FiltroAlertas` no model; teste `filtraPorTipoSeveridadeEUnidade`.
+- **Front** (filtro no cliente, as listas vêm inteiras): Contratos (unidade — a escolhida, as de baixo e as de cima,
+  que a cobrem —, vigência e itens para revisar), Campanhas (busca, ação, unidade em `filtroUnidade`, porque
+  `unidade` na URL já é do recorte da nova campanha), Usuários (perfil e unidade na mesma concessão), Integrações
+  (busca, tipo, situação) e Plataforma (busca, situação).
+- Filtros na URL (`nucleo/filtros.ts`, `replaceUrl`): voltar do detalhe mantém a lista e o link pode ser enviado.
+  Campo comum `aurora-filtro-unidade` e estilo global `.barra-filtros`, com "Limpar filtros" e contagem "x de y".
+- Testes: front +6 specs unitários (contratos, plataforma, integrações, usuários, `ancestrais`), E2E de alertas com
+  filtro de severidade; `convite.spec.ts` busca o campo como `searchbox`.

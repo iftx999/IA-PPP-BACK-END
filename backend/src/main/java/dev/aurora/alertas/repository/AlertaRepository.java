@@ -4,6 +4,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -12,6 +13,7 @@ import java.util.UUID;
 import dev.aurora.alertas.model.Alerta;
 import dev.aurora.alertas.model.Condicao;
 import dev.aurora.alertas.model.EstadoAlerta;
+import dev.aurora.alertas.model.FiltroAlertas;
 import dev.aurora.alertas.model.Severidade;
 import dev.aurora.alertas.model.TipoAlerta;
 import org.jspecify.annotations.Nullable;
@@ -68,16 +70,32 @@ public class AlertaRepository {
 		}
 	}
 
-	public List<Alerta> listar(EstadoAlerta estado, int limite) {
-		var filtro = switch (estado) {
+	public List<Alerta> listar(FiltroAlertas filtro, int limite) {
+		var estado = filtro.estado();
+		var condicoes = new ArrayList<String>();
+		var params = new ArrayList<Object>();
+		condicoes.add(switch (estado) {
 			case ABERTOS -> "a.resolvido_em IS NULL";
 			case RECONHECIDOS -> "a.resolvido_em IS NULL AND a.reconhecido_em IS NOT NULL";
 			case RESOLVIDOS -> "a.resolvido_em IS NOT NULL";
-		};
+		});
+		if (!filtro.tipos().isEmpty()) {
+			condicoes.add("a.tipo = ANY (?)");
+			params.add(filtro.tipos().stream().map(Enum::name).toArray(String[]::new));
+		}
+		if (filtro.severidade() != null) {
+			condicoes.add("a.severidade = ?");
+			params.add(filtro.severidade().name());
+		}
+		if (filtro.unidade() != null) {
+			condicoes.add("u.caminho <@ (SELECT f.caminho FROM unidade f WHERE f.id = ?)");
+			params.add(filtro.unidade());
+		}
+		params.add(limite);
 		var ordem = estado == EstadoAlerta.RESOLVIDOS ? "a.resolvido_em DESC"
 				: "a.severidade = 'CRITICO' DESC, a.reconhecido_em IS NOT NULL, a.criado_em DESC";
-		return jdbc.sql(SELECAO + " WHERE " + filtro + " ORDER BY " + ordem + " LIMIT ?")
-			.param(limite)
+		return jdbc.sql(SELECAO + " WHERE " + String.join(" AND ", condicoes) + " ORDER BY " + ordem + " LIMIT ?")
+			.params(params)
 			.query((r, n) -> alerta(r))
 			.list();
 	}
