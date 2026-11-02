@@ -39,14 +39,17 @@ ON CONFLICT (id) DO NOTHING;
 CREATE TEMP TABLE perfis_sistema (nome text, descricao text, permissoes text[]) ON COMMIT DROP;
 INSERT INTO perfis_sistema VALUES
   ('Administrador do tenant', 'Usuários, perfis, unidades e integrações',
-   ARRAY['assistente:usar','contrato:gerenciar','contrato:ler','dados_pessoais:ler','indicador:gerenciar',
-         'indicador:ler','integracao:gerenciar','mapa:marcar','relatorio:exportar','unidade:gerenciar','unidade:ler',
-         'usuario:gerenciar']),
+   ARRAY['assistente:usar','campanha:gerenciar','contrato:gerenciar','contrato:ler','dados_pessoais:ler',
+         'indicador:gerenciar','indicador:ler','integracao:gerenciar','mapa:marcar','os:executar','relatorio:exportar',
+         'unidade:gerenciar','unidade:ler','usuario:gerenciar']),
   ('Auditor', 'Leitura da trilha de auditoria', ARRAY['auditoria:ler','unidade:ler']),
   ('Diretor', 'Leitura de todos os indicadores no escopo',
    ARRAY['assistente:usar','contrato:ler','indicador:ler','relatorio:exportar','unidade:ler']),
   ('Gestor comercial', 'Indicadores e dados comerciais no escopo',
-   ARRAY['assistente:usar','contrato:ler','dados_pessoais:ler','indicador:ler','mapa:marcar','unidade:ler']);
+   ARRAY['assistente:usar','campanha:gerenciar','contrato:ler','dados_pessoais:ler','indicador:ler','mapa:marcar',
+         'unidade:ler']),
+  ('Equipe de campo', 'Ordens de serviço das equipes de que faz parte',
+   ARRAY['dados_pessoais:ler','os:executar','unidade:ler']);
 INSERT INTO perfil (id, tenant_id, nome, sistema, descricao)
 SELECT gen_random_uuid(), :'tenant', p.nome, true, p.descricao FROM perfis_sistema p
  WHERE NOT EXISTS (SELECT 1 FROM perfil x WHERE x.tenant_id = :'tenant' AND x.nome = p.nome);

@@ -436,3 +436,21 @@ token não leva os papéis de `realm-management` e a Admin API responde 403. Flu
 - Testes: back-end `SimuladorTest` (7), `RegraDePenalidadeTest` (9), `SimuladorApiTest` (2); front +2 specs
   unitários, E2E `simulador.spec.ts` (2) e a tela no axe.
 
+
+### Campanhas de ligação e ordens de serviço (épico I, I2–I4) — ADR 0036 — branch `feat/campanhas-e-ordens-de-servico`
+- Simulador (ADR 0035) mergeado na `main` em 02/11 com aprovação do autor.
+- **Módulo `campanhas`** (V28: `equipe`, `equipe_membro`, `campanha`, `ordem_servico`, RLS por escopo). Permissões
+  `campanha:gerenciar` e `os:executar`; perfil do sistema **Equipe de campo**; gestor comercial e administrador
+  recebem as novas permissões (também nos clientes existentes, pela V28). RN-19 no doc 03.
+- **Campanha** a partir de Sem ligação, setor ou área do mapa, com prévia e impacto na meta; OS priorizadas pelo
+  semáforo; envio às equipes só dentro da área delas; resultado pela equipe ("Minhas OS", feita para celular) ou pelo
+  gestor; encerrar/cancelar cancela as abertas.
+- **Conferência pela carga** depois de cada carga (antes da reavaliação dos alertas) e ao registrar resultado; alerta
+  `ORDEM_DIVERGENTE` por campanha. Painel com funil, efeito na adesão, produtividade por equipe e motivos.
+- Telas: `/campanhas`, `/campanhas/:id`, `/equipes`, `/minhas-ordens` (seção "Campo" do menu); atalhos em Sem ligação
+  e no Mapa; rótulos dos novos eventos na auditoria (e os da regra de penalidade, que faltavam).
+- Testes: back-end `CampanhasApiTest` (fluxo completo com carga real, conferência e alerta), `CampanhaPorAreaApiTest`,
+  `RegrasDasOrdensTest`, `RegrasDeCampanhaTest`; `PlataformaApiTest` passa a esperar 5 perfis do sistema. Front:
+  `textos.spec.ts`, menu da equipe de campo, E2E `campanhas.spec.ts` e as três telas no axe.
+- Fora (ADR 0036): app de campo offline, foto/assinatura, integração das OS com o sistema comercial, roteirização,
+  polígono livre no mapa, reabrir resultado registrado.

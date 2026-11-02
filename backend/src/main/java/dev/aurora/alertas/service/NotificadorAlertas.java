@@ -79,6 +79,7 @@ public class NotificadorAlertas {
 			case TRILHA_ALTERADA -> "auditoria:ler";
 			case FONTE_ATRASADA -> "integracao:gerenciar";
 			case PRAZO_CONTRATUAL -> "contrato:ler";
+			case ORDEM_DIVERGENTE -> "campanha:gerenciar";
 			case INDICADOR_ABAIXO_DA_META, META_FORA_DO_RITMO -> "indicador:ler";
 		};
 	}

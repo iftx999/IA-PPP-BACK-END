@@ -32,15 +32,19 @@ class ProvisionamentoService implements ProvisionamentoDeCliente {
 
 	static final List<PerfilDoSistema> PERFIS = List.of(
 			new PerfilDoSistema(ADMINISTRADOR, "Usuários, perfis, unidades e integrações",
-					List.of("assistente:usar", "contrato:gerenciar", "contrato:ler", "dados_pessoais:ler",
-							"indicador:gerenciar", "indicador:ler", "integracao:gerenciar", "mapa:marcar",
-							"relatorio:exportar", "unidade:gerenciar", "unidade:ler", "usuario:gerenciar")),
+					List.of("assistente:usar", "campanha:gerenciar", "contrato:gerenciar", "contrato:ler",
+							"dados_pessoais:ler", "indicador:gerenciar", "indicador:ler", "integracao:gerenciar",
+							"mapa:marcar", "os:executar", "relatorio:exportar", "unidade:gerenciar", "unidade:ler",
+							"usuario:gerenciar")),
 			new PerfilDoSistema("Auditor", "Leitura da trilha de auditoria", List.of("auditoria:ler", "unidade:ler")),
 			new PerfilDoSistema("Diretor", "Leitura de todos os indicadores no escopo",
 					List.of("assistente:usar", "contrato:ler", "indicador:ler", "relatorio:exportar", "unidade:ler")),
 			new PerfilDoSistema("Gestor comercial", "Indicadores e dados comerciais no escopo",
-					List.of("assistente:usar", "contrato:ler", "dados_pessoais:ler", "indicador:ler", "mapa:marcar",
-							"unidade:ler")));
+					List.of("assistente:usar", "campanha:gerenciar", "contrato:ler", "dados_pessoais:ler",
+							"indicador:ler", "mapa:marcar", "unidade:ler")),
+			// ADR 0036: a matrícula identifica o imóvel no campo.
+			new PerfilDoSistema("Equipe de campo", "Ordens de serviço das equipes de que faz parte",
+					List.of("dados_pessoais:ler", "os:executar", "unidade:ler")));
 
 	private final PerfilRepository perfis;
 

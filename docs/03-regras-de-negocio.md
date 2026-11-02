@@ -186,3 +186,16 @@ Cada meta tem **percentual de meta** e **limite de alerta** (alerta ≤ meta).
 - A multa é aferida na unidade do item (ou do contrato), no mês do prazo da meta e, depois, a cada mês ou 12 meses.
 - Projeção: ritmo constante, rede do tamanho atual (como RN-05), meta aplicável hoje (RN-06) mantida após o prazo.
 - O resultado é **estimativa** e nunca substitui a apuração oficial.
+
+## RN-19 · Campanhas e ordens de serviço (ADR 0036)
+
+- A campanha usa os imóveis sem ligação (RN-02) da competência mais recente (RN-14); um imóvel tem no máximo uma OS
+  em aberto (planejada, em campo ou reagendada), somadas todas as campanhas.
+- Prioridade da OS pelo semáforo da unidade do imóvel (RN-03): abaixo do alerta = alta; atenção = média; demais = baixa.
+- A OS só vai para uma equipe que atua na unidade do imóvel (ou acima). Recusa e inviabilidade exigem motivo; "outro"
+  exige observação; reagendamento de hoje até 180 dias.
+- Conferência: OS executada de ligação nova ou religação é **confirmada** pela primeira carga, a partir do mês da
+  execução, que mostra o imóvel ligado; é **divergente** quando a carga do mês seguinte ao da execução já chegou e ele
+  continua sem ligação; senão fica aguardando. Uma carga posterior com a ligação desfaz a divergência.
+- Divergência abre o alerta "OS executadas sem ligação na carga" (um por campanha), para quem gerencia campanhas.
+- Encerrar ou cancelar a campanha cancela as OS ainda em aberto; nada é apagado.

@@ -81,6 +81,10 @@ public enum TipoEvento {
 	/** ADR 0035: regra calculável de uma penalidade definida ou removida. */
 	REGRA_DE_PENALIDADE_DEFINIDA, REGRA_DE_PENALIDADE_REMOVIDA,
 
+	/** ADR 0036: equipes de campo, campanhas de ligação e ordens de serviço. */
+	EQUIPE_CADASTRADA, EQUIPE_ALTERADA, CAMPANHA_CRIADA, CAMPANHA_ENCERRADA, CAMPANHA_CANCELADA, ORDENS_DISTRIBUIDAS,
+	RESULTADO_DE_ORDEM_REGISTRADO,
+
 	/** ADR 0021: páginas digitalizadas lidas por OCR (nome herdado). */
 	TEXTO_RECONHECIDO_POR_OCR,
 

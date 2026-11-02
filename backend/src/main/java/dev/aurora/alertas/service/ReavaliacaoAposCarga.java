@@ -6,13 +6,15 @@ import dev.aurora.integracoes.CargaConcluida;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 
 /**
  * Depois de uma carga, reavalia os alertas do tenant na hora (a fonte deixa de estar
- * atrasada e a adesão pode ter mudado), sem esperar a próxima rodada de 15 minutos.
+ * atrasada e a adesão pode ter mudado), sem esperar a próxima rodada de 15 minutos. Roda
+ * depois da conferência das OS (campanhas), que muda o alerta de divergência.
  */
 @Component
 class ReavaliacaoAposCarga {
@@ -28,6 +30,7 @@ class ReavaliacaoAposCarga {
 		this.contextos = contextos;
 	}
 
+	@Order(10)
 	@TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
 	void aoConcluirCarga(CargaConcluida carga) {
 		try {

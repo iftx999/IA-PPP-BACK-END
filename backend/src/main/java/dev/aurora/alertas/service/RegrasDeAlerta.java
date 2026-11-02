@@ -21,6 +21,7 @@ import dev.aurora.adesao.Situacao;
 import dev.aurora.alertas.model.Condicao;
 import dev.aurora.alertas.model.Severidade;
 import dev.aurora.alertas.model.TipoAlerta;
+import dev.aurora.campanhas.CampanhaDivergente;
 import dev.aurora.contratos.PrazoContratual;
 import dev.aurora.integracoes.FonteAtrasada;
 import dev.aurora.metas.SituacaoDaUnidade;
@@ -70,6 +71,22 @@ final class RegrasDeAlerta {
 	}
 
 	/** RN-08: fonte sem carga dentro do atraso máximo. */
+	/**
+	 * RN-19 (ADR 0036): um alerta por campanha com OS executada que a carga não confirmou
+	 * como ligação.
+	 */
+	static List<Condicao> deOrdensDivergentes(List<CampanhaDivergente> campanhas) {
+		return campanhas.stream()
+			.map(c -> new Condicao("OS_DIVERGENTE:" + c.campanhaId(), TipoAlerta.ORDEM_DIVERGENTE, Severidade.ATENCAO,
+					c.unidadeId(), "OS executadas sem ligação na carga: " + c.nome(),
+					(c.divergentes() == 1 ? "1 OS executada não aparece"
+							: c.divergentes() + " OS executadas não aparecem")
+							+ " como ligação na carga do mês seguinte ao da execução. Confira com a equipe e com o"
+							+ " sistema comercial.",
+					"/campanhas/" + c.campanhaId() + "?conferencia=DIVERGENTE"))
+			.toList();
+	}
+
 	static List<Condicao> deFontes(List<FonteAtrasada> atrasadas, ZoneId fuso) {
 		return atrasadas.stream()
 			.map(f -> new Condicao("FONTE:" + f.id(), TipoAlerta.FONTE_ATRASADA, Severidade.ATENCAO, null,

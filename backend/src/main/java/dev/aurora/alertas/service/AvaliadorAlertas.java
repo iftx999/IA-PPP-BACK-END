@@ -13,6 +13,7 @@ import dev.aurora.alertas.model.Condicao;
 import dev.aurora.alertas.model.TipoAlerta;
 import dev.aurora.alertas.repository.AlertaRepository;
 import dev.aurora.auditoria.VerificacaoDaTrilha;
+import dev.aurora.campanhas.Campanhas;
 import dev.aurora.contratos.PrazosContratuais;
 import dev.aurora.integracoes.Fontes;
 import dev.aurora.metas.Metas;
@@ -29,7 +30,8 @@ import org.springframework.transaction.annotation.Transactional;
 public class AvaliadorAlertas {
 
 	static final Set<TipoAlerta> DE_INDICADORES = EnumSet.of(TipoAlerta.INDICADOR_ABAIXO_DA_META,
-			TipoAlerta.META_FORA_DO_RITMO, TipoAlerta.FONTE_ATRASADA, TipoAlerta.PRAZO_CONTRATUAL);
+			TipoAlerta.META_FORA_DO_RITMO, TipoAlerta.FONTE_ATRASADA, TipoAlerta.PRAZO_CONTRATUAL,
+			TipoAlerta.ORDEM_DIVERGENTE);
 
 	private final AlertaRepository alertas;
 
@@ -43,16 +45,19 @@ public class AvaliadorAlertas {
 
 	private final VerificacaoDaTrilha trilha;
 
+	private final Campanhas campanhas;
+
 	private final Clock relogio;
 
 	AvaliadorAlertas(AlertaRepository alertas, Metas metas, Fontes fontes, Medicoes medicoes, PrazosContratuais prazos,
-			VerificacaoDaTrilha trilha, Clock relogio) {
+			VerificacaoDaTrilha trilha, Campanhas campanhas, Clock relogio) {
 		this.alertas = alertas;
 		this.metas = metas;
 		this.fontes = fontes;
 		this.medicoes = medicoes;
 		this.prazos = prazos;
 		this.trilha = trilha;
+		this.campanhas = campanhas;
 		this.relogio = relogio;
 	}
 
@@ -74,6 +79,7 @@ public class AvaliadorAlertas {
 		condicoes.addAll(
 				RegrasDeAlerta.dePrazos(prazos.pendentes(hoje, hoje.plusDays(RegrasDeAlerta.ANTECEDENCIA_PRAZO_DIAS),
 						hoje.plusDays(RegrasDeAlerta.ANTECEDENCIA_CONTRATO_DIAS)), hoje));
+		condicoes.addAll(RegrasDeAlerta.deOrdensDivergentes(campanhas.comOrdensDivergentes()));
 		return sincronizar(DE_INDICADORES, condicoes);
 	}
 

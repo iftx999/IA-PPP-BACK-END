@@ -194,16 +194,22 @@ estimada evitamos, **para** decidir o esforço necessário.
 - Simulação compara o ritmo atual com o cenário, mês a mês, até depois do prazo; sempre rotulada como estimativa.
 - Atalhos: "Ritmo atual" e "Para a meta no prazo"; link a partir do quadro "No ritmo" do painel.
 
-### I2 · Campanhas de ligação (P1) [Aprovada · próximo marco]
+### I2 · Campanhas de ligação (P1) [Entregue · ADR 0036]
 **Como** gestor comercial, **quero** criar uma campanha a partir da lista de sem ligação, de uma área do mapa ou de um
 setor, priorizada pelo impacto na meta, **para** organizar o trabalho de campo.
+- Prévia antes de criar: quantos imóveis entram (por situação e prioridade), quantos já têm OS aberta e o impacto
+  na meta (adesão se todas virarem ligação e quanto das ligações que faltam a campanha cobre).
+- Atalhos "Criar campanha" em Sem ligação e "Campanha nesta área" no Mapa; até 5.000 OS por campanha.
 
-### I3 · Ordens de serviço de ligação (P1) [Aprovada · próximo marco]
+### I3 · Ordens de serviço de ligação (P1) [Entregue · ADR 0036]
 **Como** equipe de campo (própria ou empreiteira), **quero** receber ordens de serviço (vistoria, ligação nova,
 religação de cortado, notificação) com prazo e prioridade e registrar o resultado (executada, recusada com motivo,
 reagendada, inviável), **para** que o esforço apareça na Aurora.
+- Equipes próprias ou terceirizadas, com a unidade onde atuam; o gestor envia OS (selecionadas ou as N de maior
+  prioridade) e só seguem as de imóveis dentro da área da equipe.
+- "Minhas OS" (perfil Equipe de campo) no celular; o gestor também registra o resultado (empreiteira sem acesso).
 
-### I4 · Conferência pela carga e painel da campanha (P1) [Aprovada · próximo marco]
+### I4 · Conferência pela carga e painel da campanha (P1) [Entregue · ADR 0036]
 **Como** gestor, **quero** que a carga mensal confirme se a OS executada virou ligação (senão, alerta de divergência)
 e ver o funil planejadas → em campo → executadas → confirmadas, a produtividade por equipe, OS atrasadas, motivos de
 recusa e o efeito na adesão.
