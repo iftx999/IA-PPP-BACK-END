@@ -59,3 +59,13 @@ jobs:
       - uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # Imagem só é publicada com o CI inteiro verde (ADR 0022).
+  imagens:
+    needs: [backend, dependencias, segredos]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+      packages: write
+      security-events: write
+    uses: ./.github/workflows/imagens.yml

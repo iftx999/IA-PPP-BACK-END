@@ -32,6 +32,13 @@
 			<Class name="dev.aurora.integracoes.config.ConfiguracaoSegurancaAgente"/>
 		</Or>
 	</Match>
+	<!--
+	  O clamd não oferece TLS: o INSTREAM é TCP puro, e o ClamAV fica só na rede interna, sem porta publicada (ADR 0033).
+	-->
+	<Match>
+		<Bug pattern="UNENCRYPTED_SOCKET"/>
+		<Class name="dev.aurora.comum.ClamAvAntivirus"/>
+	</Match>
 	<!-- Comando do Tesseract vem da configuração (AURORA_OCR_COMANDO); os argumentos são fixos, sem dado do usuário. -->
 	<Match>
 		<Bug pattern="COMMAND_INJECTION"/>

@@ -1,10 +1,10 @@
 name: Imagens
 
-# Constrói, varre e publica as imagens da API e do banco no GHCR a cada push no main (e sob demanda).
+# Constrói, varre e publica as imagens da API e do banco no GHCR. Chamado pelo CI no push no main, só depois de todos
+# os jobs passarem (e sob demanda, para republicar).
 # Tag = sha do commit (imutável); "main" acompanha a última. Vulnerabilidade crítica corrigível bloqueia (ADR 0022).
 on:
-  push:
-    branches: [main]
+  workflow_call:
   workflow_dispatch:
 
 permissions:

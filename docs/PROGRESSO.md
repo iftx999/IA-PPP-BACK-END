@@ -471,3 +471,11 @@ token não leva os papéis de `realm-management` e a Admin API responde 403. Flu
   Campo comum `aurora-filtro-unidade` e estilo global `.barra-filtros`, com "Limpar filtros" e contagem "x de y".
 - Testes: front +6 specs unitários (contratos, plataforma, integrações, usuários, `ancestrais`), E2E de alertas com
   filtro de severidade; `convite.spec.ts` busca o campo como `searchbox`.
+
+## Sessão de 06/11/2026
+
+### CI verde e imagens depois do CI — branch `fix/ci-spotbugs-e-imagens` (back) e `fix/ci-imagem-depois-do-ci` (front)
+- O CI do back-end falhava na `main` desde 01/11 no SpotBugs: `UNENCRYPTED_SOCKET` no `ClamAvAntivirus`, porque o clamd
+  não oferece TLS. Exceção com motivo em `spotbugs-excluir.xml` e consequência registrada no ADR 0033.
+- As imagens eram publicadas mesmo com o CI vermelho. Agora o CI chama o workflow de imagens (`workflow_call`) só depois
+  de todos os jobs passarem, no push no `main`. A execução manual (`workflow_dispatch`) continua e não passa pelo CI.

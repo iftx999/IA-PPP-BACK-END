@@ -23,3 +23,6 @@ passos. Serviço de varredura na nuvem: o contrato sairia da infraestrutura do c
 
 **Consequências.** Produção precisa de ~1,5 GB a mais de memória. O clamd tem limite de 100 MB por arquivo, acima do
 limite de 50 MB dos contratos. Na primeira subida, até as assinaturas carregarem, envios ficam recusados.
+O clamd não oferece TLS, então o conteúdo enviado trafega sem criptografia entre a API e o antivírus (exceção
+`UNENCRYPTED_SOCKET` no SpotBugs): o ClamAV precisa ficar na mesma rede interna da API, sem porta publicada. Em outra
+topologia, proteger o trecho com um túnel TLS ou malha de serviços.
