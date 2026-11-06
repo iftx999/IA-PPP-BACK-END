@@ -29,7 +29,7 @@ manuais frágeis.
   (ECS) com `traceId`, `spanId` e `tenant_id` (também no processamento assíncrono de contratos) — sem e-mail, nome
   ou matrícula. Métricas de negócio de baixa cardinalidade: perguntas do assistente por resultado, tokens e custo de
   IA, páginas e tempo de OCR, registros e duração das cargas.
-- **Pipeline.** A cada push no `main`: imagens construídas, varridas pelo Trivy (crítica corrigível bloqueia,
+- **Pipeline.** A cada push no `main`, só com o CI inteiro verde: imagens construídas, varridas pelo Trivy (crítica corrigível bloqueia,
   relatório na aba Security) e publicadas no GHCR com tag do commit, SBOM e proveniência. SBOM CycloneDX das
   dependências Java dentro do JAR (`/actuator/sbom`). Versões corrigidas acima das do Spring Boot ficam explícitas no
   `pom.xml` (ex.: Tomcat 11.0.25, Jackson 3.1.7/2.21.7, em 23/10/2026). Na imagem do banco, o `gosu` da base
