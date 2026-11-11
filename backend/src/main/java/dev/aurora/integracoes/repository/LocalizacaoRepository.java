@@ -46,7 +46,7 @@ public class LocalizacaoRepository {
 					        AND ((imovel_localizacao.unidade_id, imovel_localizacao.precisao, imovel_localizacao.origem)
 					             IS DISTINCT FROM (EXCLUDED.unidade_id, EXCLUDED.precisao, EXCLUDED.origem)
 					             OR NOT ST_Equals(imovel_localizacao.geom, EXCLUDED.geom))
-					     RETURNING (xmax = 0) AS novo)
+					     RETURNING (old.codigo_origem IS NULL) AS novo)
 					SELECT count(*) FILTER (WHERE novo) AS novos, count(*) FILTER (WHERE NOT novo) AS atualizados,
 					       (SELECT count(*) FROM dados d JOIN imovel_localizacao l ON l.codigo_origem = d.codigo
 					         WHERE l.tenant_id = app_tenant() AND l.origem IN ('CAMPO', 'DESENHADA')) AS preservados

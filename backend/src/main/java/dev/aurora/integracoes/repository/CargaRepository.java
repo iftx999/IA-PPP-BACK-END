@@ -35,7 +35,8 @@ public class CargaRepository {
 
 	/**
 	 * Uma instrução para o lote inteiro (arrays + unnest). Linha igual à gravada não é
-	 * reescrita; {@code xmax = 0} distingue inserção de atualização.
+	 * reescrita; {@code old} vazio no RETURNING (PostgreSQL 18) distingue inserção de
+	 * atualização ({@code xmax} não existe em tabela particionada, ADR 0038).
 	 */
 	public Contagem gravar(UUID fonte, UUID execucao, YearMonth competencia, List<String> matriculas,
 			List<UUID> unidades, List<String> situacoes, List<@Nullable String> motivosCorte) {
@@ -56,7 +57,7 @@ public class CargaRepository {
 				      WHERE (imovel_situacao_mensal.unidade_id, imovel_situacao_mensal.situacao,
 				             imovel_situacao_mensal.motivo_corte)
 				            IS DISTINCT FROM (EXCLUDED.unidade_id, EXCLUDED.situacao, EXCLUDED.motivo_corte)
-				     RETURNING (xmax = 0) AS novo)
+				     RETURNING (old.codigo_origem IS NULL) AS novo)
 				SELECT count(*) FILTER (WHERE novo) AS novos, count(*) FILTER (WHERE NOT novo) AS atualizados
 				  FROM gravados""")
 			.param("matriculas", matriculas.toArray(String[]::new))
