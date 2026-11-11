@@ -42,6 +42,9 @@ aurora:
     audiencia: aurora-api
     # Segredo dos cursores de paginação (>= 32 caracteres).
     chave-cursor: ${AURORA_CHAVE_CURSOR}
+    # Requisições por minuto de cada pessoa autenticada, por instância da API (ADR 0037). O limite por IP fica no
+    # nginx do front.
+    limite-por-minuto: ${AURORA_LIMITE_POR_MINUTO:1200}
     # Verificação em duas etapas obrigatória para quem gerencia usuários (RN-17). O tenant pode exigir de todos.
     segundo-fator-administradores: ${AURORA_SEGUNDO_FATOR_ADMINISTRADORES:true}
     # SSO corporativo (ADR 0025): o Keycloak busca o endereço informado pelo administrador. Fora do desenvolvimento,

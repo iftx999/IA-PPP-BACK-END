@@ -13,6 +13,8 @@ aurora:
     segundo-fator-administradores: ${AURORA_SEGUNDO_FATOR_ADMINISTRADORES:false}
     # O IdP corporativo de exemplo roda no Keycloak local (http://localhost:8180/realms/corporativo-exemplo).
     sso-permitir-enderecos-internos: ${AURORA_SSO_PERMITIR_ENDERECOS_INTERNOS:true}
+    # O k6 (infra/carga) usa um só usuário a 40+ requisições/s.
+    limite-por-minuto: ${AURORA_LIMITE_POR_MINUTO:100000}
   plataforma:
     emissor: ${AURORA_PLATAFORMA_EMISSOR:http://localhost:8180/realms/plataforma}
     # Desligado no ambiente local para o usuário de demonstração entrar só com senha.

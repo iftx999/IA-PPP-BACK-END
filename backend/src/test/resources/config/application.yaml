@@ -3,3 +3,6 @@
 aurora:
   tarefas:
     habilitadas: false
+  # Os testes reaproveitam o mesmo contexto e os mesmos usuários; o limite é testado à parte.
+  seguranca:
+    limite-por-minuto: 100000

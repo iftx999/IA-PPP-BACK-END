@@ -1,5 +1,6 @@
 package dev.aurora.acesso.config;
 
+import java.time.Clock;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -149,7 +150,8 @@ class ConfiguracaoSeguranca {
 	@Bean
 	@Order(2)
 	SecurityFilterChain api(HttpSecurity http, AuthenticationManagerResolver<HttpServletRequest> porEmissor,
-			ContextoAcessoService resolvedor) throws Exception {
+			ContextoAcessoService resolvedor, @Value("${aurora.seguranca.limite-por-minuto}") int limitePorMinuto)
+			throws Exception {
 		return http.authorizeHttpRequests(regras -> regras.requestMatchers("/actuator/health/**")
 			.permitAll()
 			// Documentação da API: só existe fora de produção (springdoc desligado no
@@ -165,6 +167,10 @@ class ConfiguracaoSeguranca {
 			.cors(cors -> {
 			})
 			.addFilterAfter(new FiltroContextoAcesso(resolvedor), BearerTokenAuthenticationFilter.class)
+			// Depois do contexto: o limite é por pessoa (ADR 0037).
+			.addFilterAfter(
+					new FiltroLimiteDeRequisicoes(new LimitadorDeRequisicoes(limitePorMinuto, Clock.systemUTC())),
+					FiltroContextoAcesso.class)
 			.build();
 	}
 
