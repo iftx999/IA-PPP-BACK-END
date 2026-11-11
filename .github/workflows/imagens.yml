@@ -38,6 +38,8 @@ jobs:
           images: ghcr.io/${{ github.repository_owner }}/${{ matrix.nome }}
           tags: |
             type=sha,format=short
+            # SHA completo: o que a implantação automática usa (ADR 0040 do back-end).
+            type=sha,format=long
             type=raw,value=main
       - name: Construir (sem publicar) para a varredura
         uses: docker/build-push-action@v7

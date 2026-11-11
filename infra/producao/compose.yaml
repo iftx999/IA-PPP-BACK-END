@@ -32,7 +32,8 @@ services:
 
   web:
     <<: *reinicio
-    image: ${AURORA_REGISTRO}/aurora-web:${AURORA_VERSAO}
+    # Tag do repositório do front (SHA de lá), independente da do back-end.
+    image: ${AURORA_REGISTRO}/aurora-web:${AURORA_VERSAO_WEB:?defina AURORA_VERSAO_WEB no .env}
     environment:
       AURORA_API_ENDERECO: api:8080
       AURORA_EMISSOR: https://${AURORA_DOMINIO_ID}/realms/aurora

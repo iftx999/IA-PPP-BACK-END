@@ -10,3 +10,6 @@
 .DS_Store
 # Backups gerados em produção (copiar para fora do host, nunca para o Git).
 infra/producao/backups/
+# Registro e trava das implantações no host (ADR 0040).
+infra/producao/implantacoes.log
+infra/producao/.implantar.trava

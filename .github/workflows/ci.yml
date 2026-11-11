@@ -69,3 +69,16 @@ jobs:
       packages: write
       security-events: write
     uses: ./.github/workflows/imagens.yml
+
+  # Homologação acompanha o main (ADR 0040): API e banco da imagem recém-publicada. Liga com a variável do
+  # repositório IMPLANTAR_HOMOLOGACAO = true, depois de configurar o ambiente "homologacao".
+  homologacao:
+    needs: [imagens]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.IMPLANTAR_HOMOLOGACAO == 'true'
+    uses: ./.github/workflows/implantar.yml
+    with:
+      ambiente: homologacao
+      commit: ${{ github.sha }}
+      versao_api: sha-${{ github.sha }}
+      versao_web: manter
+    secrets: inherit

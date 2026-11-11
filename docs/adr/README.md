@@ -41,3 +41,4 @@ gera um novo ADR que o substitui.
 | [0034](0034-testes-de-carga.md) | Testes de carga: k6 nas leituras e JUnit na carga mensal | Aceito |
 | [0035](0035-simulador-de-penalidades.md) | Simulador de penalidades: regra calculável na penalidade aprovada e projeção mês a mês | Aceito |
 | [0036](0036-campanhas-e-ordens-de-servico.md) | Campanhas de ligação e ordens de serviço, conferidas pela carga mensal | Aceito |
+| [0040](0040-homologacao-e-implantacao-automatica.md) | Homologação e implantação automática com volta de versão | Aceito |

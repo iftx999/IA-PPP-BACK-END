@@ -53,20 +53,53 @@ os endereços que a TI do cliente registra no IdP. Só pessoas já convidadas en
 
 ## 3. Atualizar a versão
 
-1. Escolha a tag publicada pelo CI (aba Packages do GitHub; o CI só publica imagem sem vulnerabilidade crítica).
-2. Faça um backup na hora: `docker compose --env-file .env exec backup sh /backup.sh agora`.
-3. Troque `AURORA_VERSAO` no `.env` e rode `docker compose --env-file .env up -d`. As migrações do banco (Flyway)
-   rodam na subida da API; o encerramento é gracioso (requisições em andamento terminam).
-4. Confira saúde, login e o painel do Grafana (erros 5xx e latência).
-5. Se a nova versão exige mudanças no realm (o Keycloak só importa o realm na primeira subida), rode o script
-   indicado nas notas da versão. Para o SSO corporativo (ADR 0025), uma vez: `./atualizar-realm-sso.sh`
-   (idempotente). Para a trilha de acesso (ADR 0028), uma vez **em cada realm de cliente**:
-   `KC_REALM=<código> ./atualizar-realm-eventos.sh` (idempotente; clientes criados pela tela já vêm prontos).
+Pelo `implantar.sh` (ADR 0040), à mão ou pelo workflow "Implantar" do GitHub:
 
-**Voltar versão:** recoloque a tag anterior e `up -d`. Se a versão nova aplicou migração incompatível, restaure o
-backup do passo 2 (seção 4).
+```bash
+./implantar.sh <commit-do-back-end|manter> <sha-tag-da-api|manter> <sha-tag-do-web|manter>
+./implantar.sh 1a2b3c4 sha-1a2b3c4 manter      # só a API e o banco
+./implantar.sh manter manter sha-9f8e7d6        # só o front
+```
 
-## 3.1 Antivírus (ADR 0033)
+As tags vêm da aba Packages do GitHub (o CI só publica imagem com todos os testes verdes e sem vulnerabilidade
+crítica). `AURORA_VERSAO` é a tag da API e do banco (SHA do repositório do back-end); `AURORA_VERSAO_WEB`, a do front
+(SHA do repositório do front). O script, em ordem: faz backup na hora (contínuo e lógico), põe o `infra/` no commit
+pedido, troca as tags no `.env`, baixa as imagens, sobe esperando os healthchecks e confere pela borda (front e API
+respondendo pelo domínio). **Se algo falhar, volta sozinho** para o commit e as tags anteriores. Cada implantação fica
+em `implantacoes.log`. As migrações do banco (Flyway) rodam na subida da API; o encerramento é gracioso.
+
+Depois, confira o login e o painel do Grafana (erros 5xx e latência). Se a nova versão exige mudanças no realm (o
+Keycloak só importa o realm na primeira subida), rode o script indicado nas notas da versão. Para o SSO corporativo
+(ADR 0025), uma vez: `./atualizar-realm-sso.sh` (idempotente). Para a trilha de acesso (ADR 0028), uma vez **em cada
+realm de cliente**: `KC_REALM=<código> ./atualizar-realm-eventos.sh` (idempotente; clientes criados pela tela já vêm
+prontos).
+
+**Voltar versão:** `./implantar.sh <commit-anterior> <tag-anterior> <tag-web-anterior>` (estão em
+`implantacoes.log`). Se a versão nova aplicou migração incompatível com a anterior, restaure o backup feito pelo
+script (seção 4) para o instante de antes da implantação.
+
+## 3.1 Homologação e implantação automática (ADR 0040)
+
+- **Homologação** é um host separado, igual ao de produção (mesmo `compose.yaml`, mesmo procedimento da seção 1), com
+  domínios próprios (ex. `homologacao.aurora.empresa.com.br`), `.env` e segredos próprios e **só dados fictícios ou
+  anonimizados**, nunca cópia da base de produção com dados pessoais (LGPD). É onde rodam o teste de restauração
+  mensal (seção 4) e a validação antes de produção.
+- **Automática:** cada push no `main` que passa no CI publica as imagens e implanta em homologação (back-end: API e
+  banco; front: o web). **Produção é sempre manual:** Actions › Implantar › Run workflow, ambiente `producao`, com
+  as tags já validadas em homologação; o GitHub pede a aprovação de um revisor antes de rodar.
+- **Configuração (uma vez por ambiente):**
+  1. No host: usuário `aurora` no grupo `docker`, clone do repositório do back-end em `/opt/aurora` (chave de
+     leitura do repositório) e `.env` em `/opt/aurora/infra/producao/`.
+  2. Chave só para a implantação: `ssh-keygen -t ed25519 -N '' -f implantacao`. No `~aurora/.ssh/authorized_keys`
+     do host, uma linha **restrita ao script** (a chave não abre shell):
+     `command="/opt/aurora/infra/producao/implantar.sh",restrict ssh-ed25519 AAAA... implantacao-github`
+  3. Nos **dois** repositórios, Settings › Environments › `homologacao` (e `producao` no do back-end): segredos
+     `IMPLANTACAO_SSH_HOST`, `IMPLANTACAO_SSH_USUARIO` (`aurora`), `IMPLANTACAO_SSH_CHAVE` (conteúdo de
+     `implantacao`) e `IMPLANTACAO_SSH_HOSTS_CONHECIDOS` (saída de `ssh-keyscan <host>`). Em `producao`: *Required
+     reviewers* e *Deployment branches* = `main`. Apague o arquivo `implantacao` local depois.
+  4. Settings › Variables: `IMPLANTAR_HOMOLOGACAO` = `true` nos dois repositórios (sem ela o CI não implanta).
+
+## 3.2 Antivírus (ADR 0033)
 
 - O serviço `clamav` verifica todo PDF de contrato e toda logo antes de gravar. A API recusa o envio (503) se ele
   não responder; não há como desligar em produção sem mudar `AURORA_ANTIVIRUS_OBRIGATORIO` (não recomendado).

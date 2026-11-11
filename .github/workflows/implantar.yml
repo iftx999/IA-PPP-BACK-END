@@ -1,0 +1,81 @@
+name: Implantar
+
+# Implanta uma versão no host de um ambiente (ADR 0040), pelo infra/producao/implantar.sh via SSH com chave restrita.
+# - Homologação: automática, chamada pelo CI no push no main depois das imagens (com a variável do repositório
+#   IMPLANTAR_HOMOLOGACAO = true). Troca só a API e o banco; o front tem a mesma automação no repositório dele.
+# - Produção: só manual (Run workflow), no ambiente "producao" do GitHub, que exige aprovação de um revisor.
+# Segredos por ambiente (Settings › Environments): IMPLANTACAO_SSH_HOST, IMPLANTACAO_SSH_USUARIO,
+# IMPLANTACAO_SSH_CHAVE (privada, ed25519) e IMPLANTACAO_SSH_HOSTS_CONHECIDOS (saída de ssh-keyscan do host).
+on:
+  workflow_call:
+    inputs:
+      ambiente: { type: string, required: true }
+      commit: { type: string, required: true }
+      versao_api: { type: string, required: true }
+      versao_web: { type: string, required: true }
+  workflow_dispatch:
+    inputs:
+      ambiente:
+        type: choice
+        options: [homologacao, producao]
+        required: true
+      commit:
+        description: "Commit do back-end (infra/) ou 'manter'"
+        default: manter
+        required: true
+      versao_api:
+        description: "Tag de aurora-api/aurora-postgres (sha-xxxxxxx) ou 'manter'"
+        default: manter
+        required: true
+      versao_web:
+        description: "Tag de aurora-web (sha-xxxxxxx, SHA do repositório do front) ou 'manter'"
+        default: manter
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  implantar:
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ inputs.ambiente }}
+    # Uma implantação por ambiente de cada vez; a seguinte espera (não cancela a que está no meio).
+    concurrency:
+      group: implantar-${{ inputs.ambiente }}
+      cancel-in-progress: false
+    timeout-minutes: 20
+    steps:
+      - name: Conferir os parâmetros
+        env:
+          AMBIENTE: ${{ inputs.ambiente }}
+          COMMIT: ${{ inputs.commit }}
+          VERSAO_API: ${{ inputs.versao_api }}
+          VERSAO_WEB: ${{ inputs.versao_web }}
+          REF: ${{ github.ref }}
+        run: |
+          [[ "$AMBIENTE" =~ ^(homologacao|producao)$ ]] || { echo "ambiente inválido"; exit 1; }
+          [[ "$COMMIT" == manter || "$COMMIT" =~ ^[0-9a-f]{7,40}$ ]] || { echo "commit inválido"; exit 1; }
+          [[ "$VERSAO_API" == manter || "$VERSAO_API" =~ ^sha-[0-9a-f]{7,40}$ ]] || { echo "versao_api inválida"; exit 1; }
+          [[ "$VERSAO_WEB" == manter || "$VERSAO_WEB" =~ ^sha-[0-9a-f]{7,40}$ ]] || { echo "versao_web inválida"; exit 1; }
+          # Produção só a partir do main (o ambiente também deve restringir a branch).
+          if [ "$AMBIENTE" = producao ] && [ "$REF" != refs/heads/main ]; then echo "produção só pelo main"; exit 1; fi
+          echo "Implantando em ${AMBIENTE}: commit=${COMMIT} api=${VERSAO_API} web=${VERSAO_WEB}" >> "$GITHUB_STEP_SUMMARY"
+      - name: Implantar pelo SSH
+        env:
+          HOST: ${{ secrets.IMPLANTACAO_SSH_HOST }}
+          USUARIO: ${{ secrets.IMPLANTACAO_SSH_USUARIO }}
+          CHAVE: ${{ secrets.IMPLANTACAO_SSH_CHAVE }}
+          CONHECIDOS: ${{ secrets.IMPLANTACAO_SSH_HOSTS_CONHECIDOS }}
+          ARGUMENTOS: ${{ inputs.commit }} ${{ inputs.versao_api }} ${{ inputs.versao_web }}
+        run: |
+          [ -n "$HOST" ] && [ -n "$CHAVE" ] && [ -n "$CONHECIDOS" ] || { echo "segredos de implantação ausentes no ambiente"; exit 1; }
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$CHAVE" > ~/.ssh/implantacao && chmod 600 ~/.ssh/implantacao
+          printf '%s\n' "$CONHECIDOS" > ~/.ssh/known_hosts
+          # A chave só roda o implantar.sh no host (command= no authorized_keys): o texto abaixo vira os argumentos.
+          ssh -i ~/.ssh/implantacao -o StrictHostKeyChecking=yes -o BatchMode=yes -o ServerAliveInterval=30 \
+            "${USUARIO:-aurora}@${HOST}" "$ARGUMENTOS"
+      - name: Apagar a chave
+        if: always()
+        run: rm -f ~/.ssh/implantacao
