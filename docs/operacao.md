@@ -15,7 +15,9 @@ Implantação num host único com Docker Compose (ADR 0022). Todos os comandos r
 4. Confira: `docker compose --env-file .env ps` (api e web `healthy`); `https://AURORA_DOMINIO` abre o login.
 5. Fundo do mapa: contrate um provedor de tiles (os tiles públicos do OpenStreetMap não admitem uso de produção) e
    ponha as origens dele em `AURORA_CSP_MAPA`.
-6. Copie `backups/` para fora do host (rsync/objeto) com a frequência do backup (diária).
+6. Backup fora do host (seção 4): `cp pitr/pitr.env.example pitr/pitr.env` e preencha o bucket S3 (ou compatível)
+   antes da primeira subida. Guarde `AURORA_BACKUP_CHAVE` e a senha do repositório S3 no cofre de segredos, **fora
+   deste host**: sem elas nenhum backup é restaurável. Copie também `backups/` (pg_dump diário) para fora do host.
 
 O console de administração do Keycloak **não** fica exposto na internet. Para usá-lo:
 `ssh -L 8180:localhost:8180 host` e um `docker compose ... exec keycloak` com `kcadm.sh`, ou publique a porta só para
@@ -78,18 +80,42 @@ backup do passo 2 (seção 4).
 
 ## 4. Backup e restauração
 
-- Backup automático às 02:00 (Aurora e Keycloak) em `backups/`, retenção de `AURORA_BACKUP_DIAS` (14) dias.
+Duas camadas (ADR 0039):
+
+**Backup contínuo com PITR (pgBackRest, serviço `backup-pitr`)** — a principal.
+- O PostgreSQL arquiva cada segmento de WAL no repositório (no máximo a cada 60 s); completo aos domingos e
+  diferencial nos outros dias às 01:00; verificação de integridade do repositório aos domingos. Repositório 1 no
+  volume `pitr-repositorio`, cifrado (AES-256); repositório 2 no S3 de `pitr/pitr.env`, também cifrado.
+- Janela de restauração: `AURORA_PITR_SEMANAS` (2) semanas no volume local; `PGBACKREST_REPO2_RETENTION_FULL` (8)
+  semanas no S3.
+- Situação: `docker compose --env-file .env exec backup-pitr pgbackrest info` (backups, WAL arquivado, tamanhos).
+  Falhas aparecem no log como `FALHA no backup` (`docker compose ... logs backup-pitr`).
+- Backup na hora: `docker compose --env-file .env exec backup-pitr sh /pitr/agendar.sh agora full` (ou `diff`).
+- **Restaurar a um instante** (ex.: exclusão errada às 14:32): `./pitr/restaurar.sh "2026-11-11 14:30:00-03"`.
+  Sem perder nada do que foi arquivado (ex.: disco corrompido): `./pitr/restaurar.sh mais-recente`. API e backups
+  param; o diretório de dados atual é **renomeado**, não apagado (`18/docker.antes_<instante>`); se a restauração
+  falhar, ele volta ao lugar e os serviços sobem de novo. Depois: confira o app e a verificação da trilha, faça um
+  backup completo (a restauração abre uma linha do tempo nova) e, validado, libere o diretório anterior com o
+  comando que o script mostra.
+- Host perdido: num host novo, com o mesmo `.env` e `pitr/pitr.env`, suba só o `postgres` e o `backup-pitr` e rode
+  `./pitr/restaurar.sh mais-recente`. O pgBackRest procura o backup nos repositórios em ordem e, com o volume local
+  vazio, usa o S3. Ensaie este caso no teste de restauração antes de precisar dele.
+
+**Cópia lógica diária (pg_dump, serviço `backup`)** — segunda linha de defesa e restauração seletiva.
+- Às 02:00 (Aurora e Keycloak) em `backups/`, retenção de `AURORA_BACKUP_DIAS` (14) dias. O Keycloak só tem esta.
   Manual: `docker compose --env-file .env exec backup sh /backup.sh agora`.
-- Restaurar a Aurora: `./restaurar-backup.sh backups/aurora-AAAA-MM-DDTHHMM.dump`. A API para; o banco atual vira
-  `aurora_antes_<instante>` (nada é apagado); o backup é restaurado num banco novo; a API volta. Depois de conferir
-  o app e a verificação da trilha (Administração › Auditoria), libere o anterior com `DROP DATABASE ...`.
-- Teste de restauração: ao menos uma vez por trimestre, num host de homologação (doc 09).
+- Restaurar a Aurora do dump: `./restaurar-backup.sh backups/aurora-AAAA-MM-DDTHHMM.dump`. O banco atual vira
+  `aurora_antes_<instante>` (nada é apagado); libere com `DROP DATABASE ...` depois de conferir.
+
+**Teste de restauração:** todo mês, num host de homologação, com `./pitr/restaurar.sh` para um instante conhecido;
+registre data, instante pedido, duração e resultado (doc 09).
+
 - Trilha de auditoria (ADR 0029): cada cliente define o prazo de retenção (Usuários › Retenção da auditoria; padrão
   60 meses). O expurgo diário apaga só o que venceu e registra na trilha; os backups acima guardam só os últimos
   `AURORA_BACKUP_DIAS` dias. Cliente que precise de arquivo de longo prazo exporta o CSV da Auditoria (com SHA-256)
   antes de reduzir o prazo. A tarefa também cria as partições anuais da trilha com 2 anos de antecedência.
-- Metas: RPO 24 h (backup diário; reduzir com backup contínuo de WAL quando necessário); RTO de minutos para a base
-  atual.
+- Metas: **RPO de ~1 minuto** (WAL arquivado a cada 60 s no máximo; com o S3, vale também para perda do host); RTO
+  de minutos (restauração de base de demonstração em ~2 s; medir no teste mensal com o volume real).
 
 ## 5. Observabilidade
 
@@ -114,6 +140,8 @@ backup do passo 2 (seção 4).
 ## 7. Segredos
 
 Troca periódica (ou após incidente): gere novos valores, atualize o `.env` e `up -d`. Atenção:
+- `AURORA_BACKUP_CHAVE` cifra o repositório do backup contínuo: **não troque** num repositório existente (os backups
+  antigos ficariam ilegíveis); para trocar, crie um repositório novo e mantenha a chave antiga até a retenção vencer.
 - `AURORA_AUDITORIA_CHAVE` assina a trilha: trocar inicia uma nova cadeia (ADR 0009).
 - `AURORA_CHAVE_CURSOR`: cursores de paginação antigos deixam de valer (o usuário só recarrega a lista).
 - `AURORA_IDENTIDADE_SEGREDO`: troque também no cliente `aurora-api-admin` do Keycloak.

@@ -2,6 +2,8 @@
 # Segredos de qualquer ambiente (o .env.example é o modelo versionado).
 **/.env
 *.env.local
+# Credenciais da cópia do backup fora do host (o pitr.env.example é o modelo).
+infra/producao/pitr/pitr.env
 
 # IDEs e SO
 .idea/

@@ -12,6 +12,22 @@ x-reinicio: &reinicio
     driver: json-file
     options: { max-size: "20m", max-file: "5" }
 
+# Backup contínuo com pgBackRest (ADR 0039): mesma configuração no postgres (que arquiva o WAL) e no backup-pitr
+# (que faz os backups de base). Repositório 1 no volume local, cifrado; o 2 (S3, fora do host) vem do pitr.env.
+x-pgbackrest: &pgbackrest
+  PGBACKREST_STANZA: aurora
+  PGBACKREST_PG1_PATH: /var/lib/postgresql/18/docker
+  PGBACKREST_PG1_SOCKET_PATH: /var/run/postgresql
+  PGBACKREST_REPO1_PATH: /var/lib/pgbackrest
+  PGBACKREST_REPO1_CIPHER_TYPE: aes-256-cbc
+  PGBACKREST_REPO1_CIPHER_PASS: ${AURORA_BACKUP_CHAVE:?defina AURORA_BACKUP_CHAVE no .env}
+  PGBACKREST_REPO1_RETENTION_FULL: ${AURORA_PITR_SEMANAS:-2}
+  PGBACKREST_COMPRESS_TYPE: zst
+  PGBACKREST_PROCESS_MAX: "2"
+  PGBACKREST_LOG_LEVEL_CONSOLE: info
+  PGBACKREST_LOG_LEVEL_FILE: "off"
+  PGBACKREST_START_FAST: "y"
+
 services:
   proxy:
     <<: *reinicio
@@ -98,12 +114,27 @@ services:
   postgres:
     <<: *reinicio
     image: ${AURORA_REGISTRO}/aurora-postgres:${AURORA_VERSAO}
+    # WAL arquivado a cada segmento ou, com pouca escrita, a cada 60 s: perda máxima de ~1 min (ADR 0039).
+    command:
+      - postgres
+      - -c
+      - archive_mode=on
+      - -c
+      - archive_command=pgbackrest --stanza=aurora archive-push %p
+      - -c
+      - archive_timeout=60
     environment:
+      <<: *pgbackrest
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       AURORA_OWNER_PASSWORD: ${AURORA_OWNER_PASSWORD}
       AURORA_APP_PASSWORD: ${AURORA_APP_PASSWORD}
+    env_file:
+      - path: pitr/pitr.env
+        required: false
     volumes:
       - postgres-dados:/var/lib/postgresql
+      - postgres-socket:/var/run/postgresql
+      - pitr-repositorio:/var/lib/pgbackrest
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d aurora"]
       interval: 5s
@@ -155,6 +186,29 @@ services:
     depends_on:
       keycloak-db: { condition: service_healthy }
 
+  # Backups de base do pgBackRest (ADR 0039): completo semanal, diferencial diário, verificação semanal. Lê os
+  # arquivos de dados pelo mesmo volume e fala com o PostgreSQL pelo socket local (sem senha na rede).
+  backup-pitr:
+    <<: *reinicio
+    image: ${AURORA_REGISTRO}/aurora-postgres:${AURORA_VERSAO}
+    user: postgres
+    entrypoint: ["/bin/sh", "/pitr/agendar.sh"]
+    environment:
+      <<: *pgbackrest
+      TZ: America/Sao_Paulo
+    env_file:
+      - path: pitr/pitr.env
+        required: false
+    volumes:
+      - postgres-dados:/var/lib/postgresql
+      - postgres-socket:/var/run/postgresql
+      - pitr-repositorio:/var/lib/pgbackrest
+      - ./pitr/agendar.sh:/pitr/agendar.sh:ro
+    depends_on:
+      postgres: { condition: service_healthy }
+
+  # Cópia lógica diária (pg_dump) dos dois bancos: segunda linha de defesa e restauração seletiva. O banco do
+  # Keycloak só tem esta.
   backup:
     <<: *reinicio
     image: postgres:18.6-alpine
@@ -211,6 +265,8 @@ volumes:
   caddy-dados:
   caddy-config:
   postgres-dados:
+  postgres-socket:
+  pitr-repositorio:
   keycloak-dados:
   prometheus-dados:
   tempo-dados:
