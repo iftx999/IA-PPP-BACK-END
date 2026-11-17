@@ -10,6 +10,7 @@ import dev.aurora.acesso.model.NovaConcessao;
 import dev.aurora.acesso.repository.PerfilRepository;
 import dev.aurora.acesso.repository.UsuarioRepository;
 import dev.aurora.contexto.ContextoAcesso;
+import dev.aurora.servicos.Servicos;
 import dev.aurora.unidades.Unidades;
 
 import org.springframework.stereotype.Service;
@@ -34,8 +35,8 @@ class ProvisionamentoService implements ProvisionamentoDeCliente {
 			new PerfilDoSistema(ADMINISTRADOR, "Usuários, perfis, unidades e integrações",
 					List.of("assistente:usar", "campanha:gerenciar", "contrato:gerenciar", "contrato:ler",
 							"dados_pessoais:ler", "indicador:gerenciar", "indicador:ler", "integracao:gerenciar",
-							"mapa:marcar", "os:executar", "relatorio:exportar", "unidade:gerenciar", "unidade:ler",
-							"usuario:gerenciar")),
+							"mapa:marcar", "os:executar", "relatorio:exportar", "servico:gerenciar",
+							"unidade:gerenciar", "unidade:ler", "usuario:gerenciar")),
 			new PerfilDoSistema("Auditor", "Leitura da trilha de auditoria", List.of("auditoria:ler", "unidade:ler")),
 			new PerfilDoSistema("Diretor", "Leitura de todos os indicadores no escopo",
 					List.of("assistente:usar", "contrato:ler", "indicador:ler", "relatorio:exportar", "unidade:ler")),
@@ -44,7 +45,11 @@ class ProvisionamentoService implements ProvisionamentoDeCliente {
 							"indicador:ler", "mapa:marcar", "unidade:ler")),
 			// ADR 0036: a matrícula identifica o imóvel no campo.
 			new PerfilDoSistema("Equipe de campo", "Ordens de serviço das equipes de que faz parte",
-					List.of("dados_pessoais:ler", "os:executar", "unidade:ler")));
+					List.of("dados_pessoais:ler", "os:executar", "unidade:ler")),
+			// ADR 0042: catálogo de serviços de campo (e, nos próximos marcos, a
+			// programação).
+			new PerfilDoSistema("Gestor de serviços", "Catálogo de serviços de campo e programação das equipes",
+					List.of("servico:gerenciar", "unidade:ler")));
 
 	private final PerfilRepository perfis;
 
@@ -58,14 +63,18 @@ class ProvisionamentoService implements ProvisionamentoDeCliente {
 
 	private final TransactionTemplate transacao;
 
+	private final Servicos servicos;
+
 	ProvisionamentoService(PerfilRepository perfis, UsuarioRepository usuarios, Unidades unidades,
-			ContextosDoSistema contextos, GestaoUsuarioService gestao, TransactionTemplate transacao) {
+			ContextosDoSistema contextos, GestaoUsuarioService gestao, TransactionTemplate transacao,
+			Servicos servicos) {
 		this.perfis = perfis;
 		this.usuarios = usuarios;
 		this.unidades = unidades;
 		this.contextos = contextos;
 		this.gestao = gestao;
 		this.transacao = transacao;
+		this.servicos = servicos;
 	}
 
 	@Override
@@ -79,6 +88,7 @@ class ProvisionamentoService implements ProvisionamentoDeCliente {
 					perfis.substituirPermissoes(id, perfil.permissoes());
 				}
 			}
+			servicos.semearCatalogoInicial();
 			var administrador = perfis.buscarIdPorNome(ADMINISTRADOR).orElseThrow();
 			return Map.entry(raiz, administrador);
 		}));

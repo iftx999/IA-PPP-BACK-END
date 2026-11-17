@@ -112,6 +112,9 @@ Cada meta tem **percentual de meta** e **limite de alerta** (alerta ≤ meta).
 - O endereço **não sai da concessionária**. O agente local cruza matrícula/endereço com o **CNEFE do IBGE** e envia à Aurora somente **matrícula + ponto**.
 - Sem correspondência exata → ponto marcado como **localização aproximada**.
 - A Aurora **não armazena nome do cliente nem endereço** (a confirmar para a nova versão; é a decisão de projeto).
+- Exceção aprovada em 17/11/2026 (doc 10, 10.11; entra no M2): logradouros e trechos da concessionária e o número do
+  imóvel, para programar e levar a equipe à porta; acesso restrito (`os:programar`, `os:executar` só nas OS da equipe,
+  `logradouro:gerenciar`) e auditado; nunca o nome do morador.
 - Rede de esgoto: trecho **confirmado** (linha contínua) ou **presumido, a conferir** (tracejada).
 
 ## RN-10 · Extração de contrato pela IA
@@ -199,3 +202,18 @@ Cada meta tem **percentual de meta** e **limite de alerta** (alerta ≤ meta).
   continua sem ligação; senão fica aguardando. Uma carga posterior com a ligação desfaz a divergência.
 - Divergência abre o alerta "OS executadas sem ligação na carga" (um por campanha), para quem gerencia campanhas.
 - Encerrar ou cancelar a campanha cancela as OS ainda em aberto; nada é apagado.
+
+## RN-20 · Catálogo e versões (ADR 0042)
+
+- Código do serviço único por cliente e imutável depois do cadastro. Alterar a definição (nome, descrição, medida, alvo,
+  tempo, prazos, veículo, habilidade, conferência pela carga, parâmetros) cria nova versão; mudar só grupo ou situação
+  não cria. Versões e parâmetros nunca são alterados nem apagados.
+- A OS guarda a versão com que nasceu e o app usa os parâmetros dessa versão. Serviço inativo não aceita OS nova, mas
+  as abertas seguem. Grupo com serviço ativo não pode ser inativado.
+- Motivo "OUTRO" sempre exige observação. Só serviço em imóvel pode ser conferido pela carga (RN-19).
+
+## RN-21 a RN-27 · Prazo, ações de campo, equipe, logradouro, rota, fila e localização (propostas, doc 10)
+
+Texto completo em [10.7](10-servicos-e-roteirizacao.md#107-regras-de-negócio-propostas-rn-20-a-rn-27); entram em
+vigor com os marcos M3 a M6.
+

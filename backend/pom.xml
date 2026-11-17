@@ -347,12 +347,15 @@
 								<param>dev.aurora.adesao.model.Adesao</param>
 								<param>dev.aurora.adesao.model.Projecao</param>
 								<param>dev.aurora.alertas.service.RegrasDeAlerta</param>
+								<param>dev.aurora.servicos.model.*</param>
 							</targetClasses>
 							<targetTests>
 								<param>dev.aurora.adesao.model.RegrasDeAdesaoTest</param>
 								<param>dev.aurora.alertas.service.RegrasDeAlertaTest</param>
 								<param>dev.aurora.alertas.service.MensagemDeAlertasTest</param>
 								<param>dev.aurora.alertas.service.FronteirasDosAlertasTest</param>
+								<param>dev.aurora.servicos.model.DefinicaoServicoTest</param>
+								<param>dev.aurora.servicos.model.FronteirasDoCatalogoTest</param>
 							</targetTests>
 							<mutators>
 								<mutator>STRONGER</mutator>

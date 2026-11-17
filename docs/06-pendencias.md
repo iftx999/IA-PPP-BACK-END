@@ -17,6 +17,16 @@
 | 11 | Multi-tenant: o tenant era o grupo ou a concessionária? Como era o isolamento (coluna, schema, banco)? | ✅ O grupo (ex.: Grupo Saneamento Exemplo); coluna `tenant_id` com RLS e um emissor por tenant (ADR 0002, 0003, 0027) |
 | 12 | Perfis, permissões e escopo por unidade existentes; perfis customizáveis? | ✅ `usuario_perfil_escopo` (perfil concedido por unidade) e perfis próprios do cliente (ADR 0013) |
 | 13 | Autenticação: e-mail/senha, MFA, SSO, convite, administrador da plataforma | MFA ✅ (ADR 0023); SSO ✅ (ADR 0025); administrador da plataforma ✅ (ADR 0027) |
+| 14 | Serviços (doc 10, P1): formato dos arquivos da concessionária | Proposta aceita até a concessionária definir: GeoPackage para logradouros e trechos, CSV `matricula;codigo_logradouro;numero;complemento` |
+| 15 | Serviços (P2): endereço na Aurora × RN-09 | Proposta aceita: logradouros inteiros; número do imóvel com acesso restrito e auditado, sem nome do morador |
+| 16 | Serviços (P3): mapa de fundo offline no app | Proposta aceita: tiles próprios da área da concessão (PMTiles servido pela Aurora) |
+| 17 | Serviços (P4): guarda das posições das equipes | Proposta aceita: 90 dias |
+| 18 | Serviços (P5): sessão do app sem rede | Proposta aceita: 7 dias |
+| 19 | Serviços (P6): feriados no prazo em dias úteis | Proposta aceita: nacionais automáticos + municipais por unidade |
+| 20 | Serviços (P7): volume de referência | Proposta aceita: 50 equipes × 1.500 OS/dia por cliente nos testes |
+| 21 | Serviços (P8): "início fora do local" | Proposta aceita: 300 m, configurável |
+| 22 | Serviços (P9): Android e iOS | Proposta aceita: Android primeiro |
+| 23 | Serviços (P10): aparelho gerenciado (MDM) ou pessoal | Aberta: perguntar à operação; muda a política de segurança do app |
 
 ## 6.2 Riscos
 
@@ -60,5 +70,6 @@ e remover os itens correspondentes desta lista.
 
 - Projeto de estudo, sem fim comercial, com dados fictícios.
 - IA propõe, humano aprova; nenhuma meta de contrato entra sem aprovação.
-- Endereço permanece na concessionária.
+- Endereço permanece na concessionária, exceto o necessário ao trabalho de campo (doc 10, 10.11, aprovado em 17/11/2026):
+  logradouros e o número do imóvel, com acesso restrito e auditado, sem nome do morador.
 - Reconstrução do zero, usando estes documentos e o banco antigo como referência.

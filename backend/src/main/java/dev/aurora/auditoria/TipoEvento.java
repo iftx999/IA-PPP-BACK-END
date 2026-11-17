@@ -85,6 +85,12 @@ public enum TipoEvento {
 	EQUIPE_CADASTRADA, EQUIPE_ALTERADA, CAMPANHA_CRIADA, CAMPANHA_ENCERRADA, CAMPANHA_CANCELADA, ORDENS_DISTRIBUIDAS,
 	RESULTADO_DE_ORDEM_REGISTRADO,
 
+	/**
+	 * ADR 0042: catálogo de serviços (serviço cadastrado ou alterado, com ou sem nova
+	 * versão; grupo, veículo, habilidade ou motivo cadastrado ou alterado).
+	 */
+	SERVICO_CADASTRADO, SERVICO_ALTERADO, ITEM_DO_CATALOGO_CADASTRADO, ITEM_DO_CATALOGO_ALTERADO,
+
 	/** ADR 0021: páginas digitalizadas lidas por OCR (nome herdado). */
 	TEXTO_RECONHECIDO_POR_OCR,
 

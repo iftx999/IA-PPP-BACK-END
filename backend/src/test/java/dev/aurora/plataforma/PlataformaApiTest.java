@@ -121,7 +121,9 @@ class PlataformaApiTest {
 		var emissor = "https://idp.teste/realms/" + codigo;
 		verify(identidade).criarConta(emissor, "admin@" + codigo + ".teste", "Ana Administradora");
 		verify(identidade).enviarConvite(emissor, "sub-admin@" + codigo + ".teste");
-		assertThat(consulta("SELECT count(*) FROM perfil WHERE sistema AND tenant_id = ?", cliente)).isEqualTo(5);
+		assertThat(consulta("SELECT count(*) FROM perfil WHERE sistema AND tenant_id = ?", cliente)).isEqualTo(6);
+		// ADR 0042: catálogo inicial de serviços semeado no provisionamento.
+		assertThat(consulta("SELECT count(*) FROM servico WHERE tenant_id = ?", cliente)).isEqualTo(12);
 		assertThat(consulta("""
 				SELECT count(*) FROM usuario_perfil_escopo e JOIN perfil p ON p.id = e.perfil_id
 				  JOIN unidade u ON u.id = e.unidade_id
@@ -168,7 +170,7 @@ class PlataformaApiTest {
 		mvc.perform(post("/api/v1/plataforma/clientes/{id}/provisionamento", cliente).with(plataforma()))
 			.andExpect(status().isOk());
 		assertThat(consulta("SELECT count(*) FROM usuario WHERE tenant_id = ?", cliente)).isEqualTo(1);
-		assertThat(consulta("SELECT count(*) FROM perfil WHERE tenant_id = ?", cliente)).isEqualTo(5);
+		assertThat(consulta("SELECT count(*) FROM perfil WHERE tenant_id = ?", cliente)).isEqualTo(6);
 	}
 
 	@Test

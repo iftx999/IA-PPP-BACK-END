@@ -479,3 +479,27 @@ token não leva os papéis de `realm-management` e a Admin API responde 403. Flu
   não oferece TLS. Exceção com motivo em `spotbugs-excluir.xml` e consequência registrada no ADR 0033.
 - As imagens eram publicadas mesmo com o CI vermelho. Agora o CI chama o workflow de imagens (`workflow_call`) só depois
   de todos os jobs passarem, no push no `main`. A execução manual (`workflow_dispatch`) continua e não passa pelo CI.
+
+## Sessão de 17/11/2026
+
+### Serviços de campo: especificação (doc 10) e M1, catálogo de serviços — ADR 0042 — branch `feature/catalogo-de-servicos`
+- Pedido do autor: cadastro de serviços e parâmetros, programação por ligação ou logradouro com a melhor rota possível
+  e app nativo (Flutter) que funciona sem sinal (fila local), com iniciar, paralisar, devolver e encerrar.
+  Especificação no novo **doc 10** (épico J, RN-20 a RN-27, modelo, roteirização Valhalla + Timefold, app offline,
+  7 marcos); aprovada com as propostas das pendências P1–P10 (doc 06, itens 14–23; P10 continua aberta).
+- **M1 entregue:** módulo `servicos` (V31): grupos, serviços versionados (só inserção nas versões), parâmetros de
+  encerramento com condição, motivos, tipos de veículo, habilidades; catálogo inicial de 12 serviços semeado por
+  função SQL (clientes existentes na V31, novos no provisionamento); perfil **Gestor de serviços**.
+- Telas `/servicos` (filtros na URL, abas serviços / motivos / apoio) e `/servicos/:id` (editor com pré-visualização
+  do formulário do app e histórico de versões); rótulos dos eventos novos na auditoria.
+- Defeitos achados pelo ambiente local e corrigidos: a V31 falhava num banco com clientes (RLS forçado de `tenant`
+  sem contexto) — os testes começam vazios, por isso o novo `MigracaoDoCatalogoTest` migra até a V28, cria um cliente
+  e aplica a V31; e o editor perdia condição, mínimo e máximo dos parâmetros ao recarregar (o `reset()` do formulário
+  reiniciava o `FormArray`), criando versão nova sem mudança.
+- Testes: back-end `DefinicaoServicoTest` (6), `CatalogoApiTest` (3), `MigracaoDoCatalogoTest` (1), `PlataformaApiTest`
+  com 6 perfis e o catálogo semeado (suíte: 338 testes); `FronteirasDoCatalogoTest` (12) e as regras do catálogo no teste de mutação (97%); front `textos.spec.ts` (6), E2E `servicos.spec.ts` e as duas
+  telas no axe (sem violações sérias nos dois temas).
+- Numeração: V31 e ADR 0042 porque V29/V30 e ADR 0037–0041 estão em outras branches. **Ordem de merge:** partição
+  (V29) → atendimento ao titular (V30) → esta, para o Flyway não encontrar migração antiga pendente.
+- Ambiente: E2E rodado num Compose isolado (`-p aurora-servicos-e2e`, cópia do volume de desenvolvimento); o banco de
+  desenvolvimento não foi migrado.

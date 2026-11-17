@@ -214,6 +214,30 @@ reagendada, inviável), **para** que o esforço apareça na Aurora.
 e ver o funil planejadas → em campo → executadas → confirmadas, a produtividade por equipe, OS atrasadas, motivos de
 recusa e o efeito na adesão.
 
+## Épico J — Serviços de campo (novo, 17/11/2026 · doc 10)
+
+Especificação completa, critérios e decisões em [10. Serviços, programação, roteirização e app de campo](10-servicos-e-roteirizacao.md#104-histórias-de-usuário-épico-j--serviços-de-campo).
+
+### J1 · Catálogo de serviços (P0) [Entregue · ADR 0042]
+**Como** gestor de serviços, **quero** cadastrar grupos e serviços com unidade de medida, tempo padrão, prazos por
+prioridade, tipo de veículo e habilidade exigidos, **para** padronizar o que as equipes executam.
+
+### J2 · Parâmetros e motivos do serviço (P0) [Entregue · ADR 0042]
+**Como** gestor de serviços, **quero** definir os campos que a equipe preenche ao encerrar e os motivos aceitos,
+**para** coletar o dado certo de cada serviço.
+
+### J3 · Logradouros e trechos (P0) [Proposta · M2]
+### J4 · OS avulsa por ligação (P0) [Proposta · M3]
+### J5 · OS por logradouro: trecho ou lote (P0) [Proposta · M3]
+### J6 · Programação e roteirização (P0) [Proposta · M5]
+### J7 · Reotimização durante o dia (P1) [Proposta · M5]
+### J8 · Jornada no app (P0) [Proposta · M6]
+### J9 · Executar a OS (P0) [Proposta · M4/M6]
+### J10 · Fila e sincronização (P0) [Proposta · M4/M6]
+### J11 · Devoluções e conflitos (P0) [Proposta · M4]
+### J12 · Acompanhamento e indicadores (P1) [Proposta · M7]
+### J13 · Celulares e segurança do app (P0) [Proposta · M4]
+
 ---
 
 ## Marcos sugeridos
