@@ -414,4 +414,4 @@ com o sistema comercial; versão iOS publicada em loja (o código Flutter já na
 | P7 | Volume esperado (equipes e OS por dia por cliente) | 50 equipes × 1.500 OS/dia como referência de teste |
 | P8 | Distância para "início fora do local" | 300 m, configurável |
 | P9 | Android apenas ou também iOS? | Android primeiro (aparelhos corporativos), iOS depois |
-| P10 | Aparelhos gerenciados (MDM) ou celular pessoal do agente? | Muda a política de segurança; perguntar à operação |
+| P10 | Aparelhos gerenciados (MDM) ou celular pessoal do agente? | ✅ **Celular da empresa** (18/11/2026): o app pode exigir bloqueio de tela, impedir captura de tela e apagar tudo ao bloquear o celular, sem preocupação com dados pessoais do agente no aparelho |

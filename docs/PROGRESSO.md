@@ -563,6 +563,6 @@ token não leva os papéis de `realm-management` e a Admin API responde 403. Flu
 - Testes: back-end 407 (novos `CampoApiTest` com o fluxo inteiro, `RegrasDeExecucaoTest` com 30 casos,
   `MigracaoDoCatalogoTest` até a V34), mutação 97,1%; front 98 unitários; E2E `execucao.spec.ts` (celular simulado
   pela API com a sessão do navegador), `ordens`, `campanhas` e axe com `/celulares` nos dois temas.
-- Pendências: PIN/biometria e sessão de 7 dias sem rede (app e Keycloak, M6); P10 (celular pessoal × gerenciado);
+- Pendências: PIN/biometria e sessão de 7 dias sem rede (app e Keycloak, M6); P10 decidida: celular da empresa;
   RIPD com a localização dos funcionários; mapa do dia com as posições (M7).
 - Próximo: M5, roteirização (Valhalla no compose, Timefold, J6 e J7).

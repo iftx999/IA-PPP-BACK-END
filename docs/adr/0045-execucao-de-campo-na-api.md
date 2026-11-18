@@ -60,7 +60,11 @@ retomar. Migração V34.
   `CONFLITO_DE_CAMPO_ABERTO`, `CONFLITO_DE_CAMPO_DECIDIDO`, `ANEXO_RECUSADO`, `ANEXO_DE_ORDEM_LIDO`, além de
   `ORDEM_DEVOLVIDA` e `RESULTADO_DE_ORDEM_REGISTRADO` (`registradoPor: APP`).
 
+**Celular da empresa (P10, decidido em 18/11/2026).** O app roda em celulares da empresa: a revogação apaga todos os
+dados do app sem risco a dados pessoais do agente, e o app (M6) pode exigir bloqueio de tela e impedir captura de
+tela.
+
 **Consequências.** O app (M6) tem o contrato completo para trabalhar sem sinal. A web mostra o histórico, as fotos e
 a caixa de conflitos; o mapa do dia com as posições fica no M7, e a rota no pacote, no M5. Pendem: PIN e biometria
-(no app), sessão de 7 dias sem rede (P5, no Keycloak), política para celular pessoal × gerenciado (P10) e o RIPD com a
+(no app), sessão de 7 dias sem rede (P5, no Keycloak), e o RIPD com a
 localização dos funcionários.

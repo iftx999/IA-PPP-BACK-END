@@ -26,7 +26,7 @@
 | 20 | Serviços (P7): volume de referência | Proposta aceita: 50 equipes × 1.500 OS/dia por cliente nos testes |
 | 21 | Serviços (P8): "início fora do local" | Proposta aceita: 300 m, configurável |
 | 22 | Serviços (P9): Android e iOS | Proposta aceita: Android primeiro |
-| 23 | Serviços (P10): aparelho gerenciado (MDM) ou pessoal | Aberta: perguntar à operação; muda a política de segurança do app |
+| 23 | Serviços (P10): aparelho gerenciado (MDM) ou pessoal | ✅ Celular da empresa (decisão do usuário, 18/11/2026): o app pode exigir bloqueio de tela e bloquear captura de tela; o gerenciamento (MDM) é da operação |
 
 ## 6.2 Riscos
 
