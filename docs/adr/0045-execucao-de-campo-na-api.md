@@ -66,5 +66,5 @@ tela.
 
 **Consequências.** O app (M6) tem o contrato completo para trabalhar sem sinal. A web mostra o histórico, as fotos e
 a caixa de conflitos; o mapa do dia com as posições fica no M7, e a rota no pacote, no M5. Pendem: PIN e biometria
-(no app), sessão de 7 dias sem rede (P5, no Keycloak), e o RIPD com a
-localização dos funcionários.
+(no app), sessão de 7 dias sem rede (P5, no Keycloak), e a aprovação do RIPD da
+localização dos funcionários (`docs/ripd.md`, seção 1).

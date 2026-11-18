@@ -379,7 +379,8 @@ logradouro e levar o agente à porta exige logradouro e número na Aurora. Propo
 - **Vínculo matrícula → número** fica em `imovel_endereco`, com acesso só por `os:programar`, `os:executar` (só das
   OS da equipe) e `logradouro:gerenciar`, consulta auditada, e **nunca** com nome do morador.
 - Alternativa mais restrita: o agente da concessionária envia o número só dos imóveis que têm OS aberta.
-- Localização do funcionário (RN-27) e dados no celular (10.9.6) entram no **RIPD**, que já está pendente.
+- Localização do funcionário (RN-27) e dados no celular (10.9.6): seção 1 do **RIPD** ([ripd.md](ripd.md), rascunho para
+  aprovação do encarregado do controlador).
 
 ## 10.12 Marcos de entrega
 
