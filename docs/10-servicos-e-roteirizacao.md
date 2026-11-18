@@ -405,7 +405,7 @@ com o sistema comercial; versão iOS publicada em loja (o código Flutter já na
 
 | # | Pergunta | Proposta |
 |---|---|---|
-| P1 | Formato dos arquivos da concessionária (logradouros, trechos, matrícula → endereço) | GeoPackage para logradouros/trechos e CSV (`matricula;codigo_logradouro;numero;complemento`) para o vínculo, até a concessionária definir |
+| P1 | Formato dos arquivos da concessionária (logradouros, trechos, matrícula → endereço) | GeoPackage para logradouros/trechos e CSV (`matricula;codigo_logradouro;numero;complemento`) para o vínculo, até a concessionária definir. **No M2 os trechos vieram em GeoJSON** (texto lido em fluxo, sem GDAL; ADR 0043) |
 | P2 | Endereço na Aurora × RN-09 (10.11) | Importar logradouros inteiros e o número com acesso restrito e auditado |
 | P3 | Mapa de fundo offline no app (os servidores públicos do OSM não permitem baixar áreas) | Gerar tiles próprios da área da concessão (arquivo PMTiles servido pela Aurora) |
 | P4 | Guarda das posições das equipes | 90 dias |

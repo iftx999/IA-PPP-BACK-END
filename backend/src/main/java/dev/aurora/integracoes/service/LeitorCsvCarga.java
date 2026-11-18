@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
+import dev.aurora.comum.LinhaCsv;
 import dev.aurora.comum.RegraVioladaException;
 import dev.aurora.integracoes.model.RegistroCarga;
 
@@ -81,30 +82,7 @@ final class LeitorCsvCarga {
 
 	/** Divide respeitando aspas ("a;b" é um campo só; "" vira "). */
 	static List<String> dividir(String linha, char separador) {
-		var campos = new ArrayList<String>();
-		var atual = new StringBuilder();
-		boolean entreAspas = false;
-		for (int i = 0; i < linha.length(); i++) {
-			char c = linha.charAt(i);
-			if (c == '"') {
-				if (entreAspas && i + 1 < linha.length() && linha.charAt(i + 1) == '"') {
-					atual.append('"');
-					i++;
-				}
-				else {
-					entreAspas = !entreAspas;
-				}
-			}
-			else if (c == separador && !entreAspas) {
-				campos.add(atual.toString().strip());
-				atual.setLength(0);
-			}
-			else {
-				atual.append(c);
-			}
-		}
-		campos.add(atual.toString().strip());
-		return campos;
+		return LinhaCsv.dividir(linha, separador);
 	}
 
 	private static String campo(List<String> campos, int indice) {

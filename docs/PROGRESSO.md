@@ -503,3 +503,26 @@ token não leva os papéis de `realm-management` e a Admin API responde 403. Flu
   (V29) → atendimento ao titular (V30) → esta, para o Flyway não encontrar migração antiga pendente.
 - Ambiente: E2E rodado num Compose isolado (`-p aurora-servicos-e2e`, cópia do volume de desenvolvimento); o banco de
   desenvolvimento não foi migrado.
+
+## Sessão de 18/11/2026
+
+### Serviços de campo, M2: logradouros e trechos — ADR 0043 — branch `feature/catalogo-de-servicos`
+- Módulo `logradouros` (V32): `logradouro`, `trecho` (LineString 4674, extensão, faixa e lado), `imovel_endereco`
+  (matrícula → logradouro, trecho, número) e `importacao_logradouro` (histórico com SHA-256; o arquivo não é guardado).
+  RLS por escopo; permissão `logradouro:gerenciar` (Gestor de serviços e Administrador; clientes existentes pela V32).
+- Importação de trechos (GeoJSON por município, lido em fluxo) e de endereços (CSV
+  `matricula;codigo_logradouro;numero;complemento`), sempre com **simulação** antes de gravar; reimportar atualiza
+  pela chave da concessionária, trechos ausentes são informados e não apagados; arquivo passa pelo antivírus.
+- Trecho do imóvel pela faixa/lado ou, sem faixa, pelo trecho mais próximo do ponto; corrigir a faixa refaz a escolha.
+  Cobertura do município: com endereço, com trecho e localização aproximada.
+- Matrícula inteira na lista de imóveis só com `dados_pessoais:ler`, auditada (`ACESSO_DADO_PESSOAL`); senão mascarada.
+- Telas `/logradouros` (busca, cobertura, importação com prévia e relatório, histórico) e `/logradouros/:id` (trechos
+  no mapa, correção auditada do nome e das faixas, imóveis na ordem da numeração). `nucleo/maplibre.ts` prepara o
+  MapLibre para as duas telas de mapa.
+- Testes: back-end `LeitoresDeLogradouroTest` (4), `FronteirasDosLeitoresTest` (5, também no teste de mutação),
+  `LogradourosApiTest` (fluxo completo) e `MigracaoDoCatalogoTest` estendido até a V32; front `textos.spec.ts`,
+  E2E `logradouros.spec.ts` e as duas telas no axe.
+- Correção de acessibilidade em todas as telas: os esqueletos de carregamento tinham `aria-label` num `div` sem papel
+  (o axe acusava de forma intermitente, quando pegava a tela carregando); agora têm `role="status"`.
+- Próximo: M3, OS genérica (J4/J5: OS avulsa por ligação, OS de trecho e lote por logradouro; migração das OS da V28
+  para o catálogo).

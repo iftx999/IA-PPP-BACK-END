@@ -348,6 +348,8 @@
 								<param>dev.aurora.adesao.model.Projecao</param>
 								<param>dev.aurora.alertas.service.RegrasDeAlerta</param>
 								<param>dev.aurora.servicos.model.*</param>
+								<param>dev.aurora.logradouros.model.*</param>
+								<param>dev.aurora.logradouros.service.Leitor*</param>
 							</targetClasses>
 							<targetTests>
 								<param>dev.aurora.adesao.model.RegrasDeAdesaoTest</param>
@@ -356,6 +358,8 @@
 								<param>dev.aurora.alertas.service.FronteirasDosAlertasTest</param>
 								<param>dev.aurora.servicos.model.DefinicaoServicoTest</param>
 								<param>dev.aurora.servicos.model.FronteirasDoCatalogoTest</param>
+								<param>dev.aurora.logradouros.service.LeitoresDeLogradouroTest</param>
+								<param>dev.aurora.logradouros.service.FronteirasDosLeitoresTest</param>
 							</targetTests>
 							<mutators>
 								<mutator>STRONGER</mutator>

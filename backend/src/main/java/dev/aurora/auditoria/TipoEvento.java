@@ -91,6 +91,12 @@ public enum TipoEvento {
 	 */
 	SERVICO_CADASTRADO, SERVICO_ALTERADO, ITEM_DO_CATALOGO_CADASTRADO, ITEM_DO_CATALOGO_ALTERADO,
 
+	/**
+	 * ADR 0043: importação de trechos e de endereços; correção manual de logradouro e de
+	 * trecho.
+	 */
+	LOGRADOUROS_IMPORTADOS, ENDERECOS_IMPORTADOS, LOGRADOURO_CORRIGIDO, TRECHO_CORRIGIDO,
+
 	/** ADR 0021: páginas digitalizadas lidas por OCR (nome herdado). */
 	TEXTO_RECONHECIDO_POR_OCR,
 

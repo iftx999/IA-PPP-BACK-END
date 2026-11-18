@@ -35,8 +35,8 @@ class ProvisionamentoService implements ProvisionamentoDeCliente {
 			new PerfilDoSistema(ADMINISTRADOR, "Usuários, perfis, unidades e integrações",
 					List.of("assistente:usar", "campanha:gerenciar", "contrato:gerenciar", "contrato:ler",
 							"dados_pessoais:ler", "indicador:gerenciar", "indicador:ler", "integracao:gerenciar",
-							"mapa:marcar", "os:executar", "relatorio:exportar", "servico:gerenciar",
-							"unidade:gerenciar", "unidade:ler", "usuario:gerenciar")),
+							"logradouro:gerenciar", "mapa:marcar", "os:executar", "relatorio:exportar",
+							"servico:gerenciar", "unidade:gerenciar", "unidade:ler", "usuario:gerenciar")),
 			new PerfilDoSistema("Auditor", "Leitura da trilha de auditoria", List.of("auditoria:ler", "unidade:ler")),
 			new PerfilDoSistema("Diretor", "Leitura de todos os indicadores no escopo",
 					List.of("assistente:usar", "contrato:ler", "indicador:ler", "relatorio:exportar", "unidade:ler")),
@@ -49,7 +49,7 @@ class ProvisionamentoService implements ProvisionamentoDeCliente {
 			// ADR 0042: catálogo de serviços de campo (e, nos próximos marcos, a
 			// programação).
 			new PerfilDoSistema("Gestor de serviços", "Catálogo de serviços de campo e programação das equipes",
-					List.of("servico:gerenciar", "unidade:ler")));
+					List.of("logradouro:gerenciar", "servico:gerenciar", "unidade:ler")));
 
 	private final PerfilRepository perfis;
 

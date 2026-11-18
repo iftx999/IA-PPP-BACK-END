@@ -11,8 +11,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * ADR 0042: a V31 roda num banco que já tem clientes (com o RLS forçado de "tenant") e
- * semeia o catálogo e o perfil "Gestor de serviços" de cada um. Os demais testes começam
- * de um banco vazio e não pegariam esse caso.
+ * semeia o catálogo e o perfil "Gestor de serviços" de cada um; ADR 0043: a V32 dá a
+ * permissão dos logradouros aos perfis desses clientes. Os demais testes começam de um
+ * banco vazio e não pegariam esse caso.
  */
 class MigracaoDoCatalogoTest {
 
@@ -63,6 +64,23 @@ class MigracaoDoCatalogoTest {
 			assertThat(linhas.getLong(3)).isEqualTo(1);
 			assertThat(linhas.getLong(4)).isEqualTo(1);
 			assertThat(linhas.getBoolean(5)).as("RLS forçado de tenant religado").isTrue();
+		}
+
+		// ADR 0043: a V32 dá "logradouro:gerenciar" ao gestor de serviços e ao
+		// administrador
+		// dos clientes que já existiam.
+		flyway.target("32").load().migrate();
+
+		try (var c = DriverManager.getConnection(url, "postgres", BancoDeTeste.SENHA_SUPERUSUARIO);
+				var s = c.createStatement();
+				var linhas = s.executeQuery("""
+						SELECT (SELECT count(*) FROM perfil_permissao pp JOIN perfil p ON p.id = pp.perfil_id
+						         WHERE p.tenant_id = '%1$s' AND pp.permissao = 'logradouro:gerenciar'),
+						       (SELECT relforcerowsecurity FROM pg_class WHERE relname = 'perfil_permissao')"""
+					.formatted(cliente))) {
+			linhas.next();
+			assertThat(linhas.getLong(1)).as("gestor de serviços e administrador").isEqualTo(2);
+			assertThat(linhas.getBoolean(2)).as("RLS forçado de perfil_permissao religado").isTrue();
 		}
 	}
 
