@@ -184,7 +184,11 @@ class CampanhasApiTest {
 			.andExpect(jsonPath("$.status").value("DEVOLVIDA"))
 			.andExpect(jsonPath("$.observacao").value("Rua sem placa"));
 		resultado(os4, "{\"resultado\":\"EXECUTADA\"}", "sub-campo").andExpect(status().isConflict());
-		// O gestor registra pela empreiteira sem acesso.
+		// O gestor registra pela empreiteira sem acesso (motivos de não execução).
+		mvc.perform(get("/api/v1/campanhas/motivos").with(token("sub-admin")))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$[?(@.codigo == 'SEM_INTERESSE')].tipo").value("NAO_EXECUCAO"))
+			.andExpect(jsonPath("$[?(@.tipo == 'DEVOLUCAO')]").isEmpty());
 		mvc.perform(put("/api/v1/campanhas/ordens/{id}/resultado", os5).contentType(MediaType.APPLICATION_JSON)
 			.content("{\"resultado\":\"EXECUTADA\"}")
 			.with(token("sub-admin"))).andExpect(status().isOk());

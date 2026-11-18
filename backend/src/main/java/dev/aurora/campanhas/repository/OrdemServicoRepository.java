@@ -50,7 +50,8 @@ public class OrdemServicoRepository {
 			       CASE WHEN o.campanha_id IS NOT NULL THEN 'CAMPANHA' WHEN o.lote_id IS NOT NULL THEN 'LOTE'
 			            ELSE 'AVULSA' END AS origem,
 			       o.codigo_origem, o.trecho_id, t.codigo AS trecho_codigo, lg.id AS logradouro_id,
-			       concat_ws(' ', lg.tipo, lg.nome) AS logradouro_nome, ie.numero AS numero_imovel, ie.complemento,
+			       CASE WHEN lg.tipo IS NULL OR lower(lg.nome) LIKE lower(lg.tipo) || ' %' THEN lg.nome
+			            ELSE lg.tipo || ' ' || lg.nome END AS logradouro_nome, ie.numero AS numero_imovel, ie.complemento,
 			       o.unidade_id, u.nome AS unidade_nome, o.campanha_id, c.nome AS campanha_nome, o.lote_id,
 			       o.situacao_na_criacao, o.prioridade, o.prazo_em, o.instrucoes, o.quantidade_prevista,
 			       o.equipe_id, e.nome AS equipe_nome, o.data_programada, o.enviada_em, o.status, o.resultado,
@@ -255,7 +256,10 @@ public class OrdemServicoRepository {
 	}
 
 	public Optional<LogradouroDoLote> logradouro(UUID id) {
-		return jdbc.sql("SELECT id, concat_ws(' ', tipo, nome), unidade_id FROM logradouro WHERE id = :id")
+		return jdbc.sql("""
+				SELECT id, CASE WHEN tipo IS NULL OR lower(nome) LIKE lower(tipo) || ' %' THEN nome
+				                ELSE tipo || ' ' || nome END, unidade_id
+				  FROM logradouro WHERE id = :id""")
 			.param("id", id)
 			.query((l, n) -> new LogradouroDoLote(l.getObject(1, UUID.class), l.getString(2),
 					l.getObject(3, UUID.class)))

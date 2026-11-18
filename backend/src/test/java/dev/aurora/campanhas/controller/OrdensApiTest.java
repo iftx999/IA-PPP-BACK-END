@@ -74,7 +74,7 @@ class OrdensApiTest {
 		try (var c = BancoDeTeste.comoSuperusuario(); var s = c.createStatement()) {
 			s.execute("""
 					INSERT INTO logradouro (id, tenant_id, unidade_id, codigo, tipo, nome, nome_busca)
-					VALUES ('%1$s', '%2$s', '%3$s', 'L-1', 'Rua', 'das Flores', 'rua das flores');
+					VALUES ('%1$s', '%2$s', '%3$s', 'L-1', 'Rua', 'Rua das Flores', 'rua das flores');
 					INSERT INTO trecho (id, tenant_id, unidade_id, logradouro_id, codigo, geom, extensao_m, lado)
 					VALUES ('%4$s', '%2$s', '%3$s', '%1$s', 'T-1',
 					        ST_GeomFromText('LINESTRING(-47.06 -22.90, -47.05 -22.90)', 4674), 120.5, 'AMBOS');

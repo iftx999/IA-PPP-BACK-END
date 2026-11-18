@@ -27,6 +27,7 @@ import dev.aurora.campanhas.model.StatusOrdem;
 import dev.aurora.campanhas.model.TipoEquipe;
 import dev.aurora.campanhas.service.CampanhaService;
 import dev.aurora.campanhas.service.OrdemServicoService;
+import dev.aurora.campanhas.service.ProgramacaoService;
 import dev.aurora.contexto.ExigePermissao;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.AssertTrue;
@@ -203,9 +204,23 @@ class CampanhaController {
 
 	private final OrdemServicoService ordens;
 
-	CampanhaController(CampanhaService campanhas, OrdemServicoService ordens) {
+	private final ProgramacaoService programacao;
+
+	CampanhaController(CampanhaService campanhas, OrdemServicoService ordens, ProgramacaoService programacao) {
 		this.campanhas = campanhas;
 		this.ordens = ordens;
+		this.programacao = programacao;
+	}
+
+	/** Motivos de não execução, para o gestor encerrar pela empreiteira. */
+	@GetMapping("/motivos")
+	List<MotivoDaOrdemResponse> motivos() {
+		return programacao.opcoes()
+			.motivos()
+			.stream()
+			.filter(m -> "NAO_EXECUCAO".equals(m.tipo()))
+			.map(MotivoDaOrdemResponse::de)
+			.toList();
 	}
 
 	@GetMapping
