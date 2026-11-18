@@ -350,6 +350,8 @@
 								<param>dev.aurora.servicos.model.*</param>
 								<param>dev.aurora.logradouros.model.*</param>
 								<param>dev.aurora.logradouros.service.Leitor*</param>
+								<param>dev.aurora.campanhas.model.StatusOrdem</param>
+								<param>dev.aurora.campanhas.model.AcaoCampanha</param>
 							</targetClasses>
 							<targetTests>
 								<param>dev.aurora.adesao.model.RegrasDeAdesaoTest</param>
@@ -360,6 +362,8 @@
 								<param>dev.aurora.servicos.model.FronteirasDoCatalogoTest</param>
 								<param>dev.aurora.logradouros.service.LeitoresDeLogradouroTest</param>
 								<param>dev.aurora.logradouros.service.FronteirasDosLeitoresTest</param>
+								<param>dev.aurora.servicos.model.CalendarioTest</param>
+								<param>dev.aurora.campanhas.model.RegrasDasOrdensTest</param>
 							</targetTests>
 							<mutators>
 								<mutator>STRONGER</mutator>

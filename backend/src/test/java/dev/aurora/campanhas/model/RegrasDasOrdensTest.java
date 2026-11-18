@@ -19,6 +19,9 @@ class RegrasDasOrdensTest {
 	void abertasEComEquipe() {
 		assertThat(StatusOrdem.ABERTAS).containsExactlyInAnyOrder(StatusOrdem.PLANEJADA, StatusOrdem.PROGRAMADA,
 				StatusOrdem.EM_EXECUCAO, StatusOrdem.PARALISADA, StatusOrdem.DEVOLVIDA);
+		for (var s : StatusOrdem.ABERTAS) {
+			assertThat(s.aberta()).as("%s", s).isTrue();
+		}
 		assertThat(StatusOrdem.ENCERRADA.aberta()).isFalse();
 		assertThat(StatusOrdem.CANCELADA.aberta()).isFalse();
 		assertThat(StatusOrdem.DEVOLVIDA.comEquipe()).as("devolvida volta para a programação").isFalse();
