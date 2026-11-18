@@ -566,3 +566,34 @@ token não leva os papéis de `realm-management` e a Admin API responde 403. Flu
 - Pendências: PIN/biometria e sessão de 7 dias sem rede (app e Keycloak, M6); P10 decidida: celular da empresa;
   RIPD da localização dos funcionários escrito (`docs/ripd.md`, rascunho para o DPO do cliente); mapa do dia com as posições (M7).
 - Próximo: M5, roteirização (Valhalla no compose, Timefold, J6 e J7).
+
+### Onde paramos (18/11/2026, fim do dia) — retomar daqui
+**Estado:** M1 a M4 dos serviços de campo prontos, com commit, nas branches `feature/catalogo-de-servicos` dos dois
+repositórios (`~/Iapp/aurora-servicos` e `~/Iapp/aurora-frontend-servicos`, worktrees). Últimos commits: back
+`14a4182`, front `2efe738`. **Falta o push** (a chave SSH tem senha; rodar `git push` nos dois).
+
+**Decisões recentes do usuário:** celular da empresa (P10); RIPD com a localização dos funcionários escrito
+(`docs/ripd.md`, rascunho para o DPO do cliente).
+
+**Em andamento quando paramos:**
+1. **Protótipo do app de campo (antes do M6)** — 8 telas navegáveis: https://claude.ai/artifact/E4dybxLDYkSNHrhuSxq1pC
+   (cópia dos fontes em `docs/prototipo-app-campo/`). Aguardando o retorno do usuário sobre as telas e as ideias
+   em aberto: modo noturno automático × só claro; marca d’água de hora/GPS nas fotos; alerta de OS emergencial;
+   "Estou chegando" (exige telefone do morador); modo luva.
+2. **M5, roteirização** — só preparação feita, nenhum código:
+   - Recorte do OSM baixado em `~/Iapp/osm/sudeste-latest.osm.pbf` (864 MB); próximo passo: recortar a região dos
+     municípios de teste (Limeira, Piracicaba, Rio Claro) e gerar os tiles do Valhalla.
+   - Imagem `ghcr.io/valhalla/valhalla-scripted@sha256:693617873d42f24d9023eaa9aa002dccd832c9629c9ce8b60eb4ff30547215e1`
+     (MIT) já baixada; fixar pelo digest no compose.
+   - Timefold Solver 2.8.0 (Apache 2.0): usar só `timefold-solver-core`, sem o starter do Spring.
+   - Plano (vira a ADR 0046, migração V35): equipe com base, horário de jornada, tipo de veículo e habilidades
+     (RN-23 completa na programação); Valhalla no compose com matriz por perfil (moto, carro, caminhão) e cache;
+     Timefold com as regras da RN-25; API de prévia, fixar, publicar e reotimizar (J6, J7); rota no pacote do dia.
+
+**Para retomar o ambiente E2E isolado** (cópia do banco, já na V34):
+`cd ~/Iapp/aurora/infra && docker compose -p aurora-servicos-e2e --env-file ~/Iapp/aurora/infra/.env up -d`;
+API: `cd ~/Iapp/aurora-servicos/backend && set -a && . ~/Iapp/aurora/infra/.env && set +a && ./mvnw -o -q spring-boot:run`;
+front: `cd ~/Iapp/aurora-frontend-servicos && npx ng serve`. O banco de desenvolvimento normal não foi tocado.
+
+**Pendências conhecidas:** `servicos.spec.ts` falhou uma vez por corrida entre avisos (passa isolado); aprovação do
+RIPD pelo cliente; seções 2 e 3 do RIPD (endereço dos imóveis, fotos das OS).

@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Encerrar OS</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&amp;family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#0a6b5b}a:hover{color:#074d41}
+input:focus-visible,button:focus-visible{outline:3px solid #2c9aeb;outline-offset:2px}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #f4f8f7; color: #0b1a1f; font-family: Inter, system-ui, sans-serif; display: flex; flex-direction: column">
+  <header style="display: flex; align-items: center; gap: 8px; padding: 10px 8px; background: #ffffff; border-bottom: 1px solid #d3e0dd">
+    <a href="Ordem.dc.html" aria-label="Voltar para a OS" style="width: 48px; height: 48px; display: grid; place-items: center; color: #0b1a1f; border-radius: 12px">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"></path></svg>
+    </a>
+    <span style="font-family: Archivo, sans-serif; font-weight: 700; font-size: 18px">Encerrar OS 1042</span>
+  </header>
+
+  <div style="flex: 1; overflow: hidden; padding: 14px 16px; display: flex; flex-direction: column; gap: 14px">
+    <div role="group" aria-label="Resultado" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; padding: 4px; background: #e3ece9; border-radius: 14px">
+      <button type="button" onClick="{{executada}}" aria-pressed="{{ehExecutada}}" style="min-height: 52px; border: 0; border-radius: 11px; font: 700 16px Inter, sans-serif; background: {{fundoExec}}; color: {{corExec}}; cursor: pointer">Executada</button>
+      <button type="button" onClick="{{naoExecutada}}" aria-pressed="{{ehNao}}" style="min-height: 52px; border: 0; border-radius: 11px; font: 700 16px Inter, sans-serif; background: {{fundoNao}}; color: {{corNao}}; cursor: pointer">Não executada</button>
+    </div>
+
+    <sc-if value="{{mostrarForm}}" hint-placeholder-val="{{ true }}">
+      <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+        <label style="display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 600">Extensão do ramal *
+          <span style="display: flex; align-items: center; background: #ffffff; border: 1px solid #b9cbc7; border-radius: 12px; padding: 0 12px; min-height: 52px">
+            <input inputmode="decimal" value="8,5" style="border: 0; outline: none; width: 100%; font: 600 18px 'JetBrains Mono', monospace; background: transparent; color: #0b1a1f">
+            <span style="color: #3d5359; font-weight: 500">m</span>
+          </span>
+          <span style="font-weight: 400; font-size: 12px; color: #3d5359">de 0,5 a 100</span>
+        </label>
+        <label style="display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 600">Profundidade *
+          <span style="display: flex; align-items: center; background: #ffffff; border: 2px solid #8b3a3f; border-radius: 12px; padding: 0 12px; min-height: 52px">
+            <input inputmode="decimal" value="7" aria-invalid="true" style="border: 0; outline: none; width: 100%; font: 600 18px 'JetBrains Mono', monospace; background: transparent; color: #0b1a1f">
+            <span style="color: #3d5359; font-weight: 500">m</span>
+          </span>
+          <span style="font-weight: 600; font-size: 12px; color: #8b3a3f">Máximo 6 m</span>
+        </label>
+      </div>
+
+      <fieldset style="margin: 0; padding: 0; border: 0; display: flex; flex-direction: column; gap: 6px">
+        <legend style="font-size: 14px; font-weight: 600; margin-bottom: 6px">Diâmetro *</legend>
+        <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px">
+          <sc-for list="{{diametros}}" as="d" hint-placeholder-count="2">
+            <button type="button" onClick="{{d.escolher}}" aria-pressed="{{d.marcado}}" style="min-height: 52px; border-radius: 12px; border: {{d.borda}}; background: {{d.fundo}}; color: #0b1a1f; font: 600 16px Inter, sans-serif; cursor: pointer">{{d.texto}}</button>
+          </sc-for>
+        </div>
+      </fieldset>
+
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 56px; padding: 0 14px; background: #ffffff; border: 1px solid #d3e0dd; border-radius: 12px">
+        <span style="font-size: 15px; font-weight: 600">Caixa de inspeção instalada *</span>
+        <button type="button" role="switch" aria-checked="{{caixaAria}}" aria-label="Caixa de inspeção instalada" onClick="{{alternarCaixa}}" style="width: 64px; height: 36px; border-radius: 999px; border: 0; background: {{caixaFundo}}; position: relative; cursor: pointer">
+          <span style="position: absolute; top: 4px; left: {{caixaPos}}; width: 28px; height: 28px; border-radius: 50%; background: #ffffff"></span>
+        </button>
+      </div>
+
+      <section aria-label="Fotos antes e depois" style="display: flex; flex-direction: column; gap: 8px">
+        <span style="font-size: 14px; font-weight: 600">Fotos antes e depois * <span style="font-weight: 400; color: #3d5359">2 de 2 a 6</span></span>
+        <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px">
+          <div role="img" aria-label="Foto 1: antes" style="aspect-ratio: 1; border-radius: 12px; background: linear-gradient(135deg, #8aa39d, #5d7771); display: flex; align-items: flex-end; padding: 6px; box-sizing: border-box"><span style="font-size: 11px; color: #ffffff; font-family: 'JetBrains Mono', monospace">14:07 · ±5 m</span></div>
+          <div role="img" aria-label="Foto 2: depois" style="aspect-ratio: 1; border-radius: 12px; background: linear-gradient(135deg, #a7b6a0, #6d7f68); display: flex; align-items: flex-end; padding: 6px; box-sizing: border-box"><span style="font-size: 11px; color: #ffffff; font-family: 'JetBrains Mono', monospace">15:58 · ±4 m</span></div>
+          <button type="button" style="aspect-ratio: 1; border-radius: 12px; border: 2px dashed #0a6b5b; background: #ffffff; color: #0a6b5b; font: 700 14px Inter, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; cursor: pointer">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"></path><circle cx="12" cy="13" r="3.5"></circle></svg>
+            Câmera
+          </button>
+        </div>
+      </section>
+    </sc-if>
+
+    <sc-if value="{{mostrarMotivo}}" hint-placeholder-val="{{ false }}">
+      <p style="margin: 0; font-size: 15px">Por que não foi executada?</p>
+      <div style="display: flex; flex-direction: column; gap: 8px">
+        <sc-for list="{{motivos}}" as="m" hint-placeholder-count="4">
+          <button type="button" style="min-height: 56px; text-align: left; padding: 0 14px; border-radius: 12px; border: 1px solid #d3e0dd; background: #ffffff; font: 600 16px Inter, sans-serif; color: #0b1a1f; cursor: pointer">{{m}}</button>
+        </sc-for>
+      </div>
+    </sc-if>
+  </div>
+
+  <div style="padding: 12px 16px 20px; background: #ffffff; border-top: 1px solid #d3e0dd; display: flex; flex-direction: column; gap: 8px">
+    <p style="margin: 0; font-size: 13px; color: #8b3a3f; font-weight: 600">Corrija a profundidade para encerrar.</p>
+    <a href="Fila.dc.html" style="min-height: 60px; border-radius: 14px; background: #0a6b5b; color: #ffffff; display: flex; align-items: center; justify-content: center; font-family: Archivo, sans-serif; font-weight: 700; font-size: 19px; text-decoration: none">Salvar encerramento</a>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { exec: true, diametro: '100', caixa: true };
+  }
+  renderVals() {
+    const s = this.state;
+    const ativo = { fundo: '#0a6b5b', cor: '#ffffff' };
+    const inativo = { fundo: 'transparent', cor: '#0b1a1f' };
+    const e = s.exec ? ativo : inativo;
+    const n = s.exec ? inativo : { fundo: '#8b3a3f', cor: '#ffffff' };
+    return {
+      executada: () => this.setState({ exec: true }),
+      naoExecutada: () => this.setState({ exec: false }),
+      ehExecutada: s.exec ? 'true' : 'false', ehNao: s.exec ? 'false' : 'true',
+      fundoExec: e.fundo, corExec: e.cor, fundoNao: n.fundo, corNao: n.cor,
+      mostrarForm: s.exec, mostrarMotivo: !s.exec,
+      diametros: ['100', '150'].map((d) => ({
+        texto: d + ' mm', marcado: s.diametro === d ? 'true' : 'false',
+        borda: s.diametro === d ? '2px solid #0a6b5b' : '1px solid #b9cbc7',
+        fundo: s.diametro === d ? '#e6f1ee' : '#ffffff',
+        escolher: () => this.setState({ diametro: d })
+      })),
+      caixaAria: s.caixa ? 'true' : 'false', caixaFundo: s.caixa ? '#0a6b5b' : '#9aaaa7', caixaPos: s.caixa ? '32px' : '4px',
+      alternarCaixa: () => this.setState({ caixa: !s.caixa }),
+      motivos: ['Morador sem interesse', 'Custo da ligação', 'Solução própria (fossa)', 'Sem rede na rua']
+    };
+  }
+}
+</script>
+</body>
+</html>

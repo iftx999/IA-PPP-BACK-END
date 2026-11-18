@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Hoje: rota e lista</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&amp;family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#0a6b5b}a:hover{color:#074d41}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #f4f8f7; color: #0b1a1f; font-family: Inter, system-ui, sans-serif; display: flex; flex-direction: column; overflow: hidden">
+
+  <header style="background: #0b1a1f; color: #ffffff; padding: 14px 16px 12px; display: flex; flex-direction: column; gap: 10px">
+    <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px">
+      <div style="display: flex; flex-direction: column; gap: 2px">
+        <span style="font-family: Archivo, sans-serif; font-weight: 800; font-size: 22px; letter-spacing: -0.01em">Hoje · 18 nov</span>
+        <span style="font-size: 14px; color: #b4c1c3">Equipe Rede Centro · 5 OS</span>
+      </div>
+      <a href="Fila.dc.html" style="display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 14px; border-radius: 999px; background: #ecc32a; color: #1c1600; text-decoration: none; font-weight: 700; font-size: 14px">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-3-6.7"></path><path d="M21 4v5h-5"></path></svg>
+        2 na fila
+      </a>
+    </div>
+    <p style="margin: 0; display: flex; align-items: center; gap: 8px; font-size: 13px; color: #b4c1c3">
+      <span style="width: 10px; height: 10px; border-radius: 50%; background: #3de693; flex: none"></span>
+      Jornada desde 07:12 · localização ativa · último envio 14:32
+    </p>
+  </header>
+
+  <div role="img" aria-label="Mapa com a rota do dia: 5 paradas numeradas a partir da sua posição" style="position: relative; height: 250px; flex: none; background: #e3ece9; overflow: hidden">
+    <svg width="390" height="250" viewBox="0 0 390 250" aria-hidden="true" style="position: absolute; inset: 0">
+      <rect width="390" height="250" fill="#e3ece9"></rect>
+      <path d="M0 60 H390 M0 150 H390 M0 215 H390 M70 0 V250 M190 0 V250 M310 0 V250" stroke="#ffffff" stroke-width="10"></path>
+      <path d="M0 105 L390 95 M130 0 L150 250" stroke="#ffffff" stroke-width="6"></path>
+      <rect x="205" y="160" width="90" height="45" rx="6" fill="#cfe3d5"></rect>
+      <path d="M40 200 L70 200 L70 150 L130 150 L190 150 L190 60 L310 60 L310 150 L350 150" fill="none" stroke="#0a6b5b" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"></path>
+      <path d="M190 60 L310 60 L310 150 L350 150" fill="none" stroke="#ffffff" stroke-width="2" stroke-dasharray="4 6"></path>
+      <circle cx="40" cy="200" r="11" fill="#2c9aeb" stroke="#ffffff" stroke-width="4"></circle>
+    </svg>
+    <span style="position: absolute; left: 58px; top: 138px; width: 26px; height: 26px; border-radius: 50%; background: #58636e; color: #fff; display: grid; place-items: center; font: 600 13px 'JetBrains Mono', monospace; border: 2px solid #fff">1</span>
+    <span style="position: absolute; left: 172px; top: 136px; width: 32px; height: 32px; border-radius: 50%; background: #0a6b5b; color: #fff; display: grid; place-items: center; font: 600 15px 'JetBrains Mono', monospace; border: 3px solid #fff; box-shadow: 0 0 0 4px rgba(10,107,91,.25)">2</span>
+    <span style="position: absolute; left: 177px; top: 46px; width: 26px; height: 26px; border-radius: 50%; background: #0a6b5b; color: #fff; display: grid; place-items: center; font: 600 13px 'JetBrains Mono', monospace; border: 2px solid #fff">3</span>
+    <span style="position: absolute; left: 297px; top: 46px; width: 26px; height: 26px; border-radius: 50%; background: #8b3a3f; color: #fff; display: grid; place-items: center; font: 600 13px 'JetBrains Mono', monospace; border: 2px solid #fff">4</span>
+    <span style="position: absolute; left: 337px; top: 137px; width: 26px; height: 26px; border-radius: 50%; background: #0a6b5b; color: #fff; display: grid; place-items: center; font: 600 13px 'JetBrains Mono', monospace; border: 2px solid #fff">5</span>
+    <span style="position: absolute; right: 10px; bottom: 8px; font-size: 11px; color: #3d5359; background: rgba(255,255,255,.85); padding: 2px 6px; border-radius: 4px">Rota estimada · 18,4 km · 52 min</span>
+  </div>
+
+  <section aria-label="Próxima parada" style="margin: -22px 12px 0; position: relative; background: #ffffff; border: 1px solid #d3e0dd; border-radius: 16px; padding: 14px; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 8px 24px rgba(11,26,31,.10)">
+    <div style="display: flex; flex-direction: column; gap: 2px">
+      <span style="font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #0a6b5b">Em execução · parada 2</span>
+      <span style="font-family: Archivo, sans-serif; font-weight: 700; font-size: 19px">Ligação nova de esgoto</span>
+      <span style="font-size: 15px; color: #3d5359">R. das Palmeiras, 120 · Centro</span>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+      <a href="Ordem.dc.html" style="min-height: 52px; border-radius: 12px; background: #0a6b5b; color: #ffffff; display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 700; font-size: 16px; text-decoration: none">Abrir OS</a>
+      <a href="https://www.google.com/maps" style="min-height: 52px; border-radius: 12px; border: 2px solid #0a6b5b; color: #0a6b5b; display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 700; font-size: 16px; text-decoration: none">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l18-8-8 18-2-8z"></path></svg>
+        Navegar
+      </a>
+    </div>
+  </section>
+
+  <ol aria-label="OS do dia na ordem da rota" style="list-style: none; margin: 12px 0 0; padding: 0 12px; display: flex; flex-direction: column; gap: 8px; flex: 1; overflow: hidden">
+    <sc-for list="{{ordens}}" as="o" hint-placeholder-count="4">
+      <li>
+        <a href="Ordem.dc.html" style="display: flex; gap: 12px; align-items: center; min-height: 64px; padding: 10px 12px; background: #ffffff; border: 1px solid #d3e0dd; border-radius: 12px; color: #0b1a1f; text-decoration: none">
+          <span style="width: 30px; height: 30px; flex: none; border-radius: 50%; background: {{o.cor}}; color: #ffffff; display: grid; place-items: center; font: 600 14px 'JetBrains Mono', monospace">{{o.seq}}</span>
+          <span style="display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0">
+            <span style="font-weight: 600; font-size: 15px">{{o.servico}}</span>
+            <span style="font-size: 13px; color: #3d5359">{{o.onde}}</span>
+          </span>
+          <span style="font-size: 12px; font-weight: 700; padding: 4px 8px; border-radius: 999px; background: {{o.seloFundo}}; color: {{o.seloTexto}}; white-space: nowrap">{{o.selo}}</span>
+        </a>
+      </li>
+    </sc-for>
+  </ol>
+
+  <nav aria-label="Navegação do app" style="flex: none; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); background: #ffffff; border-top: 1px solid #d3e0dd; padding: 6px 8px 14px">
+    <a href="Main.dc.html" aria-current="page" style="min-height: 56px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: #0a6b5b; text-decoration: none; font-size: 13px; font-weight: 700">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 20l-6-3V4l6 3 6-3 6 3v13l-6-3-6 3z"></path><path d="M9 7v13M15 4v13"></path></svg>
+      Hoje
+    </a>
+    <a href="Fila.dc.html" style="min-height: 56px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: #3d5359; text-decoration: none; font-size: 13px; font-weight: 600">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-3-6.7"></path><path d="M21 4v5h-5"></path></svg>
+      Fila (2)
+    </a>
+    <a href="Jornada.dc.html" style="min-height: 56px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: #3d5359; text-decoration: none; font-size: 13px; font-weight: 600">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>
+      Jornada
+    </a>
+  </nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const verde = { seloFundo: '#e2f2e8', seloTexto: '#176038' };
+    const cinza = { seloFundo: '#e9eef0', seloTexto: '#3d5359' };
+    return {
+      ordens: [
+        { seq: '1', cor: '#58636e', servico: 'Vistoria de viabilidade', onde: 'R. das Palmeiras, 98', selo: 'Encerrada', ...verde },
+        { seq: '3', cor: '#0a6b5b', servico: 'Religação', onde: 'R. XV de Novembro, 410', selo: 'até 17:00', ...cinza },
+        { seq: '4', cor: '#8b3a3f', servico: 'Desobstrução de ramal', onde: 'Av. Brasil, 1.250', selo: 'Emergencial', seloFundo: '#f6e3e4', seloTexto: '#8b3a3f' },
+        { seq: '5', cor: '#0a6b5b', servico: 'Limpeza de rede · trecho T-14', onde: 'R. Sete de Setembro · 120 m', selo: 'amanhã', ...cinza }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

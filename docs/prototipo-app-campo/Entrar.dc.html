@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Entrar e desbloquear</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&amp;family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#0a6b5b}a:hover{color:#074d41}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #0b1a1f; color: #ffffff; font-family: Inter, system-ui, sans-serif; display: flex; flex-direction: column; align-items: center; padding: 64px 24px 32px; gap: 28px">
+  <div style="display: flex; flex-direction: column; align-items: center; gap: 12px">
+    <span aria-hidden="true" style="width: 56px; height: 56px; border-radius: 16px; background: conic-gradient(from 210deg, #1acbd8, #2c9aeb, #4ad7bc, #1acbd8)"></span>
+    <span style="font-family: Archivo, sans-serif; font-weight: 800; font-size: 26px">Aurora Campo</span>
+    <span style="font-size: 15px; color: #b4c1c3; text-align: center">Olá, Ana. Digite o PIN para desbloquear.</span>
+  </div>
+
+  <div aria-label="PIN: {{digitados}} de 6 dígitos" role="img" style="display: flex; gap: 14px">
+    <sc-for list="{{pontos}}" as="p" hint-placeholder-count="6">
+      <span style="width: 16px; height: 16px; border-radius: 50%; border: 2px solid #4ad7bc; background: {{p.fundo}}"></span>
+    </sc-for>
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; width: 100%; max-width: 300px">
+    <sc-for list="{{teclas}}" as="t" hint-placeholder-count="12">
+      <button type="button" onClick="{{t.tocar}}" aria-label="{{t.rotulo}}" style="height: 68px; border-radius: 50%; border: 0; background: {{t.fundo}}; color: #ffffff; font: 600 26px 'JetBrains Mono', monospace; cursor: pointer">{{t.texto}}</button>
+    </sc-for>
+  </div>
+
+  <a href="Jornada.dc.html" style="min-height: 52px; width: 100%; max-width: 300px; border-radius: 12px; background: #4ad7bc; color: #04201b; display: flex; align-items: center; justify-content: center; gap: 10px; font-weight: 700; font-size: 16px; text-decoration: none">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 11c0 3-1 6-3 8"></path><path d="M8 5.5a7 7 0 0 1 11 5.5c0 2-.3 4-1 6"></path><path d="M5 9a7 7 0 0 0-1 3.5c0 1.5.3 3 1 4.5"></path><path d="M12 7a4 4 0 0 1 4 4c0 3-.8 5.5-2 7.5"></path></svg>
+    Usar biometria
+  </a>
+
+  <p style="margin: auto 0 0; font-size: 13px; color: #b4c1c3; text-align: center; line-height: 1.5">Celular da empresa · Moto G 5G<br>Sem sinal? Funciona por até 7 dias desde o último login.</p>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { pin: '' };
+  }
+  renderVals() {
+    const pin = this.state.pin;
+    const digito = (d) => ({
+      texto: d, rotulo: 'Dígito ' + d, fundo: '#12212a',
+      tocar: () => this.setState({ pin: (this.state.pin + d).slice(0, 6) })
+    });
+    const teclas = ['1','2','3','4','5','6','7','8','9'].map(digito);
+    teclas.push({ texto: '', rotulo: 'Sem função', fundo: 'transparent', tocar: () => {} });
+    teclas.push(digito('0'));
+    teclas.push({ texto: '⌫', rotulo: 'Apagar', fundo: 'transparent', tocar: () => this.setState({ pin: this.state.pin.slice(0, -1) }) });
+    return {
+      digitados: pin.length,
+      pontos: [0,1,2,3,4,5].map((i) => ({ fundo: i < pin.length ? '#4ad7bc' : 'transparent' })),
+      teclas
+    };
+  }
+}
+</script>
+</body>
+</html>
