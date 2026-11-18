@@ -102,6 +102,15 @@ public final class DadosDeTeste {
 	 * dez/2026 (do contrato), Cidade A 85/80 e Cidade B 75/70 sem fim. O setor A1 não tem
 	 * meta própria (herda da Cidade A).
 	 */
+	/**
+	 * Catálogo inicial de serviços e motivos (o que o provisionamento semeia; ADR 0042).
+	 */
+	public static void semearCatalogo(Tenant t) throws SQLException {
+		try (var c = BancoDeTeste.comoSuperusuario()) {
+			executar(c, "SELECT semear_catalogo_servicos(?::uuid)", t.id());
+		}
+	}
+
 	public static void criarAdesao(Tenant t) throws SQLException {
 		var indicador = UUID.randomUUID();
 		try (var c = BancoDeTeste.comoSuperusuario()) {

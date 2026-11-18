@@ -16,9 +16,10 @@ import org.jspecify.annotations.Nullable;
 import org.springframework.stereotype.Component;
 
 /**
- * Matrícula das OS (doc 09, 9.7): aparece inteira só onde a pessoa tem
- * {@code dados_pessoais:ler} (na unidade do imóvel ou acima); a exibição fica na trilha
- * como acesso a dado pessoal. Nas demais, mascarada.
+ * Matrícula, número e complemento das OS de imóvel (doc 09, 9.7; ADR 0043): aparecem só
+ * onde a pessoa tem {@code dados_pessoais:ler} (na unidade do imóvel ou acima); a
+ * exibição fica na trilha como acesso a dado pessoal. Nas demais, matrícula mascarada e
+ * sem número. OS de trecho não têm dado pessoal.
  */
 @Component
 class DadosPessoaisDasOrdens {
@@ -39,13 +40,16 @@ class DadosPessoaisDasOrdens {
 		var podePorUnidade = new HashMap<UUID, Boolean>();
 		var expostas = new int[1];
 		var resultado = ordens.stream().map(o -> {
+			if (o.matricula() == null) {
+				return o;
+			}
 			boolean pode = podePorUnidade.computeIfAbsent(o.unidadeId(),
 					id -> unidades.caminhoNoEscopo(id).map(c -> contexto.podeEm(PERMISSAO, c)).orElse(false));
 			if (pode) {
 				expostas[0]++;
 				return o;
 			}
-			return o.comMatricula(Matricula.mascarar(o.matricula()));
+			return o.semDadosPessoais(Matricula.mascarar(o.matricula()));
 		}).toList();
 		if (expostas[0] > 0) {
 			var detalhes = new LinkedHashMap<String, @Nullable Object>();

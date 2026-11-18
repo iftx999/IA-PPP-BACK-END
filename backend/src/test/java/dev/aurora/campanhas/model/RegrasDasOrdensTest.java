@@ -4,49 +4,37 @@ import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/** Tipo da OS pela ação, motivos por resultado e status em aberto (ADR 0036). */
+/** Serviço pela ação da campanha e o ciclo da OS (ADR 0036, 0044; doc 10, 10.6). */
 class RegrasDasOrdensTest {
 
 	@Test
-	void acaoDefineOTipoDaOrdem() {
-		assertThat(AcaoCampanha.LIGACAO.tipoPara("FACTIVEL")).isEqualTo(TipoOrdem.LIGACAO_NOVA);
-		assertThat(AcaoCampanha.LIGACAO.tipoPara("CORTADO")).isEqualTo(TipoOrdem.RELIGACAO);
-		assertThat(AcaoCampanha.VISTORIA.tipoPara("CORTADO")).isEqualTo(TipoOrdem.VISTORIA);
-		assertThat(AcaoCampanha.NOTIFICACAO.tipoPara("FACTIVEL")).isEqualTo(TipoOrdem.NOTIFICACAO);
+	void acaoDefineOServicoDoCatalogo() {
+		assertThat(AcaoCampanha.LIGACAO.servicoPara("FACTIVEL")).isEqualTo("LIGACAO_NOVA");
+		assertThat(AcaoCampanha.LIGACAO.servicoPara("CORTADO")).isEqualTo("RELIGACAO");
+		assertThat(AcaoCampanha.VISTORIA.servicoPara("CORTADO")).isEqualTo("VISTORIA");
+		assertThat(AcaoCampanha.NOTIFICACAO.servicoPara("FACTIVEL")).isEqualTo("NOTIFICACAO");
 	}
 
 	@Test
-	void soLigacaoNovaEReligacaoSaoConferidas() {
-		assertThat(TipoOrdem.LIGACAO_NOVA.conferidaPelaCarga()).isTrue();
-		assertThat(TipoOrdem.RELIGACAO.conferidaPelaCarga()).isTrue();
-		assertThat(TipoOrdem.VISTORIA.conferidaPelaCarga()).isFalse();
-		assertThat(TipoOrdem.NOTIFICACAO.conferidaPelaCarga()).isFalse();
-	}
-
-	@Test
-	void motivoCombinaComOResultado() {
-		assertThat(MotivoResultado.SEM_INTERESSE.valePara(ResultadoOrdem.RECUSADA)).isTrue();
-		assertThat(MotivoResultado.SEM_INTERESSE.valePara(ResultadoOrdem.INVIAVEL)).isFalse();
-		assertThat(MotivoResultado.SEM_REDE_NA_RUA.valePara(ResultadoOrdem.INVIAVEL)).isTrue();
-		assertThat(MotivoResultado.SEM_REDE_NA_RUA.valePara(ResultadoOrdem.RECUSADA)).isFalse();
-		assertThat(MotivoResultado.OUTRO.valePara(ResultadoOrdem.RECUSADA)).isTrue();
-		assertThat(MotivoResultado.OUTRO.valePara(ResultadoOrdem.INVIAVEL)).isTrue();
-		assertThat(MotivoResultado.OUTRO.valePara(ResultadoOrdem.EXECUTADA)).isFalse();
-		assertThat(MotivoResultado.CUSTO_DA_LIGACAO.valePara(ResultadoOrdem.REAGENDADA)).isFalse();
-	}
-
-	@Test
-	void statusEmAbertoEEmCampo() {
-		assertThat(StatusOrdem.PLANEJADA.aberta()).isTrue();
-		assertThat(StatusOrdem.PLANEJADA.emCampo()).isFalse();
-		assertThat(StatusOrdem.EM_CAMPO.emCampo()).isTrue();
-		assertThat(StatusOrdem.REAGENDADA.emCampo()).isTrue();
-		assertThat(StatusOrdem.REAGENDADA.aberta()).isTrue();
-		assertThat(StatusOrdem.EXECUTADA.aberta()).isFalse();
+	void abertasEComEquipe() {
+		assertThat(StatusOrdem.ABERTAS).containsExactlyInAnyOrder(StatusOrdem.PLANEJADA, StatusOrdem.PROGRAMADA,
+				StatusOrdem.EM_EXECUCAO, StatusOrdem.PARALISADA, StatusOrdem.DEVOLVIDA);
+		assertThat(StatusOrdem.ENCERRADA.aberta()).isFalse();
 		assertThat(StatusOrdem.CANCELADA.aberta()).isFalse();
-		assertThat(ResultadoOrdem.RECUSADA.exigeMotivo()).isTrue();
-		assertThat(ResultadoOrdem.REAGENDADA.exigeMotivo()).isFalse();
-		assertThat(ResultadoOrdem.INVIAVEL.status()).isEqualTo(StatusOrdem.INVIAVEL);
+		assertThat(StatusOrdem.DEVOLVIDA.comEquipe()).as("devolvida volta para a programação").isFalse();
+		assertThat(StatusOrdem.PARALISADA.comEquipe()).isTrue();
+	}
+
+	@Test
+	void transicoesDaTabela() {
+		for (var s : StatusOrdem.values()) {
+			var programavel = s == StatusOrdem.PLANEJADA || s == StatusOrdem.PROGRAMADA || s == StatusOrdem.DEVOLVIDA;
+			assertThat(s.programavel()).as("programar %s", s).isEqualTo(programavel);
+			assertThat(s.cancelavel()).as("cancelar %s", s).isEqualTo(programavel);
+			assertThat(s.devolvivel()).as("devolver %s", s).isEqualTo(s.comEquipe());
+			assertThat(s.encerravel()).as("encerrar %s", s)
+				.isEqualTo(s == StatusOrdem.PROGRAMADA || s == StatusOrdem.EM_EXECUCAO);
+		}
 	}
 
 }

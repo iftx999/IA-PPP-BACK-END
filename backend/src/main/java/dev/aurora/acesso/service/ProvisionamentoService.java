@@ -35,21 +35,20 @@ class ProvisionamentoService implements ProvisionamentoDeCliente {
 			new PerfilDoSistema(ADMINISTRADOR, "Usuários, perfis, unidades e integrações",
 					List.of("assistente:usar", "campanha:gerenciar", "contrato:gerenciar", "contrato:ler",
 							"dados_pessoais:ler", "indicador:gerenciar", "indicador:ler", "integracao:gerenciar",
-							"logradouro:gerenciar", "mapa:marcar", "os:executar", "relatorio:exportar",
+							"logradouro:gerenciar", "mapa:marcar", "os:executar", "os:programar", "relatorio:exportar",
 							"servico:gerenciar", "unidade:gerenciar", "unidade:ler", "usuario:gerenciar")),
 			new PerfilDoSistema("Auditor", "Leitura da trilha de auditoria", List.of("auditoria:ler", "unidade:ler")),
 			new PerfilDoSistema("Diretor", "Leitura de todos os indicadores no escopo",
 					List.of("assistente:usar", "contrato:ler", "indicador:ler", "relatorio:exportar", "unidade:ler")),
 			new PerfilDoSistema("Gestor comercial", "Indicadores e dados comerciais no escopo",
 					List.of("assistente:usar", "campanha:gerenciar", "contrato:ler", "dados_pessoais:ler",
-							"indicador:ler", "mapa:marcar", "unidade:ler")),
+							"indicador:ler", "mapa:marcar", "os:programar", "unidade:ler")),
 			// ADR 0036: a matrícula identifica o imóvel no campo.
 			new PerfilDoSistema("Equipe de campo", "Ordens de serviço das equipes de que faz parte",
 					List.of("dados_pessoais:ler", "os:executar", "unidade:ler")),
-			// ADR 0042: catálogo de serviços de campo (e, nos próximos marcos, a
-			// programação).
+			// ADR 0042, 0043, 0044: catálogo de serviços, logradouros e programação.
 			new PerfilDoSistema("Gestor de serviços", "Catálogo de serviços de campo e programação das equipes",
-					List.of("logradouro:gerenciar", "servico:gerenciar", "unidade:ler")));
+					List.of("logradouro:gerenciar", "os:programar", "servico:gerenciar", "unidade:ler")));
 
 	private final PerfilRepository perfis;
 

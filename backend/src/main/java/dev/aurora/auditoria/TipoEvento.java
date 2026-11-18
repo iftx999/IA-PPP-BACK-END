@@ -97,6 +97,12 @@ public enum TipoEvento {
 	 */
 	LOGRADOUROS_IMPORTADOS, ENDERECOS_IMPORTADOS, LOGRADOURO_CORRIGIDO, TRECHO_CORRIGIDO,
 
+	/**
+	 * ADR 0044: OS avulsas, de trecho e lotes criados; OS programadas ou reprogramadas,
+	 * devolvidas e canceladas; feriados cadastrados e removidos.
+	 */
+	ORDENS_CRIADAS, ORDENS_PROGRAMADAS, ORDEM_DEVOLVIDA, ORDEM_CANCELADA, FERIADO_CADASTRADO, FERIADO_REMOVIDO,
+
 	/** ADR 0021: páginas digitalizadas lidas por OCR (nome herdado). */
 	TEXTO_RECONHECIDO_POR_OCR,
 

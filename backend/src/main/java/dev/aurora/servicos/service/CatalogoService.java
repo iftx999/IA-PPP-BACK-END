@@ -1,8 +1,10 @@
 package dev.aurora.servicos.service;
 
+import java.time.LocalDate;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 import dev.aurora.auditoria.Auditoria;
@@ -11,7 +13,10 @@ import dev.aurora.comum.ConflitoException;
 import dev.aurora.comum.RecursoNaoEncontradoException;
 import dev.aurora.comum.RegraVioladaException;
 import dev.aurora.contexto.ContextoAcesso;
+import dev.aurora.servicos.MotivoDaOrdem;
+import dev.aurora.servicos.ServicoDaOrdem;
 import dev.aurora.servicos.Servicos;
+import dev.aurora.servicos.model.Calendario;
 import dev.aurora.servicos.model.Catalogo;
 import dev.aurora.servicos.model.Codigo;
 import dev.aurora.servicos.model.DadosGrupo;
@@ -29,6 +34,8 @@ import dev.aurora.servicos.model.TipoVeiculo;
 import dev.aurora.servicos.model.VersaoServico;
 import dev.aurora.servicos.repository.CatalogoRepository;
 import dev.aurora.servicos.repository.CatalogoRepository.Tabela;
+import dev.aurora.servicos.repository.FeriadoRepository;
+import dev.aurora.servicos.repository.ParaOrdemRepository;
 import dev.aurora.servicos.repository.ServicoRepository;
 import org.jspecify.annotations.Nullable;
 
@@ -46,11 +53,18 @@ public class CatalogoService implements Servicos {
 
 	private final ServicoRepository servicos;
 
+	private final ParaOrdemRepository paraOrdem;
+
+	private final FeriadoRepository feriados;
+
 	private final Auditoria auditoria;
 
-	CatalogoService(CatalogoRepository catalogo, ServicoRepository servicos, Auditoria auditoria) {
+	CatalogoService(CatalogoRepository catalogo, ServicoRepository servicos, ParaOrdemRepository paraOrdem,
+			FeriadoRepository feriados, Auditoria auditoria) {
 		this.catalogo = catalogo;
 		this.servicos = servicos;
+		this.paraOrdem = paraOrdem;
+		this.feriados = feriados;
 		this.auditoria = auditoria;
 	}
 
@@ -58,6 +72,46 @@ public class CatalogoService implements Servicos {
 	@Transactional
 	public void semearCatalogoInicial() {
 		catalogo.semear();
+	}
+
+	// Para as OS (ADR 0044)
+
+	@Override
+	@Transactional(readOnly = true)
+	public List<ServicoDaOrdem> servicosParaOrdem() {
+		return paraOrdem.servicosAtivos();
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public Optional<ServicoDaOrdem> servicoParaOrdem(UUID id) {
+		return paraOrdem.servico(id);
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public Optional<ServicoDaOrdem> servicoParaOrdem(String codigo) {
+		return paraOrdem.servico(codigo);
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public List<MotivoDaOrdem> motivosParaOrdem() {
+		return paraOrdem.motivosAtivos();
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public Optional<MotivoDaOrdem> motivo(UUID id) {
+		return paraOrdem.motivo(id);
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public LocalDate somarDiasUteis(LocalDate inicio, int dias, UUID unidade) {
+		// 365 dias úteis (o maior prazo) cabem em menos de dois anos corridos.
+		var locais = feriados.daUnidade(unidade, inicio, inicio.plusYears(2));
+		return Calendario.somarDiasUteis(inicio, dias, locais::contains);
 	}
 
 	@Transactional(readOnly = true)

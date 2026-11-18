@@ -23,7 +23,7 @@ public class EquipeRepository {
 	private static final String SELECAO = """
 			SELECT e.id, e.unidade_id, u.nome AS unidade_nome, e.nome, e.tipo, e.empresa, e.ativa,
 			       (SELECT count(*) FROM ordem_servico o
-			         WHERE o.equipe_id = e.id AND o.status IN ('EM_CAMPO', 'REAGENDADA')) AS em_campo
+			         WHERE o.equipe_id = e.id AND o.status IN ('PROGRAMADA', 'EM_EXECUCAO', 'PARALISADA')) AS em_campo
 			  FROM equipe e
 			  JOIN unidade u ON u.id = e.unidade_id
 			""";

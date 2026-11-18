@@ -43,3 +43,4 @@ gera um novo ADR que o substitui.
 | [0036](0036-campanhas-e-ordens-de-servico.md) | Campanhas de ligação e ordens de serviço, conferidas pela carga mensal | Aceito |
 | [0042](0042-catalogo-de-servicos.md) | Catálogo de serviços de campo: serviços versionados com parâmetros de encerramento | Aceito |
 | [0043](0043-logradouros-e-trechos.md) | Logradouros e trechos da concessionária e o endereço dos imóveis | Aceito |
+| [0044](0044-os-generica-e-programacao.md) | OS genérica do catálogo e programação por imóvel, trecho e logradouro | Aceito |
