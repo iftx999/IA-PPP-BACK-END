@@ -526,3 +526,23 @@ token não leva os papéis de `realm-management` e a Admin API responde 403. Flu
   (o axe acusava de forma intermitente, quando pegava a tela carregando); agora têm `role="status"`.
 - Próximo: M3, OS genérica (J4/J5: OS avulsa por ligação, OS de trecho e lote por logradouro; migração das OS da V28
   para o catálogo).
+
+### Serviços de campo, M3: OS genérica e programação — ADR 0044 — branch `feature/catalogo-de-servicos`
+- V33: OS com serviço e versão do catálogo (RN-20), alvo imóvel ou trecho, lote por logradouro (`lote_os`),
+  numeração única no cliente (`contador_os`), prazo com hora (RN-21) e feriados por unidade (`feriado`; nacionais
+  calculados, inclusive Sexta-feira Santa e Consciência Negra). Ciclo novo: planejada → programada → em execução ⇄
+  paralisada → encerrada, com devolvida e cancelada. As OS da V28 são migradas (testado em `MigracaoDoCatalogoTest`
+  sobre dados antigos e aplicado na cópia do banco do E2E).
+- API `/api/v1/ordens` (`os:programar`, para Gestor de serviços, Gestor comercial e Administrador): OS avulsas por
+  matrícula, de trecho (quantidade = extensão quando o serviço é por metro), lote por logradouro com prévia, lista com
+  filtros, programar/reprogramar (só na área da equipe), cancelar e encerrar com motivos do catálogo; equipes ativas
+  para quem programa. "Minhas OS" ganha encerrar (executada/não executada) e devolver. Campanhas geram OS do
+  catálogo e a distribuição pede a data. `/api/v1/catalogo/feriados` para os feriados municipais.
+- Front: tela `/ordens` (Programação de OS: filtros na URL, seleção, programar, Nova OS em três modos, cancelar e
+  encerrar), atalhos "OS de trecho" e "Lote de OS na rua" no detalhe do logradouro, campanhas e "Minhas OS" no ciclo
+  novo. Correção geral: `data()` mostrava o dia anterior para datas sem hora (meia-noite UTC).
+- Testes: back-end 354 + novos (`OrdensApiTest`, `RegrasDaProgramacaoTest`, `CalendarioTest`), mutação 96,7%; front
+  93 unitários; E2E `ordens.spec.ts`, `campanhas.spec.ts` atualizado e `/ordens` no axe (dois temas).
+- Pendências: `servicos.spec.ts` falhou uma vez por corrida entre avisos (passou 3/3 isolado); habilidade/veículo da
+  equipe na compatibilidade (M5), parâmetros/fotos no encerramento e eventos da OS (M4).
+- Próximo: M4, execução na API (eventos idempotentes, iniciar/paralisar/retomar, anexos, jornada, aparelhos).
