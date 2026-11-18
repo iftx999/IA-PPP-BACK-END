@@ -388,9 +388,9 @@ Cada marco: branch própria, ADR, testes (unidade, API, E2E, axe nas telas web) 
 | # | Marco | Conteúdo | Depende de |
 |---|---|---|---|
 | M1 | Catálogo ✅ ADR 0042 | J1, J2, perfil Gestor de serviços, telas de cadastro, serviços pré-cadastrados | — |
-| M2 | Logradouros | J3, importação (após definir formato), mapa de trechos, vínculo de imóveis | formato (10.14) |
-| M3 | OS genérica | J4, J5, migração da V28, campanhas usando o catálogo, estados novos | M1, M2 |
-| M4 | Execução na API | Eventos, fila idempotente, conflitos, devoluções (J11), anexos, jornada, aparelhos (J13) | M3 |
+| M2 | Logradouros ✅ ADR 0043 | J3, importação (após definir formato), mapa de trechos, vínculo de imóveis | formato (10.14) |
+| M3 | OS genérica ✅ ADR 0044 | J4, J5, migração da V28, campanhas usando o catálogo, estados novos | M1, M2 |
+| M4 | Execução na API ✅ ADR 0045 | Eventos, fila idempotente, conflitos, devoluções (J11), anexos, jornada, aparelhos (J13) | M3 |
 | M5 | Roteirização | Valhalla no compose, Timefold, J6, J7 | M3 |
 | M6 | App Flutter | J8, J9, J10, fila offline, segurança do aparelho, publicação interna | M4, M5 |
 | M7 | Indicadores | J12, mapa do dia | M4–M6 |

@@ -546,3 +546,23 @@ token não leva os papéis de `realm-management` e a Admin API responde 403. Flu
 - Pendências: `servicos.spec.ts` falhou uma vez por corrida entre avisos (passou 3/3 isolado); habilidade/veículo da
   equipe na compatibilidade (M5), parâmetros/fotos no encerramento e eventos da OS (M4).
 - Próximo: M4, execução na API (eventos idempotentes, iniciar/paralisar/retomar, anexos, jornada, aparelhos).
+
+### Serviços de campo, M4: execução na API — ADR 0045 — branch `feature/catalogo-de-servicos`
+- V34: `os_evento` (id do celular, sequência por OS, hora do celular e do servidor, GPS, avisos), `os_anexo` (fotos
+  em partes), `os_conflito`, `jornada`, `posicao_equipe` (expurgo diário após 90 dias), `dispositivo`; OS ganha
+  última sequência, início, "início fora do local" e os valores dos parâmetros. Raio do início por cliente (300 m).
+  Permissão nova `dispositivo:gerenciar` (Administrador e Gestor de serviços).
+- API do app `/api/v1/campo` (`os:executar`, cabeçalho `X-Aurora-Dispositivo`): cadastro do celular, jornada e pacote
+  do dia (com diferença por versão), lote de eventos (iniciar, paralisar, retomar, devolver, encerrar) aplicado uma
+  única vez e na ordem; quem chega antes do anterior espera. Conflitos do 10.9.5: vale o campo quando trabalhou na OS
+  cancelada ou de outra equipe, vale a programação na devolução. Encerrar executada valida os parâmetros da versão da
+  OS (condições, faixas, opções, fotos). Fotos em partes com SHA-256, assinatura do formato e antivírus. Posições só
+  na jornada. Celular bloqueado: 403 com código, mas ainda envia a fila pendente.
+- Web: `GET /ordens/{id}/execucao` e a foto, caixa de conflitos com decisão auditada; `/api/v1/dispositivos`.
+  Front: registros do campo e caixa de conflitos na Programação de OS, atalho de devolvidas, tela `/celulares`.
+- Testes: back-end 407 (novos `CampoApiTest` com o fluxo inteiro, `RegrasDeExecucaoTest` com 30 casos,
+  `MigracaoDoCatalogoTest` até a V34), mutação 97,1%; front 98 unitários; E2E `execucao.spec.ts` (celular simulado
+  pela API com a sessão do navegador), `ordens`, `campanhas` e axe com `/celulares` nos dois temas.
+- Pendências: PIN/biometria e sessão de 7 dias sem rede (app e Keycloak, M6); P10 (celular pessoal × gerenciado);
+  RIPD com a localização dos funcionários; mapa do dia com as posições (M7).
+- Próximo: M5, roteirização (Valhalla no compose, Timefold, J6 e J7).
