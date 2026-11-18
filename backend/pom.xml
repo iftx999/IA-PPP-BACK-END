@@ -352,6 +352,11 @@
 								<param>dev.aurora.logradouros.service.Leitor*</param>
 								<param>dev.aurora.campanhas.model.StatusOrdem</param>
 								<param>dev.aurora.campanhas.model.AcaoCampanha</param>
+								<param>dev.aurora.campanhas.model.AcaoDeCampo</param>
+								<param>dev.aurora.campanhas.model.SituacaoEvento</param>
+								<param>dev.aurora.campanhas.model.Posicao</param>
+								<param>dev.aurora.campanhas.model.ValoresDoEncerramento</param>
+								<param>dev.aurora.campanhas.model.ArquivoDeFoto</param>
 							</targetClasses>
 							<targetTests>
 								<param>dev.aurora.adesao.model.RegrasDeAdesaoTest</param>
@@ -364,6 +369,7 @@
 								<param>dev.aurora.logradouros.service.FronteirasDosLeitoresTest</param>
 								<param>dev.aurora.servicos.model.CalendarioTest</param>
 								<param>dev.aurora.campanhas.model.RegrasDasOrdensTest</param>
+								<param>dev.aurora.campanhas.service.RegrasDeExecucaoTest</param>
 							</targetTests>
 							<mutators>
 								<mutator>STRONGER</mutator>

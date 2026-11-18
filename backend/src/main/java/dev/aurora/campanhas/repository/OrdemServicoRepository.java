@@ -374,6 +374,39 @@ public class OrdemServicoRepository {
 			.optional();
 	}
 
+	/** OS do pacote do dia: id, versão do serviço e última alteração. */
+	public record NoPacote(UUID id, UUID servicoVersaoId, Instant atualizadaEm) {
+	}
+
+	/**
+	 * Pacote do dia da equipe (10.9.2): OS programadas até hoje (inclusive atrasadas), em
+	 * execução ou paralisadas.
+	 */
+	public List<NoPacote> doPacote(UUID equipe, LocalDate hoje) {
+		return jdbc.sql("""
+				SELECT id, servico_versao_id, atualizado_em FROM ordem_servico
+				 WHERE equipe_id = :equipe AND (status IN ('EM_EXECUCAO', 'PARALISADA')
+				                                OR (status = 'PROGRAMADA' AND data_programada <= :hoje))
+				 LIMIT 500""")
+			.param("equipe", equipe)
+			.param("hoje", Date.valueOf(hoje))
+			.query((l, n) -> new NoPacote(l.getObject("id", UUID.class), l.getObject("servico_versao_id", UUID.class),
+					l.getTimestamp("atualizado_em").toInstant()))
+			.list();
+	}
+
+	/** Várias OS, na ordem de trabalho. */
+	public List<OrdemServico> buscarVarias(Collection<UUID> ids, Instant agora) {
+		if (ids.isEmpty()) {
+			return List.of();
+		}
+		return jdbc.sql(SELECAO + " WHERE o.id IN (:ids)" + ORDEM)
+			.param("ids", ids)
+			.param("agora", Timestamp.from(agora))
+			.query(OrdemServicoRepository::mapear)
+			.list();
+	}
+
 	// ----- Movimentos -----
 
 	/** Trava a OS para um movimento (encerrar, devolver, cancelar). */

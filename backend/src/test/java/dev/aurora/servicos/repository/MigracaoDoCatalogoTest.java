@@ -138,6 +138,29 @@ class MigracaoDoCatalogoTest {
 			assertThat(linhas.getLong(2)).as("gestor de serviços e administrador").isEqualTo(2);
 			assertThat(linhas.getBoolean(3)).as("RLS forçado religado").isTrue();
 		}
+
+		// ADR 0045: celulares do app geridos pelo gestor de serviços e pelo
+		// administrador;
+		// as OS migradas começam sem eventos do app.
+		flyway.target("34").load().migrate();
+
+		try (var c = DriverManager.getConnection(url, "postgres", BancoDeTeste.SENHA_SUPERUSUARIO);
+				var s = c.createStatement();
+				var linhas = s.executeQuery(
+						"""
+								SELECT (SELECT count(*) FROM perfil_permissao pp JOIN perfil p ON p.id = pp.perfil_id
+								         WHERE p.tenant_id = '%1$s' AND pp.permissao = 'dispositivo:gerenciar'),
+								       (SELECT count(*) FROM ordem_servico WHERE tenant_id = '%1$s' AND ultima_sequencia = 0),
+								       (SELECT campo_raio_inicio_m FROM tenant WHERE id = '%1$s'),
+								       (SELECT bool_and(relforcerowsecurity) FROM pg_class
+								         WHERE relname IN ('perfil', 'perfil_permissao', 'os_evento', 'jornada', 'dispositivo'))"""
+							.formatted(cliente))) {
+			linhas.next();
+			assertThat(linhas.getLong(1)).as("gestor de serviços e administrador").isEqualTo(2);
+			assertThat(linhas.getLong(2)).as("OS migradas sem eventos").isEqualTo(5);
+			assertThat(linhas.getInt(3)).as("raio padrão do início fora do local").isEqualTo(300);
+			assertThat(linhas.getBoolean(4)).as("RLS forçado").isTrue();
+		}
 	}
 
 	/**

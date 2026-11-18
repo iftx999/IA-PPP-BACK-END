@@ -1,7 +1,9 @@
 package dev.aurora.servicos;
 
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -27,6 +29,9 @@ public interface Servicos {
 	List<MotivoDaOrdem> motivosParaOrdem();
 
 	Optional<MotivoDaOrdem> motivo(UUID id);
+
+	/** Parâmetros de encerramento de cada versão pedida, na ordem do serviço. */
+	Map<UUID, List<ParametroDaOrdem>> parametros(Collection<UUID> versoes);
 
 	/**
 	 * RN-21: o {@code dias}-ésimo dia útil depois de {@code inicio}, sem sábados,

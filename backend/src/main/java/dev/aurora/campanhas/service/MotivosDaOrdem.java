@@ -28,12 +28,22 @@ class MotivosDaOrdem {
 
 	Justificativa validar(@Nullable UUID motivoId, String tipo, UUID servico, @Nullable String observacao,
 			String mensagem) {
+		return validar(motivoId, tipo, servico, observacao, mensagem, false);
+	}
+
+	/**
+	 * @param doCampo evento do app: aceita motivo desativado depois que o celular baixou
+	 * o pacote do dia (o agente escolheu entre os que tinha)
+	 */
+	Justificativa validar(@Nullable UUID motivoId, String tipo, UUID servico, @Nullable String observacao,
+			String mensagem, boolean doCampo) {
 		var texto = observacao(observacao);
 		if (motivoId == null) {
 			throw new RegraVioladaException(mensagem);
 		}
 		var motivo = servicos.motivo(motivoId)
-			.filter(m -> m.valePara(tipo, servico))
+			.filter(m -> doCampo ? m.tipo().equals(tipo) && (m.servicoId() == null || m.servicoId().equals(servico))
+					: m.valePara(tipo, servico))
 			.orElseThrow(() -> new RegraVioladaException(mensagem));
 		exigirObservacao(motivo, texto);
 		return new Justificativa(motivo.id(), texto);

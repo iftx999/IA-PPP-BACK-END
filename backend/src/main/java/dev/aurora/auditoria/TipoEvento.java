@@ -103,6 +103,13 @@ public enum TipoEvento {
 	 */
 	ORDENS_CRIADAS, ORDENS_PROGRAMADAS, ORDEM_DEVOLVIDA, ORDEM_CANCELADA, FERIADO_CADASTRADO, FERIADO_REMOVIDO,
 
+	/**
+	 * ADR 0045: celular cadastrado e revogado; conflito de campo aberto e decidido; foto
+	 * recusada (antivírus ou conteúdo); fotos de OS vistas na web; posições expurgadas.
+	 */
+	DISPOSITIVO_CADASTRADO, DISPOSITIVO_REVOGADO, CONFLITO_DE_CAMPO_ABERTO, CONFLITO_DE_CAMPO_DECIDIDO, ANEXO_RECUSADO,
+	ANEXO_DE_ORDEM_LIDO,
+
 	/** ADR 0021: páginas digitalizadas lidas por OCR (nome herdado). */
 	TEXTO_RECONHECIDO_POR_OCR,
 

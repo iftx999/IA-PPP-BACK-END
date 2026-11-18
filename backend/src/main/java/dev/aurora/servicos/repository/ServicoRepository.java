@@ -180,7 +180,8 @@ public class ServicoRepository {
 			.toList();
 	}
 
-	private Map<UUID, List<Parametro>> parametros(Collection<UUID> versoes) {
+	/** Parâmetros de cada versão, na ordem. */
+	public Map<UUID, List<Parametro>> parametros(Collection<UUID> versoes) {
 		var porVersao = new HashMap<UUID, List<Parametro>>();
 		if (versoes.isEmpty()) {
 			return porVersao;

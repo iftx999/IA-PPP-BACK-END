@@ -14,6 +14,13 @@ class TratadorDeErros {
 		return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, erro.getMessage());
 	}
 
+	@ExceptionHandler(AcessoNegadoException.class)
+	ProblemDetail acessoNegado(AcessoNegadoException erro) {
+		var problema = ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, erro.getMessage());
+		problema.setProperty("codigo", erro.codigo());
+		return problema;
+	}
+
 	@ExceptionHandler(ConflitoException.class)
 	ProblemDetail conflito(ConflitoException erro) {
 		return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, erro.getMessage());

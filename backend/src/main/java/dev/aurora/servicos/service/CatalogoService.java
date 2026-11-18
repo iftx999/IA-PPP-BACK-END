@@ -1,6 +1,7 @@
 package dev.aurora.servicos.service;
 
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -14,6 +15,7 @@ import dev.aurora.comum.RecursoNaoEncontradoException;
 import dev.aurora.comum.RegraVioladaException;
 import dev.aurora.contexto.ContextoAcesso;
 import dev.aurora.servicos.MotivoDaOrdem;
+import dev.aurora.servicos.ParametroDaOrdem;
 import dev.aurora.servicos.ServicoDaOrdem;
 import dev.aurora.servicos.Servicos;
 import dev.aurora.servicos.model.Calendario;
@@ -104,6 +106,21 @@ public class CatalogoService implements Servicos {
 	@Transactional(readOnly = true)
 	public Optional<MotivoDaOrdem> motivo(UUID id) {
 		return paraOrdem.motivo(id);
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public Map<UUID, List<ParametroDaOrdem>> parametros(Collection<UUID> versoes) {
+		var porVersao = new LinkedHashMap<UUID, List<ParametroDaOrdem>>();
+		servicos.parametros(versoes)
+			.forEach((versao, lista) -> porVersao.put(versao,
+					lista.stream()
+						.map(p -> new ParametroDaOrdem(p.chave(), p.rotulo(), p.ajuda(), p.tipo().name(),
+								p.obrigatorio(), p.minimo(), p.maximo(), p.unidade(), p.opcoes(),
+								p.condicao() == null ? null : p.condicao().chave(),
+								p.condicao() == null ? null : p.condicao().valor()))
+						.toList()));
+		return porVersao;
 	}
 
 	@Override
