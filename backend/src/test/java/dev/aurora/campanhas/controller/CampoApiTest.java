@@ -122,6 +122,15 @@ class CampoApiTest {
 			.andExpect(status().isOk())
 			.andExpect(jsonPath("$.revogado").value(false));
 
+		// J8: equipes da pessoa com o resumo de hoje, antes de iniciar.
+		mvc.perform(get("/api/v1/campo/equipes").header(CELULAR, celular).with(token("sub-agente")))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.length()").value(1))
+			.andExpect(jsonPath("$[0].ordensHoje").value(3))
+			.andExpect(jsonPath("$[0].emergenciais").value(0))
+			.andExpect(jsonPath("$[0].veiculoNome").value("Caminhão de vácuo"))
+			.andExpect(jsonPath("$[0].jornadaAberta").value(false));
+
 		// J8: pacote do dia com os parâmetros da versão; abrir a jornada.
 		var pacote = ler(mvc.perform(get("/api/v1/campo/jornada").header(CELULAR, celular).with(token("sub-agente")))
 			.andExpect(status().isOk())

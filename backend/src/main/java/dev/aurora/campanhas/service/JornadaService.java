@@ -11,6 +11,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import dev.aurora.campanhas.model.AmostraDePosicao;
+import dev.aurora.campanhas.model.EquipeDoDia;
 import dev.aurora.campanhas.model.Jornada;
 import dev.aurora.campanhas.model.PacoteDoDia;
 import dev.aurora.campanhas.model.Posicao;
@@ -91,6 +92,13 @@ public class JornadaService {
 		var inicio = ocorrido.isAfter(agora().plus(ADIANTAMENTO_ACEITO)) ? agora() : ocorrido;
 		jornadas.abrir(id, escolhida, OrdemServicoService.usuario(), dispositivo.id(), inicio, posicao);
 		return pacote(escolhida, null);
+	}
+
+	/** J8: equipes da pessoa com o resumo de hoje, para escolher com qual sai. */
+	@Transactional
+	public List<EquipeDoDia> equipesDoDia(@Nullable UUID dispositivoId) {
+		dispositivos.exigir(dispositivoId, false);
+		return equipes.doDia(OrdemServicoService.usuario(), LocalDate.ofInstant(agora(), relogio.getZone()));
 	}
 
 	/**

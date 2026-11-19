@@ -11,6 +11,7 @@ import dev.aurora.campanhas.model.AmostraDePosicao;
 import dev.aurora.campanhas.model.Anexo;
 import dev.aurora.campanhas.model.DadosDispositivo;
 import dev.aurora.campanhas.model.Dispositivo;
+import dev.aurora.campanhas.model.EquipeDoDia;
 import dev.aurora.campanhas.model.EventoDeCampo;
 import dev.aurora.campanhas.model.Jornada;
 import dev.aurora.campanhas.model.PacoteDoDia;
@@ -153,6 +154,25 @@ class CampoController {
 					parametros, p.motivos().stream().map(MotivoDaOrdemResponse::de).toList(), p.raioInicioM(),
 					p.geradoEm());
 		}
+	}
+
+	/**
+	 * @param ordensHoje OS programadas para hoje ainda abertas
+	 * @param jornadaAberta alguém da equipe já iniciou a jornada
+	 */
+	record EquipeDoDiaResponse(UUID id, String nome, long ordensHoje, long emergenciais, @Nullable String veiculoNome,
+			boolean jornadaAberta) {
+
+		static EquipeDoDiaResponse de(EquipeDoDia e) {
+			return new EquipeDoDiaResponse(e.id(), e.nome(), e.ordensHoje(), e.emergenciais(), e.veiculoNome(),
+					e.jornadaAberta());
+		}
+	}
+
+	/** Equipes da pessoa com o resumo de hoje (tela "Iniciar jornada"). */
+	@GetMapping("/equipes")
+	List<EquipeDoDiaResponse> equipes(@RequestHeader(name = DISPOSITIVO, required = false) @Nullable UUID dispositivo) {
+		return jornadas.equipesDoDia(dispositivo).stream().map(EquipeDoDiaResponse::de).toList();
 	}
 
 	/**

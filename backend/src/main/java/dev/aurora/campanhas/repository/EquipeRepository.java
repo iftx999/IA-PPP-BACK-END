@@ -3,6 +3,7 @@ package dev.aurora.campanhas.repository;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
+import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -14,6 +15,7 @@ import java.util.UUID;
 
 import dev.aurora.campanhas.model.DadosEquipe;
 import dev.aurora.campanhas.model.Equipe;
+import dev.aurora.campanhas.model.EquipeDoDia;
 import dev.aurora.campanhas.model.ItemDoCatalogo;
 import dev.aurora.campanhas.model.Membro;
 import dev.aurora.campanhas.model.OperacaoDaEquipe;
@@ -212,6 +214,27 @@ public class EquipeRepository {
 		return jdbc.sql("""
 				SELECT m.equipe_id FROM equipe_membro m JOIN equipe e ON e.id = m.equipe_id
 				 WHERE m.usuario_id = :usuario AND e.ativa""").param("usuario", usuario).query(UUID.class).list();
+	}
+
+	/** Equipes ativas do usuário com o resumo das OS abertas programadas para o dia. */
+	public List<EquipeDoDia> doDia(UUID usuario, LocalDate dia) {
+		return jdbc.sql("""
+				SELECT e.id, e.nome, tv.nome AS veiculo_nome,
+				       count(o.id) AS ordens, count(o.id) FILTER (WHERE o.prioridade = 'EMERGENCIAL') AS emergenciais,
+				       EXISTS (SELECT 1 FROM jornada j WHERE j.equipe_id = e.id AND j.fim IS NULL) AS jornada_aberta
+				  FROM equipe_membro m
+				  JOIN equipe e ON e.id = m.equipe_id
+				  LEFT JOIN tipo_veiculo tv ON tv.id = e.tipo_veiculo_id
+				  LEFT JOIN ordem_servico o ON o.equipe_id = e.id AND o.data_programada = :dia
+				        AND o.status IN ('PROGRAMADA', 'EM_EXECUCAO', 'PARALISADA')
+				 WHERE m.usuario_id = :usuario AND e.ativa
+				 GROUP BY e.id, e.nome, tv.nome
+				 ORDER BY e.nome""")
+			.param("usuario", usuario)
+			.param("dia", java.sql.Date.valueOf(dia))
+			.query((l, n) -> new EquipeDoDia(l.getObject("id", UUID.class), l.getString("nome"), l.getLong("ordens"),
+					l.getLong("emergenciais"), l.getString("veiculo_nome"), l.getBoolean("jornada_aberta")))
+			.list();
 	}
 
 	private static Equipe mapear(ResultSet linha, int n) throws SQLException {
