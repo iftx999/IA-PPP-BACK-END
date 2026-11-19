@@ -172,6 +172,19 @@ class RoteirizacaoApiTest {
 		mvc.perform(get("/api/v1/ordens/{id}", os.get("2001005")).with(token("sub-programador-rota")))
 			.andExpect(jsonPath("$.status").value("PLANEJADA"));
 
+		// J7: reotimizar hoje parte da posição (sem jornada aberta, da base) e pega as
+		// três programadas.
+		var reotimizando = ler(postar("/api/v1/roteirizacoes/reotimizar", """
+				{"unidadeId":"%s","equipes":["%s"]}""".formatted(t.cidadeA(), completa), "sub-programador-rota")
+			.andExpect(status().isAccepted())
+			.andExpect(jsonPath("$.origem").value("REOTIMIZACAO")));
+		var reotimizada = esperar(reotimizando.get("id").asString());
+		assertThat(reotimizada.get("situacao").asString()).isEqualTo("PRONTA");
+		assertThat(rota(reotimizada, "Equipe Leste").get("paradas").size()).isEqualTo(3);
+		postar("/api/v1/roteirizacoes/reotimizar", """
+				{"unidadeId":"%s","equipes":["%s"]}""".formatted(t.cidadeA(), aPe), "sub-programador-rota")
+			.andExpect(status().isUnprocessableContent());
+
 		// A prévia anterior pode ser descartada; a publicada, não.
 		postar("/api/v1/roteirizacoes/" + pronta.get("id").asString() + "/descartar", "", "sub-programador-rota")
 			.andExpect(status().isOk())
@@ -180,8 +193,8 @@ class RoteirizacaoApiTest {
 			.andExpect(status().isConflict());
 		mvc.perform(get("/api/v1/roteirizacoes").param("data", hoje.toString()).with(token("sub-programador-rota")))
 			.andExpect(status().isOk())
-			.andExpect(jsonPath("$.length()").value(2))
-			.andExpect(jsonPath("$[0].situacao").value("PUBLICADA"));
+			.andExpect(jsonPath("$.length()").value(3))
+			.andExpect(jsonPath("$[1].situacao").value("PUBLICADA"));
 	}
 
 	/** Consulta até o cálculo terminar (no máximo 30 s). */
