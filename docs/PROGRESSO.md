@@ -590,7 +590,7 @@ token não leva os papéis de `realm-management` e a Admin API responde 403. Flu
   RN-23 nos testes de OS e campanhas; front 101 unitários; E2E `roteirizacao.spec.ts` contra o Valhalla real (com axe e
   console limpo) e `/roteirizacao` no axe dos dois temas.
 - Pendências: gatilhos automáticos da reotimização e rota no "Iniciar jornada" (com o app, M6); medir a escala real
-  (50 equipes × 1.500 OS) com o recorte da concessão do cliente (10.14); confirmar a regra de veículo da RN-23.
+  (50 equipes × 1.500 OS) com o recorte da concessão do cliente (10.14). Regra de veículo da RN-23 confirmada pelo usuário em 19/11/2026.
 
 ### Onde paramos (19/11/2026) — retomar daqui
 **Estado:** M1 a M5 dos serviços de campo prontos, com commit, nas branches `feature/catalogo-de-servicos` dos dois

@@ -30,7 +30,8 @@ Sem custo por consulta e sem endereço saindo do ambiente do cliente (10.8). Mig
 - **RN-23 por inteiro.** A equipe ganha base (ponto no mapa), início e fim da jornada, pausa, tipo de veículo e
   habilidades. A OS só vai para equipe da área, com a habilidade exigida e com veículo que atende: **moto exigida é
   atendida por qualquer veículo; carro, pelo mesmo tipo ou por caminhão; caminhão, só pelo mesmo tipo** (função SQL
-  `veiculo_atende`, usada na programação manual, na roteirização e na publicação). Equipe sem veículo só recebe
+  `veiculo_atende`, usada na programação manual, na roteirização e na publicação; confirmada pelo usuário em
+  19/11/2026). Equipe sem veículo só recebe
   serviço sem veículo exigido. Equipes existentes recebem todas as habilidades ativas na migração (para não parar a
   programação de quem já usa) e ficam sem veículo até o gestor cadastrar.
 - **Fluxo (J6).** `POST /api/v1/roteirizacoes` (equipes e OS escolhidas, `os:programar`) responde 202 com a
