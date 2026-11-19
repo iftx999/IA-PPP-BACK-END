@@ -10,6 +10,8 @@ import dev.aurora.auditoria.Auditoria;
 import dev.aurora.auditoria.TipoEvento;
 import dev.aurora.campanhas.model.DadosEquipe;
 import dev.aurora.campanhas.model.Equipe;
+import dev.aurora.campanhas.model.ItemDoCatalogo;
+import dev.aurora.campanhas.model.OperacaoDaEquipe;
 import dev.aurora.campanhas.model.Pessoa;
 import dev.aurora.campanhas.model.TipoEquipe;
 import dev.aurora.campanhas.repository.EquipeRepository;
@@ -24,12 +26,18 @@ import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Equipes de campo (ADR 0036): própria ou terceirizada, com a unidade onde atua e as
- * pessoas que recebem as OS. Cadastro e alteração são auditados.
+ * pessoas que recebem as OS, e o que a roteirização precisa (base, jornada, veículo e
+ * habilidades; ADR 0046). Cadastro e alteração são auditados.
  */
 @Service
 public class EquipeService {
 
 	static final int MAXIMO_DE_MEMBROS = 50;
+
+	static final int MAXIMO_DE_PAUSA = 240;
+
+	/** Jornada útil mínima, em minutos. */
+	static final int JORNADA_MINIMA = 60;
 
 	private final EquipeRepository equipes;
 
@@ -46,11 +54,25 @@ public class EquipeService {
 	@Transactional(readOnly = true)
 	public List<Equipe> listar() {
 		var lista = equipes.listar();
-		var membros = equipes.membros(lista.stream().map(Equipe::id).toList())
+		var ids = lista.stream().map(Equipe::id).toList();
+		var membros = equipes.membros(ids)
 			.stream()
 			.collect(Collectors.groupingBy(EquipeRepository.MembroDaEquipe::equipeId,
 					Collectors.mapping(EquipeRepository.MembroDaEquipe::membro, Collectors.toList())));
-		return lista.stream().map(e -> e.comMembros(membros.getOrDefault(e.id(), List.of()))).toList();
+		var habilidades = equipes.habilidades(ids);
+		return lista.stream()
+			.map(e -> e.comMembros(membros.getOrDefault(e.id(), List.of()))
+				.comHabilidades(habilidades.getOrDefault(e.id(), List.of())))
+			.toList();
+	}
+
+	/** Veículos e habilidades do catálogo para o cadastro da equipe. */
+	public record Opcoes(List<ItemDoCatalogo> veiculos, List<ItemDoCatalogo> habilidades) {
+	}
+
+	@Transactional(readOnly = true)
+	public Opcoes opcoes() {
+		return new Opcoes(equipes.veiculos(), equipes.habilidadesDoCatalogo());
 	}
 
 	@Transactional(readOnly = true)
@@ -65,6 +87,7 @@ public class EquipeService {
 		var normalizados = validar(dados, id);
 		equipes.inserir(id, normalizados);
 		equipes.substituirMembros(id, normalizados.membros());
+		equipes.substituirHabilidades(id, normalizados.operacao().habilidades());
 		auditoria.registrar(TipoEvento.EQUIPE_CADASTRADA, "equipe/" + id, detalhes(normalizados));
 		return buscar(id);
 	}
@@ -82,6 +105,7 @@ public class EquipeService {
 		}
 		equipes.atualizar(id, normalizados);
 		equipes.substituirMembros(id, normalizados.membros());
+		equipes.substituirHabilidades(id, normalizados.operacao().habilidades());
 		auditoria.registrar(TipoEvento.EQUIPE_ALTERADA, "equipe/" + id, detalhes(normalizados));
 		return buscar(id);
 	}
@@ -89,7 +113,8 @@ public class EquipeService {
 	private Equipe buscar(UUID id) {
 		var equipe = equipes.buscar(id).orElseThrow();
 		return equipe
-			.comMembros(equipes.membros(List.of(id)).stream().map(EquipeRepository.MembroDaEquipe::membro).toList());
+			.comMembros(equipes.membros(List.of(id)).stream().map(EquipeRepository.MembroDaEquipe::membro).toList())
+			.comHabilidades(equipes.habilidades(List.of(id)).getOrDefault(id, List.of()));
 	}
 
 	private DadosEquipe validar(DadosEquipe dados, UUID id) {
@@ -116,7 +141,37 @@ public class EquipeService {
 		if (equipes.contarUsuariosAtivos(membros) != membros.size()) {
 			throw new RegraVioladaException("Só pessoas com acesso ativo podem entrar na equipe.");
 		}
-		return new DadosEquipe(dados.unidadeId(), nome, dados.tipo(), empresa, dados.ativa(), membros);
+		return new DadosEquipe(dados.unidadeId(), nome, dados.tipo(), empresa, dados.ativa(), membros,
+				validar(dados.operacao()));
+	}
+
+	/** RN-23 e RN-25: jornada coerente; veículo e habilidades do catálogo, ativos. */
+	private OperacaoDaEquipe validar(OperacaoDaEquipe operacao) {
+		if (!operacao.jornadaFim().isAfter(operacao.jornadaInicio())) {
+			throw new RegraVioladaException("O fim da jornada deve ser depois do início.");
+		}
+		if (operacao.pausaMin() < 0 || operacao.pausaMin() > MAXIMO_DE_PAUSA) {
+			throw new RegraVioladaException("A pausa deve ficar entre 0 e " + MAXIMO_DE_PAUSA + " minutos.");
+		}
+		if (operacao.tempoUtil().toMinutes() < JORNADA_MINIMA) {
+			throw new RegraVioladaException(
+					"A jornada, descontada a pausa, deve ter pelo menos " + JORNADA_MINIMA / 60 + " hora.");
+		}
+		var veiculo = operacao.tipoVeiculoId();
+		if (veiculo != null && equipes.veiculos().stream().noneMatch(v -> v.id().equals(veiculo) && v.ativo())) {
+			throw new RegraVioladaException("Escolha um tipo de veículo ativo do catálogo.");
+		}
+		var habilidades = List.copyOf(new LinkedHashSet<>(operacao.habilidades()));
+		var ativas = equipes.habilidadesDoCatalogo()
+			.stream()
+			.filter(ItemDoCatalogo::ativo)
+			.map(ItemDoCatalogo::id)
+			.collect(Collectors.toSet());
+		if (!ativas.containsAll(habilidades)) {
+			throw new RegraVioladaException("Escolha habilidades ativas do catálogo.");
+		}
+		return new OperacaoDaEquipe(operacao.base(), operacao.jornadaInicio(), operacao.jornadaFim(),
+				operacao.pausaMin(), veiculo, habilidades);
 	}
 
 	private static LinkedHashMap<String, @Nullable Object> detalhes(DadosEquipe dados) {
@@ -127,6 +182,12 @@ public class EquipeService {
 		detalhes.put("unidade", dados.unidadeId().toString());
 		detalhes.put("ativa", dados.ativa());
 		detalhes.put("membros", dados.membros().size());
+		var operacao = dados.operacao();
+		detalhes.put("jornada", operacao.jornadaInicio() + "-" + operacao.jornadaFim());
+		detalhes.put("pausaMin", operacao.pausaMin());
+		detalhes.put("base", operacao.base() != null);
+		detalhes.put("veiculo", operacao.tipoVeiculoId() == null ? null : operacao.tipoVeiculoId().toString());
+		detalhes.put("habilidades", operacao.habilidades().size());
 		return detalhes;
 	}
 

@@ -195,9 +195,11 @@ class CampanhaController {
 
 	/**
 	 * @param foraDaArea não enviadas: o imóvel fica fora da unidade onde a equipe atua
+	 * @param incompativeis não enviadas: o serviço exige habilidade ou veículo que a
+	 * equipe não tem (RN-23)
 	 * @param ignoradas não enviadas: já em execução, encerradas ou canceladas
 	 */
-	record DistribuicaoResponse(int enviadas, int foraDaArea, int ignoradas) {
+	record DistribuicaoResponse(int enviadas, int foraDaArea, int incompativeis, int ignoradas) {
 	}
 
 	private final CampanhaService campanhas;
@@ -272,7 +274,7 @@ class CampanhaController {
 	DistribuicaoResponse distribuir(@PathVariable UUID id, @Valid @RequestBody DistribuicaoRequest pedido) {
 		var r = campanhas.distribuir(id, new Distribuicao(pedido.equipeId(), pedido.data(), pedido.ordens(),
 				pedido.prioridade(), pedido.quantidade()));
-		return new DistribuicaoResponse(r.enviadas(), r.foraDaArea(), r.ignoradas());
+		return new DistribuicaoResponse(r.enviadas(), r.foraDaArea(), r.incompativeis(), r.ignoradas());
 	}
 
 	/** Resultado informado pelo gestor (ex.: empreiteira sem acesso à Aurora). */

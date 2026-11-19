@@ -318,11 +318,13 @@ public class ProgramacaoService {
 			detalhes.put("data", pedido.data().toString());
 			detalhes.put("programadas", envio.enviadas());
 			detalhes.put("foraDaArea", envio.foraDaArea());
+			detalhes.put("incompativeis", envio.incompativeis());
 			detalhes.put("ignoradas", envio.ignoradas());
 			auditoria.registrar(TipoEvento.ORDENS_PROGRAMADAS,
 					campanha == null ? "ordens-de-servico" : "campanha/" + campanha, detalhes);
 		}
-		return new ResultadoDistribuicao(envio.enviadas(), envio.foraDaArea(), envio.ignoradas());
+		return new ResultadoDistribuicao(envio.enviadas(), envio.foraDaArea(), envio.incompativeis(),
+				envio.ignoradas());
 	}
 
 	/** Cancela a OS que ainda não começou (planejada, programada ou devolvida). */

@@ -185,8 +185,8 @@ class OrdensApiTest {
 		// Programar (RN-23): equipe da Cidade A recebe as três; data no passado não.
 		var equipe = ler(postar("/api/v1/equipes",
 				"""
-						{"unidadeId":"%s","nome":"Equipe Rede A","tipo":"PROPRIA","ativa":true,"membros":["%s"]}"""
-					.formatted(t.cidadeA(), campo),
+						{"unidadeId":"%s","nome":"Equipe Rede A","tipo":"PROPRIA","ativa":true,"membros":["%s"],%s}"""
+					.formatted(t.cidadeA(), campo, operacaoCompleta("sub-admin-os")),
 				"sub-admin-os")
 			.andExpect(status().isCreated())).get("id").asString();
 		mvc.perform(get("/api/v1/ordens/equipes").with(token("sub-programador")))
@@ -201,11 +201,37 @@ class OrdensApiTest {
 		postar("/api/v1/ordens/programar", programar.formatted(idAvulsa, idTrecho, idLote1, equipe, hoje.minusDays(1)),
 				"sub-programador")
 			.andExpect(status().isUnprocessableContent());
+		// Jornada invertida e veículo que não existe são recusados.
+		postar("/api/v1/equipes", """
+				{"unidadeId":"%s","nome":"Equipe torta","tipo":"PROPRIA","ativa":true,"membros":[],
+				 "operacao":{"jornadaInicio":"17:00","jornadaFim":"08:00","pausaMin":60,"habilidades":[]}}"""
+			.formatted(t.cidadeA()), "sub-admin-os").andExpect(status().isUnprocessableContent());
+		postar("/api/v1/equipes", """
+				{"unidadeId":"%s","nome":"Equipe torta","tipo":"PROPRIA","ativa":true,"membros":[],
+				 "operacao":{"jornadaInicio":"08:00","jornadaFim":"17:00","pausaMin":60,"tipoVeiculoId":"%s",
+				 "habilidades":[]}}""".formatted(t.cidadeA(), java.util.UUID.randomUUID()), "sub-admin-os")
+			.andExpect(status().isUnprocessableContent());
+		// RN-23: equipe sem veículo nem habilidades não recebe nenhuma (vistoria exige
+		// moto; limpeza, vácuo).
+		var incompleta = ler(postar("/api/v1/equipes",
+				"""
+						{"unidadeId":"%s","nome":"Equipe a pé","tipo":"PROPRIA","ativa":true,"membros":[]}"""
+					.formatted(t.cidadeA()),
+				"sub-admin-os")
+			.andExpect(status().isCreated())
+			.andExpect(jsonPath("$.operacao.jornadaInicio").value("07:30:00"))
+			.andExpect(jsonPath("$.operacao.habilidades.length()").value(0))).get("id").asString();
+		postar("/api/v1/ordens/programar", programar.formatted(idAvulsa, idTrecho, idLote1, incompleta, hoje),
+				"sub-programador")
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.programadas").value(0))
+			.andExpect(jsonPath("$.incompativeis").value(3));
 		postar("/api/v1/ordens/programar", programar.formatted(idAvulsa, idTrecho, idLote1, equipe, hoje),
 				"sub-programador")
 			.andExpect(status().isOk())
 			.andExpect(jsonPath("$.programadas").value(3))
-			.andExpect(jsonPath("$.foraDaArea").value(0));
+			.andExpect(jsonPath("$.foraDaArea").value(0))
+			.andExpect(jsonPath("$.incompativeis").value(0));
 		// Reprogramar para amanhã.
 		postar("/api/v1/ordens/programar", programar.formatted(idLote1, idLote1, idLote1, equipe, hoje.plusDays(1)),
 				"sub-programador")
@@ -313,6 +339,29 @@ class OrdensApiTest {
 
 	private static RequestPostProcessor token(String sub) {
 		return jwt().jwt(j -> j.issuer(t.emissor()).subject(sub));
+	}
+
+	/**
+	 * Operação de uma equipe que atende todo o catálogo de teste (RN-23): todas as
+	 * habilidades e caminhão de vácuo (atende moto, carro e o próprio vácuo).
+	 */
+	private String operacaoCompleta(String sub) throws Exception {
+		var opcoes = json.readTree(mvc.perform(get("/api/v1/equipes/opcoes").with(token(sub)))
+			.andExpect(status().isOk())
+			.andReturn()
+			.getResponse()
+			.getContentAsString());
+		String vacuo = null;
+		for (var v : opcoes.get("veiculos")) {
+			if ("CAMINHAO_VACUO".equals(v.get("codigo").asString())) {
+				vacuo = v.get("id").asString();
+			}
+		}
+		var habilidades = new java.util.StringJoiner(",");
+		opcoes.get("habilidades").forEach(h -> habilidades.add("\"" + h.get("id").asString() + "\""));
+		return """
+				"operacao":{"jornadaInicio":"07:30","jornadaFim":"16:30","pausaMin":60,"tipoVeiculoId":"%s","habilidades":[%s]}"""
+			.formatted(vacuo, habilidades);
 	}
 
 }

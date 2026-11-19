@@ -298,8 +298,8 @@ class CampoApiTest {
 	private String equipe(String nome, UUID membro) throws Exception {
 		return ler(postar("/api/v1/equipes",
 				"""
-						{"unidadeId":"%s","nome":"%s","tipo":"PROPRIA","ativa":true,"membros":["%s"]}"""
-					.formatted(t.cidadeA(), nome, membro),
+						{"unidadeId":"%s","nome":"%s","tipo":"PROPRIA","ativa":true,"membros":["%s"],%s}"""
+					.formatted(t.cidadeA(), nome, membro, operacaoCompleta("sub-admin-campo")),
 				"sub-admin-campo")
 			.andExpect(status().isCreated())).get("id").asString();
 	}
@@ -378,6 +378,29 @@ class CampoApiTest {
 
 	private static RequestPostProcessor token(String sub) {
 		return jwt().jwt(j -> j.issuer(t.emissor()).subject(sub));
+	}
+
+	/**
+	 * Operação de uma equipe que atende todo o catálogo de teste (RN-23): todas as
+	 * habilidades e caminhão de vácuo (atende moto, carro e o próprio vácuo).
+	 */
+	private String operacaoCompleta(String sub) throws Exception {
+		var opcoes = json.readTree(mvc.perform(get("/api/v1/equipes/opcoes").with(token(sub)))
+			.andExpect(status().isOk())
+			.andReturn()
+			.getResponse()
+			.getContentAsString());
+		String vacuo = null;
+		for (var v : opcoes.get("veiculos")) {
+			if ("CAMINHAO_VACUO".equals(v.get("codigo").asString())) {
+				vacuo = v.get("id").asString();
+			}
+		}
+		var habilidades = new java.util.StringJoiner(",");
+		opcoes.get("habilidades").forEach(h -> habilidades.add("\"" + h.get("id").asString() + "\""));
+		return """
+				"operacao":{"jornadaInicio":"07:30","jornadaFim":"16:30","pausaMin":60,"tipoVeiculoId":"%s","habilidades":[%s]}"""
+			.formatted(vacuo, habilidades);
 	}
 
 }

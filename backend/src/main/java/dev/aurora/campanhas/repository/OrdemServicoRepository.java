@@ -449,7 +449,8 @@ public class OrdemServicoRepository {
 	/**
 	 * Programa (ou reprograma) as OS para a equipe na data: só as que estão em situação
 	 * de programar (planejada, programada, devolvida) e cujo alvo fica na unidade onde a
-	 * equipe atua ou abaixo (RN-23). {@code campanha} não nula restringe às OS dela.
+	 * equipe atua ou abaixo e cujo serviço exige habilidade e veículo que a equipe tem
+	 * (RN-23). {@code campanha} não nula restringe às OS dela.
 	 */
 	public Envio programar(List<UUID> ordens, @Nullable UUID campanha, UUID equipe, LocalDate data, UUID usuario) {
 		return jdbc
@@ -459,17 +460,25 @@ public class OrdemServicoRepository {
 					      WHERE o.id = ANY (CAST(:ordens AS uuid[])) AND o.status IN %s
 					        AND (CAST(:campanha AS uuid) IS NULL OR o.campanha_id = CAST(:campanha AS uuid))),
 					     area AS (SELECT caminho FROM unidade WHERE id = (SELECT unidade_id FROM equipe WHERE id = :equipe)),
+					     na_area AS (
+					     SELECT o.id, o.servico_versao_id FROM ordem_servico o JOIN unidade u ON u.id = o.unidade_id
+					      WHERE o.id IN (SELECT id FROM escolhidas) AND u.caminho <@ (SELECT caminho FROM area)),
+					     compativeis AS (
+					     SELECT a.id FROM na_area a JOIN servico_versao v ON v.id = a.servico_versao_id
+					      WHERE (v.habilidade_id IS NULL OR EXISTS (
+					                SELECT 1 FROM equipe_habilidade h
+					                 WHERE h.equipe_id = :equipe AND h.habilidade_id = v.habilidade_id))
+					        AND veiculo_atende(v.tipo_veiculo_id, (SELECT tipo_veiculo_id FROM equipe WHERE id = :equipe))),
 					     enviadas AS (
 					     UPDATE ordem_servico o
 					        SET equipe_id = :equipe, data_programada = :data, status = 'PROGRAMADA', enviada_em = now(),
-					            motivo_id = NULL, observacao = NULL, movimentada_em = now(), movimentada_por = :usuario,
-					            atualizado_em = now()
-					       FROM unidade u
-					      WHERE o.id IN (SELECT id FROM escolhidas) AND u.id = o.unidade_id
-					        AND u.caminho <@ (SELECT caminho FROM area)
+					            sequencia_rota = NULL, motivo_id = NULL, observacao = NULL, movimentada_em = now(),
+					            movimentada_por = :usuario, atualizado_em = now()
+					      WHERE o.id IN (SELECT id FROM compativeis)
 					     RETURNING o.id)
 					SELECT (SELECT count(*) FROM enviadas) AS enviadas,
-					       (SELECT count(*) FROM escolhidas) - (SELECT count(*) FROM enviadas) AS fora_da_area,
+					       (SELECT count(*) FROM escolhidas) - (SELECT count(*) FROM na_area) AS fora_da_area,
+					       (SELECT count(*) FROM na_area) - (SELECT count(*) FROM enviadas) AS incompativeis,
 					       cardinality(CAST(:ordens AS uuid[])) - (SELECT count(*) FROM escolhidas) AS ignoradas
 					"""
 				.formatted(PROGRAMAVEIS))
@@ -478,11 +487,12 @@ public class OrdemServicoRepository {
 			.param("equipe", equipe)
 			.param("data", Date.valueOf(data))
 			.param("usuario", usuario)
-			.query((l, n) -> new Envio(l.getInt("enviadas"), l.getInt("fora_da_area"), l.getInt("ignoradas")))
+			.query((l, n) -> new Envio(l.getInt("enviadas"), l.getInt("fora_da_area"), l.getInt("incompativeis"),
+					l.getInt("ignoradas")))
 			.single();
 	}
 
-	public record Envio(int enviadas, int foraDaArea, int ignoradas) {
+	public record Envio(int enviadas, int foraDaArea, int incompativeis, int ignoradas) {
 	}
 
 	/** Devolver (volta para a programação) ou cancelar, com motivo do catálogo. */

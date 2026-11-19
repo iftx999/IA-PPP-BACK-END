@@ -2,17 +2,26 @@ package dev.aurora.campanhas.repository;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Types;
+import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
 import dev.aurora.campanhas.model.DadosEquipe;
 import dev.aurora.campanhas.model.Equipe;
+import dev.aurora.campanhas.model.ItemDoCatalogo;
 import dev.aurora.campanhas.model.Membro;
+import dev.aurora.campanhas.model.OperacaoDaEquipe;
 import dev.aurora.campanhas.model.Pessoa;
+import dev.aurora.campanhas.model.Posicao;
 import dev.aurora.campanhas.model.TipoEquipe;
 
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
@@ -22,6 +31,8 @@ public class EquipeRepository {
 
 	private static final String SELECAO = """
 			SELECT e.id, e.unidade_id, u.nome AS unidade_nome, e.nome, e.tipo, e.empresa, e.ativa,
+			       ST_Y(e.base) AS base_lat, ST_X(e.base) AS base_lon, e.jornada_inicio, e.jornada_fim, e.pausa_min,
+			       e.tipo_veiculo_id,
 			       (SELECT count(*) FROM ordem_servico o
 			         WHERE o.equipe_id = e.id AND o.status IN ('PROGRAMADA', 'EM_EXECUCAO', 'PARALISADA')) AS em_campo
 			  FROM equipe e
@@ -61,28 +72,83 @@ public class EquipeRepository {
 
 	public void inserir(UUID id, DadosEquipe dados) {
 		jdbc.sql("""
-				INSERT INTO equipe (id, tenant_id, unidade_id, nome, tipo, empresa, ativa)
-				VALUES (:id, app_tenant(), :unidade, :nome, :tipo, :empresa, :ativa)""")
-			.param("id", id)
-			.param("unidade", dados.unidadeId())
-			.param("nome", dados.nome())
-			.param("tipo", dados.tipo().name())
-			.param("empresa", dados.empresa())
-			.param("ativa", dados.ativa())
-			.update();
+				INSERT INTO equipe (id, tenant_id, unidade_id, nome, tipo, empresa, ativa, base, jornada_inicio,
+				                    jornada_fim, pausa_min, tipo_veiculo_id)
+				VALUES (:id, app_tenant(), :unidade, :nome, :tipo, :empresa, :ativa, %s, :inicio, :fim, :pausa,
+				        :veiculo)""".formatted(BASE)).paramSource(parametros(id, dados)).update();
 	}
 
 	public void atualizar(UUID id, DadosEquipe dados) {
 		jdbc.sql("""
-				UPDATE equipe SET unidade_id = :unidade, nome = :nome, tipo = :tipo, empresa = :empresa, ativa = :ativa
-				 WHERE id = :id""")
-			.param("id", id)
-			.param("unidade", dados.unidadeId())
-			.param("nome", dados.nome())
-			.param("tipo", dados.tipo().name())
-			.param("empresa", dados.empresa())
-			.param("ativa", dados.ativa())
+				UPDATE equipe SET unidade_id = :unidade, nome = :nome, tipo = :tipo, empresa = :empresa, ativa = :ativa,
+				       base = %s, jornada_inicio = :inicio, jornada_fim = :fim, pausa_min = :pausa,
+				       tipo_veiculo_id = :veiculo
+				 WHERE id = :id""".formatted(BASE)).paramSource(parametros(id, dados)).update();
+	}
+
+	private static final String BASE = """
+			CASE WHEN CAST(:latitude AS double precision) IS NULL THEN NULL
+			     ELSE ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4674) END""";
+
+	private static MapSqlParameterSource parametros(UUID id, DadosEquipe dados) {
+		var operacao = dados.operacao();
+		var base = operacao.base();
+		return new MapSqlParameterSource().addValue("id", id)
+			.addValue("unidade", dados.unidadeId())
+			.addValue("nome", dados.nome())
+			.addValue("tipo", dados.tipo().name())
+			.addValue("empresa", dados.empresa())
+			.addValue("ativa", dados.ativa())
+			.addValue("latitude", base == null ? null : base.latitude(), Types.DOUBLE)
+			.addValue("longitude", base == null ? null : base.longitude(), Types.DOUBLE)
+			.addValue("inicio", operacao.jornadaInicio(), Types.TIME)
+			.addValue("fim", operacao.jornadaFim(), Types.TIME)
+			.addValue("pausa", operacao.pausaMin())
+			.addValue("veiculo", operacao.tipoVeiculoId());
+	}
+
+	public void substituirHabilidades(UUID equipe, Collection<UUID> habilidades) {
+		jdbc.sql("DELETE FROM equipe_habilidade WHERE equipe_id = :equipe").param("equipe", equipe).update();
+		if (habilidades.isEmpty()) {
+			return;
+		}
+		jdbc.sql("""
+				INSERT INTO equipe_habilidade (tenant_id, equipe_id, habilidade_id)
+				SELECT app_tenant(), :equipe, h FROM unnest(CAST(:habilidades AS uuid[])) AS h""")
+			.param("equipe", equipe)
+			.param("habilidades", habilidades.toArray(UUID[]::new))
 			.update();
+	}
+
+	/** Habilidades das equipes pedidas. */
+	public Map<UUID, List<UUID>> habilidades(Collection<UUID> equipes) {
+		if (equipes.isEmpty()) {
+			return Map.of();
+		}
+		var porEquipe = new HashMap<UUID, List<UUID>>();
+		jdbc.sql("SELECT equipe_id, habilidade_id FROM equipe_habilidade WHERE equipe_id IN (:equipes)")
+			.param("equipes", equipes)
+			.query((linha, n) -> Map.entry(linha.getObject("equipe_id", UUID.class),
+					linha.getObject("habilidade_id", UUID.class)))
+			.list()
+			.forEach(e -> porEquipe.computeIfAbsent(e.getKey(), k -> new ArrayList<>()).add(e.getValue()));
+		return porEquipe;
+	}
+
+	/** Tipos de veículo do catálogo, ativos e inativos. */
+	public List<ItemDoCatalogo> veiculos() {
+		return jdbc.sql("SELECT id, codigo, nome, ativo, perfil_rota FROM tipo_veiculo ORDER BY ativo DESC, nome")
+			.query((l, n) -> new ItemDoCatalogo(l.getObject("id", UUID.class), l.getString("codigo"),
+					l.getString("nome"), l.getBoolean("ativo"), l.getString("perfil_rota")))
+			.list();
+	}
+
+	/** Habilidades do catálogo, ativas e inativas. */
+	public List<ItemDoCatalogo> habilidadesDoCatalogo() {
+		return jdbc.sql("SELECT id, codigo, nome, ativo FROM habilidade ORDER BY ativo DESC, nome")
+			.query((l, n) -> new ItemDoCatalogo(l.getObject("id", UUID.class), l.getString("codigo"),
+					l.getString("nome"), l.getBoolean("ativo"), null))
+			.list();
 	}
 
 	public void substituirMembros(UUID equipe, Collection<UUID> usuarios) {
@@ -149,9 +215,14 @@ public class EquipeRepository {
 	}
 
 	private static Equipe mapear(ResultSet linha, int n) throws SQLException {
+		var latitude = linha.getObject("base_lat", Double.class);
+		var base = latitude == null ? null : new Posicao(latitude, linha.getDouble("base_lon"), null);
+		var operacao = new OperacaoDaEquipe(base, linha.getObject("jornada_inicio", LocalTime.class),
+				linha.getObject("jornada_fim", LocalTime.class), linha.getInt("pausa_min"),
+				linha.getObject("tipo_veiculo_id", UUID.class), List.of());
 		return new Equipe(linha.getObject("id", UUID.class), linha.getObject("unidade_id", UUID.class),
 				linha.getString("unidade_nome"), linha.getString("nome"), TipoEquipe.valueOf(linha.getString("tipo")),
-				linha.getString("empresa"), linha.getBoolean("ativa"), List.of(), linha.getLong("em_campo"));
+				linha.getString("empresa"), linha.getBoolean("ativa"), List.of(), linha.getLong("em_campo"), operacao);
 	}
 
 }

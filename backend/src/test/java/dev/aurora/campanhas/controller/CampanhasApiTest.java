@@ -123,8 +123,9 @@ class CampanhasApiTest {
 				{"unidadeId":"%s","nome":"Empreiteira X","tipo":"TERCEIRIZADA","ativa":true,"membros":[]}"""
 			.formatted(t.cidadeA()), "sub-admin").andExpect(status().isUnprocessableContent());
 		var equipeJson = """
-				{"unidadeId":"%s","nome":"Equipe Cidade A","tipo":"PROPRIA","ativa":%s,"membros":["%s"]}""";
-		var equipe = id(postar("/api/v1/equipes", equipeJson.formatted(t.cidadeA(), true, campo), "sub-admin")
+				{"unidadeId":"%s","nome":"Equipe Cidade A","tipo":"PROPRIA","ativa":%s,"membros":["%s"],%s}""";
+		var operacao = operacaoCompleta("sub-admin");
+		var equipe = id(postar("/api/v1/equipes", equipeJson.formatted(t.cidadeA(), true, campo, operacao), "sub-admin")
 			.andExpect(status().isCreated())
 			.andExpect(jsonPath("$.membros[0].email").value("campo@campanhas.teste")));
 
@@ -195,7 +196,7 @@ class CampanhasApiTest {
 
 		// Equipe com OS em campo não é desativada.
 		mvc.perform(put("/api/v1/equipes/{id}", equipe).contentType(MediaType.APPLICATION_JSON)
-			.content(equipeJson.formatted(t.cidadeA(), false, campo))
+			.content(equipeJson.formatted(t.cidadeA(), false, campo, operacao))
 			.with(token("sub-admin"))).andExpect(status().isConflict());
 
 		// RN-19: a carga do mês mostra 2001002 ligado (confirmada). 2001005 foi executada
@@ -295,6 +296,29 @@ class CampanhasApiTest {
 
 	private static RequestPostProcessor token(String sub) {
 		return jwt().jwt(j -> j.issuer(t.emissor()).subject(sub));
+	}
+
+	/**
+	 * Operação de uma equipe que atende todo o catálogo de teste (RN-23): todas as
+	 * habilidades e caminhão de vácuo (atende moto, carro e o próprio vácuo).
+	 */
+	private String operacaoCompleta(String sub) throws Exception {
+		var opcoes = json.readTree(mvc.perform(get("/api/v1/equipes/opcoes").with(token(sub)))
+			.andExpect(status().isOk())
+			.andReturn()
+			.getResponse()
+			.getContentAsString());
+		String vacuo = null;
+		for (var v : opcoes.get("veiculos")) {
+			if ("CAMINHAO_VACUO".equals(v.get("codigo").asString())) {
+				vacuo = v.get("id").asString();
+			}
+		}
+		var habilidades = new java.util.StringJoiner(",");
+		opcoes.get("habilidades").forEach(h -> habilidades.add("\"" + h.get("id").asString() + "\""));
+		return """
+				"operacao":{"jornadaInicio":"07:30","jornadaFim":"16:30","pausaMin":60,"tipoVeiculoId":"%s","habilidades":[%s]}"""
+			.formatted(vacuo, habilidades);
 	}
 
 }

@@ -149,9 +149,11 @@ class OrdemController {
 
 	/**
 	 * @param foraDaArea não programadas: o alvo fica fora da unidade onde a equipe atua
+	 * @param incompativeis não programadas: o serviço exige habilidade ou veículo que a
+	 * equipe não tem (RN-23)
 	 * @param ignoradas não programadas: já em execução, encerradas ou canceladas
 	 */
-	record ProgramacaoResponse(int programadas, int foraDaArea, int ignoradas) {
+	record ProgramacaoResponse(int programadas, int foraDaArea, int incompativeis, int ignoradas) {
 	}
 
 	/**
@@ -365,7 +367,7 @@ class OrdemController {
 	@PostMapping("/programar")
 	ProgramacaoResponse programar(@Valid @RequestBody ProgramacaoRequest pedido) {
 		var r = programacao.programar(new Programacao(pedido.ordens(), pedido.equipeId(), pedido.data()));
-		return new ProgramacaoResponse(r.enviadas(), r.foraDaArea(), r.ignoradas());
+		return new ProgramacaoResponse(r.enviadas(), r.foraDaArea(), r.incompativeis(), r.ignoradas());
 	}
 
 	@PostMapping("/{id}/cancelar")
