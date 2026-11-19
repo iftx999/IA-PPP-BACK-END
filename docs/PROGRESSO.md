@@ -567,7 +567,50 @@ token não leva os papéis de `realm-management` e a Admin API responde 403. Flu
   RIPD da localização dos funcionários escrito (`docs/ripd.md`, rascunho para o DPO do cliente); mapa do dia com as posições (M7).
 - Próximo: M5, roteirização (Valhalla no compose, Timefold, J6 e J7).
 
-### Onde paramos (18/11/2026, fim do dia) — retomar daqui
+## Sessão de 19/11/2026
+
+### Serviços de campo, M5: roteirização — ADR 0046 — branch `feature/catalogo-de-servicos`
+- V35: equipe com base (ponto), início e fim da jornada, pausa, tipo de veículo e habilidades (`equipe_habilidade`);
+  RN-23 por inteiro na programação manual, na roteirização e na publicação (função `veiculo_atende`: moto exigida →
+  qualquer veículo; carro → mesmo tipo ou caminhão; caminhão → só o mesmo tipo). Tabelas `roteirizacao`, `rota`,
+  `rota_parada`, `roteirizacao_pendente`; `ordem_servico.sequencia_rota` (ordena Minhas OS e o pacote do app).
+- Valhalla 3.9.3 no compose (dev e produção, digest fixado) com o recorte do OSM (`infra/scripts/recortar-osm.sh`;
+  recorte de teste Limeira/Piracicaba/Rio Claro em `~/Iapp/osm/regiao-teste.osm.pbf`, 13,6 MB, tiles em ~1 min).
+  Matriz em blocos 50 × 50 com cache e disjuntor `rotas`; sem Valhalla, linha reta rotulada.
+- Timefold Solver 2.8.0 (núcleo): equipe e ordem de cada OS pela RN-25 (duras: RN-23 e jornada; médias:
+  emergencial, prazo, prioridade; flexíveis: emergencial cedo, deslocamento, equilíbrio). Pausa no meio da jornada;
+  OS fixadas no começo da rota. 30 s na prévia, 10 s na reotimização, para antes sem melhora.
+- API `/api/v1/roteirizacoes` (`os:programar`): candidatas da unidade no dia, cálculo assíncrono (202 + consulta),
+  recálculo com fixadas/movidas, reotimização do dia (J7), publicar (programa na sequência; substitui a publicação
+  anterior) e descartar; auditado. Equipe sem base é recusada no pedido.
+- Front: formulário da equipe com jornada (timepicker), pausa, veículo, habilidades e base no mapa
+  (`aurora-escolher-ponto`); tela `/roteirizacao` com escolha de equipes e OS, rotas por equipe, OS sem rota com o
+  motivo, fixar/mover, recalcular, publicar, reotimizar e o mapa com o traçado pelas ruas (tracejado na estimativa).
+- Testes: back-end 4 do otimizador, 4 da malha viária (Valhalla falso), `RoteirizacaoApiTest` de ponta a ponta,
+  RN-23 nos testes de OS e campanhas; front 101 unitários; E2E `roteirizacao.spec.ts` contra o Valhalla real (com axe e
+  console limpo) e `/roteirizacao` no axe dos dois temas.
+- Pendências: gatilhos automáticos da reotimização e rota no "Iniciar jornada" (com o app, M6); medir a escala real
+  (50 equipes × 1.500 OS) com o recorte da concessão do cliente (10.14); confirmar a regra de veículo da RN-23.
+
+### Onde paramos (19/11/2026) — retomar daqui
+**Estado:** M1 a M5 dos serviços de campo prontos, com commit, nas branches `feature/catalogo-de-servicos` dos dois
+repositórios (`~/Iapp/aurora-servicos` e `~/Iapp/aurora-frontend-servicos`, worktrees). **Falta o push** (a chave SSH
+tem senha; rodar `git push` nos dois).
+
+**Próximo:** M6, app de campo em Flutter — aguardando o retorno do usuário sobre o protótipo
+(https://claude.ai/artifact/E4dybxLDYkSNHrhuSxq1pC; fontes em `docs/prototipo-app-campo/`) e as ideias em aberto (modo
+noturno, marca d’água nas fotos, alerta de emergencial, "Estou chegando", modo luva).
+
+**Para retomar o ambiente E2E isolado** (cópia do banco, agora na V35):
+`cd ~/Iapp/aurora/infra && docker compose -p aurora-servicos-e2e --env-file ~/Iapp/aurora/infra/.env up -d` e o
+Valhalla da branch: `cd ~/Iapp/aurora-servicos/infra && docker compose -p aurora-servicos-e2e -f compose.yaml
+--env-file ~/Iapp/aurora/infra/.env up -d valhalla`; API: `cd ~/Iapp/aurora-servicos/backend && set -a && .
+~/Iapp/aurora/infra/.env && set +a && ./mvnw -o -q spring-boot:run`; front: `cd ~/Iapp/aurora-frontend-servicos && npx
+ng serve`. O banco de desenvolvimento normal não foi tocado.
+
+**Pendências conhecidas:** aprovação do RIPD pelo cliente; seções 2 e 3 do RIPD (endereço dos imóveis, fotos das OS).
+
+### Onde paramos (18/11/2026, fim do dia) — superado pelo de 19/11
 **Estado:** M1 a M4 dos serviços de campo prontos, com commit, nas branches `feature/catalogo-de-servicos` dos dois
 repositórios (`~/Iapp/aurora-servicos` e `~/Iapp/aurora-frontend-servicos`, worktrees). Últimos commits: back
 `14a4182`, front `2efe738`. **Falta o push** (a chave SSH tem senha; rodar `git push` nos dois).
