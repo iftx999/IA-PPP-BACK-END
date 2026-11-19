@@ -42,6 +42,14 @@ aceito como base (19/11/2026).
   exige a fila vazia e apaga o pacote do celular (10.9.6). O envio com o app fechado (WorkManager ou serviço em
   primeiro plano) entra com as posições no 6e.
 
+- **Execução e fotos (6d):** tela da OS com iniciar, paralisar, retomar, devolver e encerrar; motivo obrigatório
+  (com observação quando o motivo exige) e encerramento com o formulário dos parâmetros da versão, conferido no
+  celular com as mesmas regras do servidor (`ValoresDoEncerramento`: obrigatório, faixa, inteiro, opções, condição,
+  quantidade de fotos), para o agente corrigir na hora mesmo sem sinal. Fotos pela câmera com `image_picker` (BSD e
+  Apache 2.0), já reduzidas a 1.600 px em JPEG 80%, na pasta privada do app; entram na fila na mesma transação do
+  encerramento e vão depois dos eventos, em partes de 1 MB com SHA-256, retomando pelo `GET /anexos/{id}`. Enviada
+  ou recusada, a foto sai do celular; a de encerramento recusado nem é enviada.
+
 **Consequências.** Mais um repositório e uma cadeia de build (Flutter e Android SDK) para manter. A publicação
 interna (assinatura e distribuição pelo MDM da empresa) entra no fim do M6. Próximas etapas: jornada e pacote do dia
 (6b), fila local criptografada com SQLCipher e sincronização (6c), encerramento com parâmetros e fotos (6d), posições e

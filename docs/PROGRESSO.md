@@ -615,6 +615,15 @@ token não leva os papéis de `realm-management` e a Admin API responde 403. Flu
 - **Testes:** 41 no app; APK de debug compilado. **Não testado em aparelho:** a parte SQLCipher (sem emulador nesta
   máquina) — conferir no primeiro teste em celular ou AVD.
 
+### App de campo, M6d: execução da OS e fotos — ADR 0047
+- **App:** tela da OS (dados, registro das ações com a situação do envio, ações conforme a situação), motivo de
+  paralisar/devolver, encerramento executado (parâmetros com condição, quantidade, fotos) ou não executado (motivo);
+  fotos enviadas em partes, retomando de onde pararam; indicador "x ações e y fotos pendentes".
+- **Testes:** 55 no app (formulário, envio das fotos, telas de paralisar e encerrar, acessibilidade claro e escuro);
+  APK de debug compilado. **Não testado em aparelho:** câmera, SQLCipher e pasta das fotos (sem emulador aqui).
+- **Em aberto (decisões do usuário):** marca d'água de hora/GPS nas fotos; fotos ficam na pasta privada do app (não
+  criptografadas à parte; o Android já criptografa o armazenamento do app).
+
 ### Onde paramos (19/11/2026) — retomar daqui
 **Estado:** M1 a M5 dos serviços de campo prontos, com commit, nas branches `feature/catalogo-de-servicos` dos dois
 repositórios (`~/Iapp/aurora-servicos` e `~/Iapp/aurora-frontend-servicos`, worktrees). **Falta o push** (a chave SSH
