@@ -46,3 +46,4 @@ gera um novo ADR que o substitui.
 | [0044](0044-os-generica-e-programacao.md) | OS genérica do catálogo e programação por imóvel, trecho e logradouro | Aceito |
 | [0045](0045-execucao-de-campo-na-api.md) | Execução de campo na API: eventos idempotentes, jornada, fotos em partes, conflitos e celulares | Aceito |
 | [0046](0046-roteirizacao.md) | Roteirização: Valhalla para a malha viária, Timefold para a ordem e a equipe de cada OS | Aceito |
+| [0047](0047-app-de-campo-flutter.md) | App de campo em Flutter: projeto próprio, login OIDC com PKCE, PIN e sessão sem rede | Aceito |
