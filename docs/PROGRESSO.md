@@ -605,6 +605,16 @@ token não leva os papéis de `realm-management` e a Admin API responde 403. Flu
 - **Falta no M6:** mapa da rota; fila de ações e sincronização (6c); execução da OS com parâmetros e fotos (6d);
   envio das posições e tela da fila (6e); publicação interna.
 
+### App de campo, M6c: fila local e sincronização — ADR 0047
+- **Back:** `ultimaSequencia` por OS no pacote do dia (o celular continua a numeração dos eventos mesmo depois de
+  reinstalar).
+- **App:** fila de eventos no SQLCipher; envio em lotes com intervalos crescentes; indicador "x ações pendentes ·
+  último envio hh:mm" com "Enviar agora"; avisos de recusada, superada e conflito; situação das OS com as ações do
+  celular por cima do pacote; revogação envia a fila e confirma a limpeza; encerrar exige a fila vazia e apaga o
+  pacote. "Iniciar OS" e "Retomar OS" já registram eventos (o resto da execução é o 6d).
+- **Testes:** 41 no app; APK de debug compilado. **Não testado em aparelho:** a parte SQLCipher (sem emulador nesta
+  máquina) — conferir no primeiro teste em celular ou AVD.
+
 ### Onde paramos (19/11/2026) — retomar daqui
 **Estado:** M1 a M5 dos serviços de campo prontos, com commit, nas branches `feature/catalogo-de-servicos` dos dois
 repositórios (`~/Iapp/aurora-servicos` e `~/Iapp/aurora-frontend-servicos`, worktrees). **Falta o push** (a chave SSH

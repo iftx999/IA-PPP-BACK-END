@@ -32,6 +32,16 @@ aceito como base (19/11/2026).
   mapa escolhido no celular com um link `geo:`. O último pacote baixado e o início de jornada feito sem sinal ficam no
   banco SQLCipher do celular (chave aleatória de 256 bits no Keystore), apagado na revogação e na troca de empresa.
 
+- **Fila e sincronização (6c):** cada ação vira um evento na tabela `evento` do mesmo banco **antes** de mudar a
+  tela (id e sequência por OS únicos; a sequência continua a `ultimaSequencia` que o pacote traz por OS). Envio em
+  lotes de até 200, na ordem de registro, um envio por vez, com novas tentativas em 5 s, 15 s, 30 s, 1, 2 e 5 min, ao
+  voltar para o app e em "Enviar agora". Qualquer resposta tira o evento da fila (o servidor guarda até o que
+  aguarda o anterior); lote que o servidor não lê é reenviado um a um. A tela mostra o pacote do servidor com as
+  ações do celular por cima até o pacote seguinte refleti-las; recusadas e superadas voltam e viram aviso. Celular
+  revogado: a fila é enviada antes de apagar e o app confirma a limpeza (`/dispositivo/apagado`). Encerrar a jornada
+  exige a fila vazia e apaga o pacote do celular (10.9.6). O envio com o app fechado (WorkManager ou serviço em
+  primeiro plano) entra com as posições no 6e.
+
 **Consequências.** Mais um repositório e uma cadeia de build (Flutter e Android SDK) para manter. A publicação
 interna (assinatura e distribuição pelo MDM da empresa) entra no fim do M6. Próximas etapas: jornada e pacote do dia
 (6b), fila local criptografada com SQLCipher e sincronização (6c), encerramento com parâmetros e fotos (6d), posições e
