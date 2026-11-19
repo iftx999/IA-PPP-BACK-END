@@ -17,6 +17,7 @@ import dev.aurora.comum.ConflitoException;
 import dev.aurora.comum.RecursoNaoEncontradoException;
 import dev.aurora.comum.RegraVioladaException;
 import dev.aurora.contexto.ContextoAcesso;
+import dev.aurora.roteirizacao.model.Candidatas;
 import dev.aurora.roteirizacao.model.OrdemParaRota;
 import dev.aurora.roteirizacao.model.OrigemRoteirizacao;
 import dev.aurora.roteirizacao.model.PedidoRoteirizacao;
@@ -151,6 +152,17 @@ public class RoteirizacaoService {
 	@Transactional(readOnly = true)
 	public Roteirizacao buscar(UUID id) {
 		return repositorio.buscar(id).orElseThrow(RecursoNaoEncontradoException::new);
+	}
+
+	/** OS e equipes que dá para roteirizar na unidade e no dia (tela de roteirização). */
+	@Transactional(readOnly = true)
+	public Candidatas candidatas(UUID unidade, LocalDate data) {
+		unidades.buscarNoEscopo(unidade)
+			.orElseThrow(() -> new RegraVioladaException("Escolha uma unidade onde você programa OS."));
+		var ordens = repositorio.ordensCandidatas(unidade, data, MAXIMO_DE_ORDENS);
+		var truncada = ordens.size() > MAXIMO_DE_ORDENS;
+		return new Candidatas(truncada ? ordens.subList(0, MAXIMO_DE_ORDENS) : ordens, truncada,
+				repositorio.equipesCandidatas(unidade));
 	}
 
 	@Transactional(readOnly = true)

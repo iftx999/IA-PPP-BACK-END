@@ -15,6 +15,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import dev.aurora.roteirizacao.model.Calculo;
+import dev.aurora.roteirizacao.model.Candidatas;
 import dev.aurora.roteirizacao.model.Compatibilidade;
 import dev.aurora.roteirizacao.model.Coordenada;
 import dev.aurora.roteirizacao.model.EquipeParaRota;
@@ -154,6 +155,58 @@ public class RoteirizacaoRepository {
 			.query((l, n) -> new Compatibilidade(l.getObject("equipe_id", UUID.class),
 					l.getObject("ordem_id", UUID.class), l.getBoolean("area"), l.getBoolean("habilidade"),
 					l.getBoolean("veiculo")))
+			.list();
+	}
+
+	/**
+	 * OS da unidade (e de baixo) que dá para roteirizar no dia: planejadas, devolvidas e
+	 * as programadas para a data; por prioridade e prazo. Lê uma a mais que o limite para
+	 * saber se truncou.
+	 */
+	public List<Candidatas.OrdemCandidata> ordensCandidatas(UUID unidade, LocalDate data, int limite) {
+		return jdbc
+			.sql("""
+					SELECT o.id, o.numero, v.nome AS servico_nome, o.prioridade, o.status, o.prazo_em,
+					       o.prazo_em < now() AS atrasada, o.equipe_id, e.nome AS equipe_nome, o.data_programada,
+					       (l.geom IS NOT NULL OR t.geom IS NOT NULL) AS tem_local
+					  FROM ordem_servico o
+					  JOIN unidade u ON u.id = o.unidade_id
+					  JOIN servico_versao v ON v.id = o.servico_versao_id
+					  LEFT JOIN equipe e ON e.id = o.equipe_id
+					  LEFT JOIN trecho t ON t.id = o.trecho_id
+					  LEFT JOIN imovel_localizacao l
+					         ON o.alvo = 'IMOVEL' AND l.tenant_id = o.tenant_id AND l.codigo_origem = o.codigo_origem
+					 WHERE u.caminho <@ (SELECT caminho FROM unidade WHERE id = :unidade)
+					   AND (o.status IN ('PLANEJADA', 'DEVOLVIDA') OR (o.status = 'PROGRAMADA' AND o.data_programada = :data))
+					 ORDER BY CASE o.prioridade WHEN 'EMERGENCIAL' THEN 0 WHEN 'ALTA' THEN 1 WHEN 'MEDIA' THEN 2 ELSE 3 END,
+					          o.prazo_em, o.numero
+					 LIMIT :limite""")
+			.param("unidade", unidade)
+			.param("data", Date.valueOf(data))
+			.param("limite", limite + 1)
+			.query((l, n) -> new Candidatas.OrdemCandidata(l.getObject("id", UUID.class), l.getLong("numero"),
+					l.getString("servico_nome"), l.getString("prioridade"), l.getString("status"),
+					instante(l, "prazo_em"), l.getBoolean("atrasada"), l.getObject("equipe_id", UUID.class),
+					l.getString("equipe_nome"), data(l, "data_programada"), l.getBoolean("tem_local")))
+			.list();
+	}
+
+	/** Equipes ativas que atuam na unidade: nela, acima (a cobrem) ou abaixo. */
+	public List<Candidatas.EquipeCandidata> equipesCandidatas(UUID unidade) {
+		return jdbc.sql("""
+				SELECT e.id, e.nome, e.base IS NOT NULL AS tem_base, tv.nome AS veiculo_nome, e.jornada_inicio,
+				       e.jornada_fim, (SELECT count(*) FROM equipe_habilidade h WHERE h.equipe_id = e.id) AS habilidades
+				  FROM equipe e
+				  JOIN unidade ue ON ue.id = e.unidade_id
+				  LEFT JOIN tipo_veiculo tv ON tv.id = e.tipo_veiculo_id
+				  CROSS JOIN (SELECT caminho FROM unidade WHERE id = :unidade) alvo
+				 WHERE e.ativa AND (alvo.caminho <@ ue.caminho OR ue.caminho <@ alvo.caminho)
+				 ORDER BY e.nome""")
+			.param("unidade", unidade)
+			.query((l, n) -> new Candidatas.EquipeCandidata(l.getObject("id", UUID.class), l.getString("nome"),
+					l.getBoolean("tem_base"), l.getString("veiculo_nome"),
+					l.getObject("jornada_inicio", LocalTime.class), l.getObject("jornada_fim", LocalTime.class),
+					l.getLong("habilidades")))
 			.list();
 	}
 

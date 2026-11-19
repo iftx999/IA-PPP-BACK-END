@@ -8,6 +8,7 @@ import java.util.UUID;
 
 import dev.aurora.contexto.ExigePermissao;
 import dev.aurora.roteirizacao.model.Calculo;
+import dev.aurora.roteirizacao.model.Candidatas;
 import dev.aurora.roteirizacao.model.Coordenada;
 import dev.aurora.roteirizacao.model.MotivoPendente;
 import dev.aurora.roteirizacao.model.OrigemRoteirizacao;
@@ -136,6 +137,44 @@ class RoteirizacaoController {
 	RoteirizacaoResponse calcular(@Valid @RequestBody RoteirizacaoRequest pedido) {
 		return RoteirizacaoResponse.de(roteirizacoes.calcular(new PedidoRoteirizacao(pedido.unidadeId(), pedido.data(),
 				OrigemRoteirizacao.PREVIA, pedido.equipes(), pedido.ordens(), java.util.Map.of(), null)));
+	}
+
+	record OrdemCandidataResponse(UUID id, long numero, String servicoNome, String prioridade, String status,
+			@Nullable Instant prazoEm, boolean atrasada, @Nullable UUID equipeId, @Nullable String equipeNome,
+			@Nullable LocalDate dataProgramada, boolean temLocal) {
+
+		static OrdemCandidataResponse de(Candidatas.OrdemCandidata o) {
+			return new OrdemCandidataResponse(o.id(), o.numero(), o.servicoNome(), o.prioridade(), o.status(),
+					o.prazoEm(), o.atrasada(), o.equipeId(), o.equipeNome(), o.dataProgramada(), o.temLocal());
+		}
+	}
+
+	record EquipeCandidataResponse(UUID id, String nome, boolean temBase, @Nullable String veiculoNome,
+			java.time.LocalTime jornadaInicio, java.time.LocalTime jornadaFim, long habilidades) {
+
+		static EquipeCandidataResponse de(Candidatas.EquipeCandidata e) {
+			return new EquipeCandidataResponse(e.id(), e.nome(), e.temBase(), e.veiculoNome(), e.jornadaInicio(),
+					e.jornadaFim(), e.habilidades());
+		}
+	}
+
+	/**
+	 * @param truncada havia mais OS que o limite de um cálculo (1.500)
+	 */
+	record CandidatasResponse(List<OrdemCandidataResponse> ordens, boolean truncada,
+			List<EquipeCandidataResponse> equipes) {
+	}
+
+	/**
+	 * OS planejadas, devolvidas e programadas para o dia, e as equipes que atuam na
+	 * unidade.
+	 */
+	@GetMapping("/candidatas")
+	CandidatasResponse candidatas(@RequestParam UUID unidade,
+			@RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate data) {
+		var c = roteirizacoes.candidatas(unidade, data);
+		return new CandidatasResponse(c.ordens().stream().map(OrdemCandidataResponse::de).toList(), c.truncada(),
+				c.equipes().stream().map(EquipeCandidataResponse::de).toList());
 	}
 
 	/** Roteirizações do dia (sem as rotas), da mais nova para a mais antiga. */

@@ -100,6 +100,17 @@ class RoteirizacaoApiTest {
 		var semBase = equipe("Equipe sem base", """
 				"operacao":{"jornadaInicio":"07:30","jornadaFim":"16:30","pausaMin":60,"habilidades":[]}""");
 
+		// Candidatas da Cidade A: as quatro planejadas (uma sem local) e as três equipes.
+		mvc.perform(get("/api/v1/roteirizacoes/candidatas").param("unidade", t.cidadeA().toString())
+			.param("data", hoje.toString())
+			.with(token("sub-programador-rota")))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.ordens.length()").value(4))
+			.andExpect(jsonPath("$.ordens[?(@.temLocal == false)]", org.hamcrest.Matchers.hasSize(1)))
+			.andExpect(jsonPath("$.truncada").value(false))
+			.andExpect(jsonPath("$.equipes.length()").value(3))
+			.andExpect(jsonPath("$.equipes[?(@.nome == 'Equipe sem base')].temBase").value(false));
+
 		var pedido = """
 				{"unidadeId":"%s","data":"%s","equipes":[%s],"ordens":[%s]}""";
 		var ordens = lista(os.get("2001002"), os.get("2001003"), os.get("2001004"), os.get("2001005"));
