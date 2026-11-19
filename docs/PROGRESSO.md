@@ -592,6 +592,19 @@ token não leva os papéis de `realm-management` e a Admin API responde 403. Flu
 - Pendências: gatilhos automáticos da reotimização e rota no "Iniciar jornada" (com o app, M6); medir a escala real
   (50 equipes × 1.500 OS) com o recorte da concessão do cliente (10.14). Regra de veículo da RN-23 confirmada pelo usuário em 19/11/2026.
 
+### App de campo, M6b: jornada e pacote do dia — ADR 0047 — `aurora-app-campo` e branch `feature/catalogo-de-servicos`
+- **Back:** `GET /api/v1/campo/equipes` com as equipes da pessoa e o resumo de hoje (OS abertas, emergenciais,
+  veículo, jornada já aberta), para a tela "Iniciar jornada". O teste de API pegou um `readOnly` indevido (o
+  registro do último contato do celular escreve).
+- **App:** "Iniciar jornada" (escolha da equipe, checagens, aviso de localização) e "Hoje" (OS atual com Navegar,
+  lista na ordem da rota, selos de prazo e situação, puxar para atualizar, encerrar com confirmação). GPS no início;
+  sem sinal, inicia com a programação de hoje já guardada e envia o início quando a conexão volta. Pacote guardado no
+  SQLCipher e atualizado só pelas diferenças (`desde`) quando é do mesmo dia.
+- **Testes:** 27 no app (controle do dia, diferenças do pacote, fluxo das telas, acessibilidade claro e escuro); APK de
+  debug compilado.
+- **Falta no M6:** mapa da rota; fila de ações e sincronização (6c); execução da OS com parâmetros e fotos (6d);
+  envio das posições e tela da fila (6e); publicação interna.
+
 ### Onde paramos (19/11/2026) — retomar daqui
 **Estado:** M1 a M5 dos serviços de campo prontos, com commit, nas branches `feature/catalogo-de-servicos` dos dois
 repositórios (`~/Iapp/aurora-servicos` e `~/Iapp/aurora-frontend-servicos`, worktrees). **Falta o push** (a chave SSH

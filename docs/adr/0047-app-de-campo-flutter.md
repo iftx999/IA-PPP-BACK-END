@@ -27,6 +27,11 @@ aceito como base (19/11/2026).
   alvos de toque de 56 dp e texto maior (sol e luva). Testes de widget com as diretrizes de acessibilidade do Android
   (alvo, rótulo e contraste).
 
+- **GPS e navegação (6b):** `geolocator_android` e `geolocator_platform_interface` (MIT) em vez do pacote geral
+  `geolocator`, que puxa `dbus`, `geoclue` e `gsettings` (MPL 2.0) para o Linux; `url_launcher` (BSD) abre o app de
+  mapa escolhido no celular com um link `geo:`. O último pacote baixado e o início de jornada feito sem sinal ficam no
+  banco SQLCipher do celular (chave aleatória de 256 bits no Keystore), apagado na revogação e na troca de empresa.
+
 **Consequências.** Mais um repositório e uma cadeia de build (Flutter e Android SDK) para manter. A publicação
 interna (assinatura e distribuição pelo MDM da empresa) entra no fim do M6. Próximas etapas: jornada e pacote do dia
 (6b), fila local criptografada com SQLCipher e sincronização (6c), encerramento com parâmetros e fotos (6d), posições e
