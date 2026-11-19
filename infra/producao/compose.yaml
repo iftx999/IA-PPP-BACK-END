@@ -80,12 +80,34 @@ services:
       OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: http://tempo:4318/v1/traces
       # Antivírus obrigatório nos arquivos enviados (ADR 0033).
       AURORA_ANTIVIRUS_HOST: clamav
+      # Rotas pela malha viária (ADR 0046); sem o serviço, deslocamento em linha reta com aviso.
+      AURORA_VALHALLA_URL: http://valhalla:8002
     read_only: true
     tmpfs: [/tmp]
     depends_on:
       postgres: { condition: service_healthy }
       keycloak: { condition: service_started }
       clamav: { condition: service_started }
+      valhalla: { condition: service_started }
+
+  # Malha viária (ADR 0046): só na rede interna. Gera os tiles na primeira subida a partir do recorte do OpenStreetMap
+  # da concessão (infra/scripts/recortar-osm.sh; AURORA_OSM_RECORTE no .env) e guarda no volume. Mapa novo:
+  # trocar o recorte e subir com VALHALLA_FORCE_REBUILD=True.
+  valhalla:
+    <<: *reinicio
+    # Valhalla 3.9.3 (MIT), fixado pelo digest.
+    image: ghcr.io/valhalla/valhalla-scripted@sha256:693617873d42f24d9023eaa9aa002dccd832c9629c9ce8b60eb4ff30547215e1
+    environment:
+      server_threads: "2"
+      build_admins: "True"
+      build_time_zones: "True"
+      build_elevation: "False"
+      force_rebuild: ${VALHALLA_FORCE_REBUILD:-False}
+      # Sem baixar nada da internet na geração dos tiles (velocidades pelo tipo de via do OSM).
+      use_default_speeds_config: "False"
+    volumes:
+      - valhalla-dados:/custom_files
+      - ${AURORA_OSM_RECORTE:?informe AURORA_OSM_RECORTE no .env}:/custom_files/regiao.osm.pbf:ro
 
   # Antivírus (ADR 0033): só na rede interna. Precisa de ~1,5 GB de memória para as assinaturas, que o freshclam
   # atualiza sozinho; na primeira subida, envios ficam recusados (503) até o clamd terminar de carregar.
@@ -208,6 +230,7 @@ services:
 
 volumes:
   clamav-assinaturas:
+  valhalla-dados:
   caddy-dados:
   caddy-config:
   postgres-dados:

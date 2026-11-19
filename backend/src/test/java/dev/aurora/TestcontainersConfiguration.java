@@ -20,6 +20,12 @@ public class TestcontainersConfiguration {
 			// Tarefas agendadas desligadas: os testes chamam o avaliador de alertas
 			// diretamente.
 			registro.add("aurora.tarefas.habilitadas", () -> "false");
+			// Roteirização sem Valhalla (deslocamento em linha reta, determinístico) e
+			// com otimização curta.
+			registro.add("aurora.roteirizacao.valhalla.url", () -> "");
+			registro.add("aurora.roteirizacao.tempo-previa", () -> "3s");
+			registro.add("aurora.roteirizacao.tempo-reotimizacao", () -> "2s");
+			registro.add("aurora.roteirizacao.sem-melhora", () -> "1s");
 		};
 	}
 

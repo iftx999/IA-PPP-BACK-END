@@ -7,6 +7,9 @@ spring:
     password: ${AURORA_OWNER_PASSWORD:owner-dev}
 
 aurora:
+  roteirizacao:
+    valhalla:
+      url: ${AURORA_VALHALLA_URL:http://localhost:8002}
   seguranca:
     chave-cursor: ${AURORA_CHAVE_CURSOR:chave-de-cursor-de-desenvolvimento-nao-usar}
     # Desligado no ambiente local para os usuários de demonstração e os E2E entrarem só com senha.

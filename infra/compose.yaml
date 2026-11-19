@@ -63,6 +63,32 @@ services:
     volumes:
       - clamav-assinaturas:/var/lib/clamav
 
+  # Rotas pela malha viária (ADR 0046): matriz de tempos/distâncias e traçado das rotas. Gera os tiles na primeira
+  # subida a partir do recorte do OpenStreetMap da área da concessão (infra/scripts/recortar-osm.sh) e guarda no
+  # volume; para atualizar o mapa, troque o recorte e suba com valhalla_force_rebuild=True.
+  valhalla:
+    # Valhalla 3.9.3 (MIT), fixado pelo digest.
+    image: ghcr.io/valhalla/valhalla-scripted@sha256:693617873d42f24d9023eaa9aa002dccd832c9629c9ce8b60eb4ff30547215e1
+    environment:
+      server_threads: "2"
+      build_admins: "True"
+      build_time_zones: "True"
+      build_elevation: "False"
+      force_rebuild: ${VALHALLA_FORCE_REBUILD:-False}
+      # Velocidades padrão por tipo de via do projeto OpenStreetMapSpeeds (baixadas na geração dos tiles).
+      use_default_speeds_config: ${VALHALLA_VELOCIDADES_PADRAO:-True}
+    ports:
+      - "8002:8002"
+    volumes:
+      - valhalla-dados:/custom_files
+      - ${AURORA_OSM_RECORTE:-../../osm/regiao-teste.osm.pbf}:/custom_files/regiao.osm.pbf:ro
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fs http://localhost:8002/status || exit 1"]
+      interval: 15s
+      start_period: 30m
+      retries: 5
+
 volumes:
   clamav-assinaturas:
   postgres-dados:
+  valhalla-dados:

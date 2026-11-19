@@ -29,7 +29,8 @@ public record OrdemServico(UUID id, long numero, UUID servicoId, String servicoC
 		@Nullable String observacao, @Nullable BigDecimal quantidadeExecutada, @Nullable Instant resultadoEm,
 		@Nullable String resultadoPor, @Nullable Instant movimentadaEm, @Nullable String movimentadaPor,
 		Conferencia conferencia, @Nullable YearMonth confirmadaEm, boolean atrasada, Instant criadaEm,
-		@Nullable String criadaPor, @Nullable Double latitude, @Nullable Double longitude) {
+		@Nullable String criadaPor, @Nullable Double latitude, @Nullable Double longitude,
+		@Nullable Integer sequenciaRota) {
 
 	/** Sem dados pessoais: matrícula mascarada e sem o número e o complemento. */
 	public OrdemServico semDadosPessoais(String matriculaMascarada) {
@@ -38,7 +39,7 @@ public record OrdemServico(UUID id, long numero, UUID servicoId, String servicoC
 				unidadeNome, campanhaId, campanhaNome, loteId, situacaoNaCriacao, prioridade, prazoEm, instrucoes,
 				quantidadePrevista, equipeId, equipeNome, dataProgramada, enviadaEm, status, resultado, motivoId,
 				motivoNome, observacao, quantidadeExecutada, resultadoEm, resultadoPor, movimentadaEm, movimentadaPor,
-				conferencia, confirmadaEm, atrasada, criadaEm, criadaPor, latitude, longitude);
+				conferencia, confirmadaEm, atrasada, criadaEm, criadaPor, latitude, longitude, sequenciaRota);
 	}
 
 }

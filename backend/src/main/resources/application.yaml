@@ -62,6 +62,17 @@ aurora:
     smtp-porta: ${AURORA_PLATAFORMA_SMTP_PORTA:${aurora.email.porta}}
   cors:
     origens: ${AURORA_CORS_ORIGENS}
+  roteirizacao:
+    valhalla:
+      # Serviço de rotas (ADR 0046); vazio = deslocamentos em linha reta, sempre rotulados como estimativa.
+      url: ${AURORA_VALHALLA_URL:}
+      tempo-limite: 20s
+      pares-no-cache: 200000
+      concorrencia: 4
+    # Tempo do otimizador por cálculo (doc 10, 10.8) e parada antecipada quando não melhora mais.
+    tempo-previa: ${AURORA_ROTEIRIZACAO_TEMPO_PREVIA:30s}
+    tempo-reotimizacao: ${AURORA_ROTEIRIZACAO_TEMPO_REOTIMIZACAO:10s}
+    sem-melhora: ${AURORA_ROTEIRIZACAO_SEM_MELHORA:5s}
   contratos:
     # Maior PDF aceito (A1).
     tamanho-maximo-bytes: 52428800

@@ -60,7 +60,7 @@ public class OrdemServicoRepository {
 			       o.confirmada_em,
 			       (o.status IN ('PLANEJADA', 'PROGRAMADA', 'EM_EXECUCAO', 'PARALISADA', 'DEVOLVIDA')
 			        AND o.prazo_em < :agora) AS atrasada,
-			       o.criada_em, cp.nome AS criada_por,
+			       o.criada_em, cp.nome AS criada_por, o.sequencia_rota,
 			       ST_Y(COALESCE(l.geom, ST_LineInterpolatePoint(t.geom, 0.5))) AS latitude,
 			       ST_X(COALESCE(l.geom, ST_LineInterpolatePoint(t.geom, 0.5))) AS longitude
 			  FROM ordem_servico o
@@ -357,8 +357,8 @@ public class OrdemServicoRepository {
 		return jdbc
 			.sql(SELECAO + " WHERE o.equipe_id IN (:equipes) AND (o.status IN " + COM_EQUIPE
 					+ " OR (o.status IN ('ENCERRADA', 'DEVOLVIDA') AND o.movimentada_em >= :desde))"
-					+ " ORDER BY o.status NOT IN " + COM_EQUIPE + ", o.data_programada, " + CAMPOS_DA_ORDEM
-					+ " LIMIT 500")
+					+ " ORDER BY o.status NOT IN " + COM_EQUIPE + ", o.data_programada, o.sequencia_rota NULLS LAST, "
+					+ CAMPOS_DA_ORDEM + " LIMIT 500")
 			.param("equipes", equipes)
 			.param("agora", Timestamp.from(agora))
 			.param("desde", Timestamp.from(desde))
@@ -490,6 +490,59 @@ public class OrdemServicoRepository {
 			.query((l, n) -> new Envio(l.getInt("enviadas"), l.getInt("fora_da_area"), l.getInt("incompativeis"),
 					l.getInt("ignoradas")))
 			.single();
+	}
+
+	/**
+	 * Rota publicada (ADR 0046): programa ou ressequencia as OS da lista para a equipe na
+	 * data, na ordem dada, com as mesmas regras de {@link #programar} (situação, área e
+	 * RN-23); as demais OS da equipe no dia ficam sem sequência.
+	 */
+	public int programarEmSequencia(UUID equipe, LocalDate data, List<UUID> ordens, UUID usuario) {
+		jdbc.sql("""
+				UPDATE ordem_servico SET sequencia_rota = NULL, atualizado_em = now()
+				 WHERE equipe_id = :equipe AND data_programada = :data AND sequencia_rota IS NOT NULL
+				   AND id <> ALL (CAST(:ordens AS uuid[]))""")
+			.param("equipe", equipe)
+			.param("data", Date.valueOf(data))
+			.param("ordens", ordens.toArray(UUID[]::new))
+			.update();
+		return jdbc
+			.sql("""
+					WITH pedidas AS (
+					     SELECT id, ordem::int AS sequencia FROM unnest(CAST(:ordens AS uuid[])) WITH ORDINALITY AS x(id, ordem)),
+					     area AS (SELECT caminho FROM unidade WHERE id = (SELECT unidade_id FROM equipe WHERE id = :equipe)),
+					     validas AS (
+					     SELECT o.id, p.sequencia, o.status IN %s AS programar
+					       FROM ordem_servico o
+					       JOIN pedidas p ON p.id = o.id
+					       JOIN unidade u ON u.id = o.unidade_id
+					       JOIN servico_versao v ON v.id = o.servico_versao_id
+					      WHERE (o.status IN %s
+					             OR (o.status IN ('EM_EXECUCAO', 'PARALISADA') AND o.equipe_id = :equipe
+					                 AND o.data_programada = :data))
+					        AND u.caminho <@ (SELECT caminho FROM area)
+					        AND (v.habilidade_id IS NULL OR EXISTS (
+					                SELECT 1 FROM equipe_habilidade h
+					                 WHERE h.equipe_id = :equipe AND h.habilidade_id = v.habilidade_id))
+					        AND veiculo_atende(v.tipo_veiculo_id, (SELECT tipo_veiculo_id FROM equipe WHERE id = :equipe)))
+					UPDATE ordem_servico o
+					   SET sequencia_rota = va.sequencia,
+					       equipe_id = :equipe, data_programada = :data,
+					       status = CASE WHEN va.programar THEN 'PROGRAMADA' ELSE o.status END,
+					       enviada_em = CASE WHEN va.programar THEN now() ELSE o.enviada_em END,
+					       motivo_id = CASE WHEN va.programar THEN NULL ELSE o.motivo_id END,
+					       observacao = CASE WHEN va.programar THEN NULL ELSE o.observacao END,
+					       movimentada_em = CASE WHEN va.programar THEN now() ELSE o.movimentada_em END,
+					       movimentada_por = CASE WHEN va.programar THEN :usuario ELSE o.movimentada_por END,
+					       atualizado_em = now()
+					  FROM validas va
+					 WHERE o.id = va.id"""
+				.formatted(PROGRAMAVEIS, PROGRAMAVEIS))
+			.param("ordens", ordens.toArray(UUID[]::new))
+			.param("equipe", equipe)
+			.param("data", Date.valueOf(data))
+			.param("usuario", usuario)
+			.update();
 	}
 
 	public record Envio(int enviadas, int foraDaArea, int incompativeis, int ignoradas) {
@@ -665,7 +718,7 @@ public class OrdemServicoRepository {
 				l.getString("movimentada_por"), Conferencia.valueOf(l.getString("conferencia")),
 				confirmada == null ? null : YearMonth.from(confirmada.toLocalDate()), l.getBoolean("atrasada"),
 				l.getTimestamp("criada_em").toInstant(), l.getString("criada_por"), semPonto ? null : latitude,
-				semPonto ? null : longitude);
+				semPonto ? null : longitude, l.getObject("sequencia_rota", Integer.class));
 	}
 
 	private static @Nullable String emBranco(@Nullable String texto) {

@@ -39,7 +39,8 @@ record OrdemServicoResponse(UUID id, long numero, UUID servicoId, String servico
 		@Nullable String observacao, @Nullable BigDecimal quantidadeExecutada, @Nullable Instant resultadoEm,
 		@Nullable String resultadoPor, @Nullable Instant movimentadaEm, @Nullable String movimentadaPor,
 		Conferencia conferencia, @Nullable YearMonth confirmadaEm, boolean atrasada, Instant criadaEm,
-		@Nullable String criadaPor, @Nullable Double latitude, @Nullable Double longitude) {
+		@Nullable String criadaPor, @Nullable Double latitude, @Nullable Double longitude,
+		@Nullable Integer sequenciaRota) {
 
 	static OrdemServicoResponse de(OrdemServico o) {
 		return new OrdemServicoResponse(o.id(), o.numero(), o.servicoId(), o.servicoCodigo(), o.servicoNome(),
@@ -50,7 +51,7 @@ record OrdemServicoResponse(UUID id, long numero, UUID servicoId, String servico
 				o.dataProgramada(), o.enviadaEm(), o.status(), o.resultado(), o.motivoId(), o.motivoNome(),
 				o.observacao(), o.quantidadeExecutada(), o.resultadoEm(), o.resultadoPor(), o.movimentadaEm(),
 				o.movimentadaPor(), o.conferencia(), o.confirmadaEm(), o.atrasada(), o.criadaEm(), o.criadaPor(),
-				o.latitude(), o.longitude());
+				o.latitude(), o.longitude(), o.sequenciaRota());
 	}
 
 }

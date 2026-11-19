@@ -110,6 +110,12 @@ public enum TipoEvento {
 	DISPOSITIVO_CADASTRADO, DISPOSITIVO_REVOGADO, CONFLITO_DE_CAMPO_ABERTO, CONFLITO_DE_CAMPO_DECIDIDO, ANEXO_RECUSADO,
 	ANEXO_DE_ORDEM_LIDO,
 
+	/**
+	 * ADR 0046: roteirização pedida (prévia, recálculo ou reotimização), publicada como
+	 * programação ou descartada.
+	 */
+	ROTEIRIZACAO_PEDIDA, ROTEIRIZACAO_PUBLICADA, ROTEIRIZACAO_DESCARTADA,
+
 	/** ADR 0021: páginas digitalizadas lidas por OCR (nome herdado). */
 	TEXTO_RECONHECIDO_POR_OCR,
 
