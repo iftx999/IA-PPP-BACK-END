@@ -624,7 +624,21 @@ token não leva os papéis de `realm-management` e a Admin API responde 403. Flu
 - **Em aberto (decisões do usuário):** marca d'água de hora/GPS nas fotos; fotos ficam na pasta privada do app (não
   criptografadas à parte; o Android já criptografa o armazenamento do app).
 
-### Onde paramos (19/11/2026) — retomar daqui
+### Onde paramos (19/11/2026, fim do dia) — retomar daqui
+**Estado:** M6a a M6d do app de campo prontos, com commit: `~/Iapp/aurora-app-campo` (último `ff488f9`) e a branch
+`feature/catalogo-de-servicos` do back (`ultimaSequencia` no pacote e `GET /campo/equipes`). **Falta o push** nos três
+repositórios (`aurora-servicos`, `aurora-frontend-servicos`, `aurora-app-campo`; a chave SSH tem senha).
+
+**Próximo:** M6e — posições da jornada (amostra a cada 2 min ou 100 m) e envio com o app fechado (serviço em primeiro
+plano ou WorkManager, conferir licenças), tela da fila; depois mapa da rota e publicação interna (assinatura, MDM).
+
+**Conferir no primeiro teste em aparelho ou AVD** (não há emulador nesta máquina): SQLCipher (abrir, migrar da v2
+para a v3, apagar na revogação), câmera e pasta das fotos, GPS e o link `geo:` do Navegar.
+
+**Decisões do usuário em aberto:** marca d'água de hora/GPS nas fotos; criptografar as fotos à parte; modo noturno,
+alerta de emergencial, "Estou chegando" e modo luva (ideias do protótipo).
+
+### Onde paramos (19/11/2026, meio do dia) — superado pelo do fim do dia
 **Estado:** M1 a M5 dos serviços de campo prontos, com commit, nas branches `feature/catalogo-de-servicos` dos dois
 repositórios (`~/Iapp/aurora-servicos` e `~/Iapp/aurora-frontend-servicos`, worktrees). **Falta o push** (a chave SSH
 tem senha; rodar `git push` nos dois).
