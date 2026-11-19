@@ -374,8 +374,11 @@ public class OrdemServicoRepository {
 			.optional();
 	}
 
-	/** OS do pacote do dia: id, versão do serviço e última alteração. */
-	public record NoPacote(UUID id, UUID servicoVersaoId, Instant atualizadaEm) {
+	/**
+	 * OS do pacote do dia: id, versão do serviço, última alteração e o último evento do
+	 * campo aplicado (o celular continua a sequência dele).
+	 */
+	public record NoPacote(UUID id, UUID servicoVersaoId, Instant atualizadaEm, int ultimaSequencia) {
 	}
 
 	/**
@@ -384,14 +387,14 @@ public class OrdemServicoRepository {
 	 */
 	public List<NoPacote> doPacote(UUID equipe, LocalDate hoje) {
 		return jdbc.sql("""
-				SELECT id, servico_versao_id, atualizado_em FROM ordem_servico
+				SELECT id, servico_versao_id, atualizado_em, ultima_sequencia FROM ordem_servico
 				 WHERE equipe_id = :equipe AND (status IN ('EM_EXECUCAO', 'PARALISADA')
 				                                OR (status = 'PROGRAMADA' AND data_programada <= :hoje))
 				 LIMIT 500""")
 			.param("equipe", equipe)
 			.param("hoje", Date.valueOf(hoje))
 			.query((l, n) -> new NoPacote(l.getObject("id", UUID.class), l.getObject("servico_versao_id", UUID.class),
-					l.getTimestamp("atualizado_em").toInstant()))
+					l.getTimestamp("atualizado_em").toInstant(), l.getInt("ultima_sequencia")))
 			.list();
 	}
 

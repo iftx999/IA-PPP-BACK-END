@@ -125,7 +125,10 @@ class CampoController {
 		}
 	}
 
-	record OrdemDoPacoteResponse(OrdemServicoResponse ordem, UUID servicoVersaoId) {
+	/**
+	 * @param ultimaSequencia o próximo evento do celular nesta OS é este + 1
+	 */
+	record OrdemDoPacoteResponse(OrdemServicoResponse ordem, UUID servicoVersaoId, int ultimaSequencia) {
 	}
 
 	/**
@@ -149,7 +152,8 @@ class CampoController {
 					JornadaResponse.de(p.jornada()), p.ids(),
 					p.ordens()
 						.stream()
-						.map(o -> new OrdemDoPacoteResponse(OrdemServicoResponse.de(o.ordem()), o.servicoVersaoId()))
+						.map(o -> new OrdemDoPacoteResponse(OrdemServicoResponse.de(o.ordem()), o.servicoVersaoId(),
+								o.ultimaSequencia()))
 						.toList(),
 					parametros, p.motivos().stream().map(MotivoDaOrdemResponse::de).toList(), p.raioInicioM(),
 					p.geradoEm());

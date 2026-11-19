@@ -29,8 +29,12 @@ public record PacoteDoDia(long versao, boolean diferenca, UUID equipeId, String 
 		motivos = List.copyOf(motivos);
 	}
 
-	/** OS com a versão do serviço (chave dos parâmetros). */
-	public record OrdemDoPacote(OrdemServico ordem, UUID servicoVersaoId) {
+	/**
+	 * OS com a versão do serviço (chave dos parâmetros).
+	 *
+	 * @param ultimaSequencia último evento do campo já processado nesta OS
+	 */
+	public record OrdemDoPacote(OrdemServico ordem, UUID servicoVersaoId, int ultimaSequencia) {
 	}
 
 }

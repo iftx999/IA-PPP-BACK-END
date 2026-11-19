@@ -156,7 +156,11 @@ public class JornadaService {
 			.filter(o -> desde == null || o.atualizadaEm().toEpochMilli() > desde)
 			.toList();
 		var versaoDaOrdem = new HashMap<UUID, UUID>();
-		alteradas.forEach(o -> versaoDaOrdem.put(o.id(), o.servicoVersaoId()));
+		var sequencias = new HashMap<UUID, Integer>();
+		alteradas.forEach(o -> {
+			versaoDaOrdem.put(o.id(), o.servicoVersaoId());
+			sequencias.put(o.id(), o.ultimaSequencia());
+		});
 		var detalhes = dadosPessoais.aplicar(ordens.buscarVarias(versaoDaOrdem.keySet(), agora),
 				"Pacote do dia do app de campo");
 		var parametros = servicos.parametros(Set.copyOf(versaoDaOrdem.values()));
@@ -165,7 +169,9 @@ public class JornadaService {
 		var nome = equipes.buscar(equipe).orElseThrow(RecursoNaoEncontradoException::new).nome();
 		return new PacoteDoDia(versao, desde != null, equipe, nome, jornada,
 				noPacote.stream().map(OrdemServicoRepository.NoPacote::id).sorted().toList(),
-				detalhes.stream().map(o -> new PacoteDoDia.OrdemDoPacote(o, versaoDaOrdem.get(o.id()))).toList(),
+				detalhes.stream()
+					.map(o -> new PacoteDoDia.OrdemDoPacote(o, versaoDaOrdem.get(o.id()), sequencias.get(o.id())))
+					.toList(),
 				parametros, motivos, execucao.raioDoInicio(), agora);
 	}
 

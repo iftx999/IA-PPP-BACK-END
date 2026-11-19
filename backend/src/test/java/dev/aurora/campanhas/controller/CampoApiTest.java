@@ -136,7 +136,8 @@ class CampoApiTest {
 			.andExpect(status().isOk())
 			.andExpect(jsonPath("$.ids.length()").value(3))
 			.andExpect(jsonPath("$.jornada").doesNotExist())
-			.andExpect(jsonPath("$.raioInicioM").value(300)));
+			.andExpect(jsonPath("$.raioInicioM").value(300))
+			.andExpect(jsonPath("$.ordens[0].ultimaSequencia").value(0)));
 		var versao = pacote.get("ordens").get(0).get("servicoVersaoId").asString();
 		assertThat(pacote.get("parametros").get(versao).size()).isEqualTo(4);
 		var versaoDoPacote = pacote.get("versao").asLong();
@@ -181,6 +182,11 @@ class CampoApiTest {
 			.andExpect(jsonPath("$.eventos[0].mensagem").value("Não é possível encerrar uma OS paralisada."));
 		eventos(celular, agora, evento(UUID.randomUUID(), os1, 4, "RETOMAR", "", agora.minusSeconds(1300)))
 			.andExpect(jsonPath("$.eventos[0].situacao").value("APLICADO"));
+		// O pacote diz até onde a sequência da OS já foi (a recusada também ocupa o
+		// número).
+		mvc.perform(
+				get("/api/v1/campo/jornada?desde=" + versaoDoPacote).header(CELULAR, celular).with(token("sub-agente")))
+			.andExpect(jsonPath("$.ordens[?(@.ordem.id == '%s')].ultimaSequencia".formatted(os1)).value(4));
 
 		// RN-22: encerrar executada exige os parâmetros obrigatórios e as fotos mínimas.
 		var foto = UUID.randomUUID();
