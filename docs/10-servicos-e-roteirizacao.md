@@ -319,6 +319,7 @@ durante o dia chegam como diferença.
   ou rejeitado (com motivo).
 - `PUT  /api/v1/campo/anexos/{id}` — envio de foto em partes.
 - `POST /api/v1/campo/posicoes` — posições em lote.
+- `GET /api/v1/campo/rota` — rota publicada da equipe em jornada, com o traçado (ETag; ADR 0048).
 - Idempotência pelo `id` do evento; sequência fora de ordem fica aguardando o anterior.
 
 ### 10.9.5 Conflitos (programação mudou enquanto o agente estava sem sinal)

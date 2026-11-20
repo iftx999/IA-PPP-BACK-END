@@ -12,6 +12,7 @@ import java.util.UUID;
 
 import dev.aurora.auditoria.Auditoria;
 import dev.aurora.auditoria.TipoEvento;
+import dev.aurora.campanhas.JornadaIniciada;
 import dev.aurora.campanhas.ProgramacaoDeRotas;
 import dev.aurora.comum.ConflitoException;
 import dev.aurora.comum.RecursoNaoEncontradoException;
@@ -26,6 +27,8 @@ import dev.aurora.roteirizacao.model.SituacaoRoteirizacao;
 import dev.aurora.roteirizacao.repository.RoteirizacaoRepository;
 import dev.aurora.unidades.Unidades;
 import org.jspecify.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
@@ -39,6 +42,8 @@ import org.springframework.transaction.support.TransactionTemplate;
  */
 @Service
 public class RoteirizacaoService {
+
+	private static final Logger LOG = LoggerFactory.getLogger(RoteirizacaoService.class);
 
 	static final int MAXIMO_DE_EQUIPES = 50;
 
@@ -147,6 +152,96 @@ public class RoteirizacaoService {
 		}
 		return calcular(new PedidoRoteirizacao(unidade, hoje, OrigemRoteirizacao.REOTIMIZACAO, equipes,
 				List.copyOf(ordens), fixadas, null));
+	}
+
+	/**
+	 * D6 (ADR 0048): o agente abriu a jornada; calcula a rota do dia da equipe a partir
+	 * da posição dele e, pronta, publica só essa rota (a sequência das OS da própria
+	 * equipe; nenhuma OS muda de equipe). Roda no contexto do sistema do tenant: a equipe
+	 * e as OS já foram conferidas na abertura da jornada.
+	 * @return a roteirização em cálculo, ou vazio quando não há o que roteirizar
+	 */
+	public java.util.Optional<UUID> calcularNaJornada(JornadaIniciada jornada) {
+		var contexto = ContextoAcesso.exigir();
+		var id = UUID.randomUUID();
+		var pedido = transacao.execute(s -> {
+			var unidade = repositorio.unidadeDaEquipe(jornada.equipeId()).orElse(null);
+			var ordens = repositorio.ordensDoDia(jornada.equipeId(), jornada.data());
+			if (unidade == null || ordens.isEmpty()) {
+				return null;
+			}
+			var emExecucao = repositorio.ordens(ordens)
+				.stream()
+				.filter(o -> "EM_EXECUCAO".equals(o.status()))
+				.map(OrdemParaRota::id)
+				.toList();
+			var p = new PedidoRoteirizacao(unidade, jornada.data(), OrigemRoteirizacao.JORNADA,
+					List.of(jornada.equipeId()), ordens, Map.of(jornada.equipeId(), emExecucao), null);
+			try {
+				repositorio.criar(id, unidade, jornada.data(), OrigemRoteirizacao.JORNADA, null, jornada.usuarioId());
+			}
+			catch (DuplicateKeyException e) {
+				// O programador está calculando o dia da unidade: fica a ordem que ele
+				// publicar.
+				LOG.info("Rota da jornada {} não calculada: há um cálculo em andamento na unidade",
+						jornada.jornadaId());
+				return null;
+			}
+			var detalhes = new LinkedHashMap<String, @Nullable Object>();
+			detalhes.put("data", jornada.data().toString());
+			detalhes.put("origem", OrigemRoteirizacao.JORNADA.name());
+			detalhes.put("equipe", jornada.equipeId().toString());
+			detalhes.put("jornada", jornada.jornadaId().toString());
+			detalhes.put("ordens", ordens.size());
+			auditoria.registrar(TipoEvento.ROTEIRIZACAO_PEDIDA, "roteirizacao/" + id, detalhes);
+			return p;
+		});
+		if (pedido == null) {
+			return java.util.Optional.empty();
+		}
+		calculo.iniciar(contexto, id, pedido, () -> publicarDaJornada(id, jornada));
+		return java.util.Optional.of(id);
+	}
+
+	/**
+	 * Publica a rota calculada no início da jornada. Não substitui a publicação do
+	 * programador para as outras equipes; a dele, se vier depois, substitui esta.
+	 */
+	void publicarDaJornada(UUID id, JornadaIniciada jornada) {
+		try {
+			transacao.executeWithoutResult(s -> {
+				if (repositorio.travar(id).orElse(null) != SituacaoRoteirizacao.PRONTA
+						|| !jornada.data().equals(LocalDate.now(relogio))) {
+					return;
+				}
+				var roteirizacao = buscar(id);
+				int programadas = 0;
+				for (var rota : roteirizacao.rotas()) {
+					var lista = rota.paradas().stream().map(Roteirizacao.ParadaCalculada::ordemServicoId).toList();
+					programadas += programacao.programarEmSequencia(rota.equipeId(), roteirizacao.data(), lista,
+							jornada.usuarioId());
+				}
+				repositorio.publicar(id, jornada.usuarioId());
+				var detalhes = new LinkedHashMap<String, @Nullable Object>();
+				detalhes.put("data", roteirizacao.data().toString());
+				detalhes.put("origem", OrigemRoteirizacao.JORNADA.name());
+				detalhes.put("automatica", true);
+				detalhes.put("programadas", programadas);
+				detalhes.put("pendentes", roteirizacao.pendentes().size());
+				auditoria.registrar(TipoEvento.ROTEIRIZACAO_PUBLICADA, "roteirizacao/" + id, detalhes);
+			});
+		}
+		catch (RuntimeException erro) {
+			// A rota fica pronta (o programador pode publicar); o app segue com a ordem
+			// anterior.
+			LOG.error("Não deu para publicar a rota da jornada {} (roteirização {})", jornada.jornadaId(), id, erro);
+		}
+	}
+
+	/** Rota publicada da equipe no dia (app de campo), ou vazio. */
+	@Transactional(readOnly = true)
+	public java.util.Optional<Roteirizacao> publicadaDaEquipe(UUID equipe, LocalDate data) {
+		return repositorio.publicadaDaEquipe(equipe, data).flatMap(repositorio::buscar);
 	}
 
 	@Transactional(readOnly = true)

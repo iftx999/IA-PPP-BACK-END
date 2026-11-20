@@ -40,7 +40,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * encerramento, fotos em partes, conflitos com a programação ("vale o campo"), posições e
  * celular revogado.
  */
-@SpringBootTest
+// A rota calculada no início da jornada (ADR 0048) mudaria o pacote no meio das
+// verificações; ela tem
+// o próprio teste (RotaNaJornadaApiTest).
+@SpringBootTest(properties = "aurora.roteirizacao.na-jornada=false")
 @AutoConfigureMockMvc
 @Import(TestcontainersConfiguration.class)
 class CampoApiTest {

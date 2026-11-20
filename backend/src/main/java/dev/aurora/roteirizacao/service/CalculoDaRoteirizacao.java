@@ -19,6 +19,7 @@ import dev.aurora.roteirizacao.otimizacao.Otimizador;
 import dev.aurora.roteirizacao.repository.RoteirizacaoRepository;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -81,10 +82,21 @@ class CalculoDaRoteirizacao {
 	}
 
 	void iniciar(ContextoAcesso contexto, UUID id, PedidoRoteirizacao pedido) {
+		iniciar(contexto, id, pedido, null);
+	}
+
+	/**
+	 * @param depois roda no mesmo contexto quando o cálculo termina bem (publicação
+	 * automática)
+	 */
+	void iniciar(ContextoAcesso contexto, UUID id, PedidoRoteirizacao pedido, @Nullable Runnable depois) {
 		executor.execute(() -> {
 			try {
 				ContextoAcesso.executar(contexto, () -> {
 					executar(id, pedido);
+					if (depois != null) {
+						depois.run();
+					}
 					return null;
 				});
 			}

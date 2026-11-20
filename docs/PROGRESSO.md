@@ -636,7 +636,33 @@ token não leva os papéis de `realm-management` e a Admin API responde 403. Flu
 - **Não testado em aparelho:** serviço em primeiro plano, notificação, permissão do Android 13+ e o comportamento em
   segundo plano (Doze, economia de bateria do fabricante).
 
-### Onde paramos (20/11/2026) — retomar daqui
+### App de campo, M6f: rota no início da jornada e mapa — ADR 0048
+- **Back:** abrir a jornada publica `JornadaIniciada`; a roteirização calcula a rota da equipe a partir da posição
+  do agente (origem `JORNADA`) e a publica sozinha, só como sequência das OS da própria equipe. Nova
+  `GET /api/v1/campo/rota` com ETag/304. A posição do início da jornada vale como partida até a primeira amostra
+  (também na reotimização). Gatilho desligável por `aurora.roteirizacao.na-jornada`.
+- **App:** rota guardada no SQLCipher e atualizada pelo ETag (e 15 s e 45 s depois de iniciar); tela "Mapa da rota"
+  com `flutter_map` (BSD-3): traçado ou linha reta tracejada, paradas numeradas que abrem a OS, posição do agente,
+  resumo com km, tempo e fim previsto (estimativa). Tiles configuráveis na compilação.
+- **Testes:** back `verify` completo verde (417 testes, novo `RotaNaJornadaApiTest`; `CampoApiTest` roda com o
+  gatilho desligado); app 83 testes (rota, mapa, acessibilidade claro e escuro); APK de debug compilado.
+- **Não testado em aparelho:** mapa com tiles reais e gestos.
+
+### Onde paramos (20/11/2026, fim do M6f) — retomar daqui
+**Estado:** M6a a M6f prontos, com commit: `~/Iapp/aurora-app-campo` e a branch `feature/catalogo-de-servicos` do back.
+**Falta o push** nos três repositórios (`aurora-servicos`, `aurora-frontend-servicos`, `aurora-app-campo`; a chave SSH
+tem senha; o app ainda sem remoto).
+
+**Próximo:** publicação interna do app (assinatura do APK de release, versão e distribuição pelo MDM da empresa,
+que depende do MDM escolhido pelo cliente); depois M7 (indicadores, J12, e os gatilhos automáticos de reotimização).
+
+**Conferir no primeiro teste em aparelho ou AVD:** SQLCipher (abrir, migrar até a v4, apagar na revogação), câmera e
+pasta das fotos, GPS, link `geo:` do Navegar, notificação da jornada, envio com o app em segundo plano e o mapa.
+
+**Decisões do usuário em aberto:** marca d'água de hora/GPS nas fotos; criptografar as fotos à parte; modo noturno,
+alerta de emergencial, "Estou chegando" e modo luva (ideias do protótipo); provedor de tiles do mapa em produção.
+
+### Onde paramos (20/11/2026) — superado pelo do fim do M6f
 **Estado:** M6a a M6e do app de campo prontos, com commit em `~/Iapp/aurora-app-campo`. **Falta o push** nos três
 repositórios (`aurora-servicos`, `aurora-frontend-servicos`, `aurora-app-campo`; a chave SSH tem senha).
 

@@ -73,6 +73,8 @@ aurora:
     tempo-previa: ${AURORA_ROTEIRIZACAO_TEMPO_PREVIA:30s}
     tempo-reotimizacao: ${AURORA_ROTEIRIZACAO_TEMPO_REOTIMIZACAO:10s}
     sem-melhora: ${AURORA_ROTEIRIZACAO_SEM_MELHORA:5s}
+    # D6 (ADR 0048): calcular e publicar a rota da equipe quando o agente abre a jornada no app.
+    na-jornada: ${AURORA_ROTEIRIZACAO_NA_JORNADA:true}
   contratos:
     # Maior PDF aceito (A1).
     tamanho-maximo-bytes: 52428800

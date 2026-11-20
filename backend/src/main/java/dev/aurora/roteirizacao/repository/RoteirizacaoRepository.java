@@ -120,8 +120,15 @@ public class RoteirizacaoRepository {
 				  FROM equipe e
 				  LEFT JOIN tipo_veiculo tv ON tv.id = e.tipo_veiculo_id
 				  LEFT JOIN LATERAL (
-				       SELECT pe.geom FROM posicao_equipe pe JOIN jornada j ON j.id = pe.jornada_id AND j.fim IS NULL
-				        WHERE pe.equipe_id = e.id ORDER BY pe.momento DESC LIMIT 1) p ON true
+				       -- A posição do início da jornada vale até a primeira amostra (rota no "Iniciar jornada").
+				       SELECT geom FROM (
+				              SELECT pe.geom, pe.momento FROM posicao_equipe pe
+				                JOIN jornada j ON j.id = pe.jornada_id AND j.fim IS NULL
+				               WHERE pe.equipe_id = e.id
+				              UNION ALL
+				              SELECT j.posicao_inicio, j.inicio FROM jornada j
+				               WHERE j.equipe_id = e.id AND j.fim IS NULL AND j.posicao_inicio IS NOT NULL) ultimas
+				        ORDER BY momento DESC LIMIT 1) p ON true
 				 WHERE e.id = ANY (CAST(:ids AS uuid[]))
 				 ORDER BY e.nome""")
 			.param("ids", ids.toArray(UUID[]::new))
@@ -131,6 +138,27 @@ public class RoteirizacaoRepository {
 					l.getInt("pausa_min"), PerfilRota.de(l.getString("perfil_rota")),
 					coordenada(l, "lat_posicao", "lon_posicao")))
 			.list();
+	}
+
+	public Optional<UUID> unidadeDaEquipe(UUID equipe) {
+		return jdbc.sql("SELECT unidade_id FROM equipe WHERE id = :equipe AND ativa")
+			.param("equipe", equipe)
+			.query(UUID.class)
+			.optional();
+	}
+
+	/**
+	 * A roteirização publicada mais recente com rota para a equipe no dia (app de campo).
+	 */
+	public Optional<UUID> publicadaDaEquipe(UUID equipe, LocalDate data) {
+		return jdbc.sql("""
+				SELECT r.id FROM roteirizacao r JOIN rota ro ON ro.roteirizacao_id = r.id AND ro.equipe_id = :equipe
+				 WHERE r.data = :data AND r.situacao = 'PUBLICADA'
+				 ORDER BY r.publicada_em DESC LIMIT 1""")
+			.param("equipe", equipe)
+			.param("data", Date.valueOf(data))
+			.query(UUID.class)
+			.optional();
 	}
 
 	/** RN-23 de cada par equipe × OS: área, habilidade e veículo. */

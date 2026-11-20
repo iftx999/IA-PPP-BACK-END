@@ -10,6 +10,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
+import dev.aurora.campanhas.JornadaIniciada;
+import dev.aurora.campanhas.JornadasDoCampo;
 import dev.aurora.campanhas.model.AmostraDePosicao;
 import dev.aurora.campanhas.model.EquipeDoDia;
 import dev.aurora.campanhas.model.Jornada;
@@ -22,19 +24,22 @@ import dev.aurora.campanhas.repository.OrdemServicoRepository;
 import dev.aurora.comum.ConflitoException;
 import dev.aurora.comum.RecursoNaoEncontradoException;
 import dev.aurora.comum.RegraVioladaException;
+import dev.aurora.contexto.ContextoAcesso;
 import dev.aurora.servicos.Servicos;
 import org.jspecify.annotations.Nullable;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Jornada da equipe no app (J8; ADR 0045): abrir com a posição, baixar o pacote do dia
  * (ou a diferença), enviar posições só com a jornada aberta (RN-27) e encerrar sem OS em
- * execução. A rota otimizada entra no M5.
+ * execução. Abrir a jornada pede a rota do dia a partir da posição do agente
+ * ({@link JornadaIniciada}, ADR 0048).
  */
 @Service
-public class JornadaService {
+public class JornadaService implements JornadasDoCampo {
 
 	static final int MAXIMO_DE_POSICOES = 500;
 
@@ -59,9 +64,11 @@ public class JornadaService {
 
 	private final Clock relogio;
 
+	private final ApplicationEventPublisher eventos;
+
 	JornadaService(JornadaRepository jornadas, EquipeRepository equipes, OrdemServicoRepository ordens,
 			ExecucaoRepository execucao, DispositivoService dispositivos, DadosPessoaisDasOrdens dadosPessoais,
-			Servicos servicos, Clock relogio) {
+			Servicos servicos, Clock relogio, ApplicationEventPublisher eventos) {
 		this.jornadas = jornadas;
 		this.equipes = equipes;
 		this.ordens = ordens;
@@ -70,6 +77,7 @@ public class JornadaService {
 		this.dadosPessoais = dadosPessoais;
 		this.servicos = servicos;
 		this.relogio = relogio;
+		this.eventos = eventos;
 	}
 
 	/**
@@ -90,8 +98,24 @@ public class JornadaService {
 				? minhas.stream().filter(equipe::equals).findFirst().orElseThrow(RecursoNaoEncontradoException::new)
 				: unica(minhas);
 		var inicio = ocorrido.isAfter(agora().plus(ADIANTAMENTO_ACEITO)) ? agora() : ocorrido;
-		jornadas.abrir(id, escolhida, OrdemServicoService.usuario(), dispositivo.id(), inicio, posicao);
+		// Falso quando outro membro já abriu a jornada da equipe: a rota já foi pedida
+		// por ele.
+		if (jornadas.abrir(id, escolhida, OrdemServicoService.usuario(), dispositivo.id(), inicio, posicao)) {
+			eventos.publishEvent(new JornadaIniciada(ContextoAcesso.exigir().tenantId(), id, escolhida,
+					OrdemServicoService.usuario(), LocalDate.ofInstant(agora(), relogio.getZone())));
+		}
 		return pacote(escolhida, null);
+	}
+
+	@Override
+	@Transactional
+	public UUID equipeEmJornada(@Nullable UUID dispositivoId) {
+		dispositivos.exigir(dispositivoId, false);
+		return jornadas.abertas(equipes.equipesDe(OrdemServicoService.usuario()))
+			.stream()
+			.map(Jornada::equipeId)
+			.findFirst()
+			.orElseThrow(() -> new ConflitoException("Não há jornada aberta."));
 	}
 
 	/** J8: equipes da pessoa com o resumo de hoje, para escolher com qual sai. */
