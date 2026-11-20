@@ -50,7 +50,25 @@ aceito como base (19/11/2026).
   encerramento e vão depois dos eventos, em partes de 1 MB com SHA-256, retomando pelo `GET /anexos/{id}`. Enviada
   ou recusada, a foto sai do celular; a de encerramento recusado nem é enviada.
 
+- **Posições e envio em segundo plano (6e):** a coleta liga quando a jornada abre (inclusive a iniciada sem sinal e
+  a reaberta depois de o Android matar o app) e desliga quando ela fecha ou a sessão acaba. Usa o serviço em primeiro
+  plano do `geolocator_android` (já no projeto): notificação fixa "Jornada em andamento" enquanto coleta (RN-27: o
+  agente vê que está sendo localizado), sem `ACCESS_BACKGROUND_LOCATION` (o serviço sempre começa com o app aberto).
+  O mesmo serviço mantém o processo vivo com o app em segundo plano, então a fila continua saindo pelas novas
+  tentativas do 6c. **WorkManager não foi adotado:** fora da jornada nada é coletado, o fim da jornada exige a fila
+  vazia, e um envio sem o app exigiria renovar o token OIDC num isolate sem tela. Leituras a cada 30 s; o app guarda
+  uma a cada 2 min **ou** 100 m andados (5 min ou 250 m com bateria até 20% fora da tomada, leitura a cada 1 min e
+  precisão média), descartando leituras com precisão pior que 150 m. As posições ficam numa tabela própria do
+  SQLCipher (versão 4 do banco) e vão depois dos eventos e das fotos, em lotes de até 500; uma leitura nova dispara o
+  envio a partir de 5 na fila, a não ser que o app esteja esperando o sinal voltar. Não contam como ações pendentes
+  nem prendem o fim da jornada (o servidor aceita as atrasadas da última jornada, dentro do horário dela); esperam
+  enquanto o início feito sem sinal não chegou ao servidor; 409 (nenhuma jornada) e 400/422 descartam o lote;
+  passadas 7 dias, saem do celular sem envio. Bateria e permissão de notificação (Android 13+) por um canal nativo
+  pequeno em `MainActivity.kt`: o `battery_plus` (BSD) traz `upower` e `dbus` (MPL 2.0) para o Linux. Tela "Fila de
+  envio" (pelo indicador da fila ou pelo menu): pendentes, último envio, próxima tentativa, situação da localização
+  (com "Abrir ajustes" quando a permissão foi retirada) e as ações dos últimos 2 dias com a resposta do servidor.
+
 **Consequências.** Mais um repositório e uma cadeia de build (Flutter e Android SDK) para manter. A publicação
 interna (assinatura e distribuição pelo MDM da empresa) entra no fim do M6. Próximas etapas: jornada e pacote do dia
 (6b), fila local criptografada com SQLCipher e sincronização (6c), encerramento com parâmetros e fotos (6d), posições e
-tela da fila (6e).
+tela da fila (6e). Falta no M6: mapa da rota no app e publicação interna.

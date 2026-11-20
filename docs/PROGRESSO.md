@@ -624,7 +624,32 @@ token não leva os papéis de `realm-management` e a Admin API responde 403. Flu
 - **Em aberto (decisões do usuário):** marca d'água de hora/GPS nas fotos; fotos ficam na pasta privada do app (não
   criptografadas à parte; o Android já criptografa o armazenamento do app).
 
-### Onde paramos (19/11/2026, fim do dia) — retomar daqui
+### App de campo, M6e: posições da jornada e tela da fila — ADR 0047
+- **App:** coleta de posições durante a jornada pelo serviço em primeiro plano do `geolocator_android` (notificação
+  fixa "Jornada em andamento"; o processo continua vivo em segundo plano e a fila segue enviando), uma posição a cada
+  2 min ou 100 m (5 min ou 250 m com bateria baixa), fila própria no SQLCipher (banco v4), envio depois dos eventos e
+  das fotos em lotes de 500; indicador "Localização registrada · última hh:mm" no Hoje; tela "Fila de envio".
+  Bateria e permissão de notificação por canal nativo (sem `battery_plus`, que traz MPL). Sem WorkManager (motivo na
+  ADR).
+- **Testes:** 73 no app (amostragem, envio das posições, coleta ligando e desligando com a jornada, GPS desligado,
+  bateria baixa, início sem sinal, tela da fila com acessibilidade claro e escuro); APK de debug compilado.
+- **Não testado em aparelho:** serviço em primeiro plano, notificação, permissão do Android 13+ e o comportamento em
+  segundo plano (Doze, economia de bateria do fabricante).
+
+### Onde paramos (20/11/2026) — retomar daqui
+**Estado:** M6a a M6e do app de campo prontos, com commit em `~/Iapp/aurora-app-campo`. **Falta o push** nos três
+repositórios (`aurora-servicos`, `aurora-frontend-servicos`, `aurora-app-campo`; a chave SSH tem senha).
+
+**Próximo:** fim do M6: mapa da rota no app (MapLibre, conferir licença do plugin) e publicação interna (assinatura
+do APK, distribuição pelo MDM da empresa); depois M7 (indicadores, J12).
+
+**Conferir no primeiro teste em aparelho ou AVD:** SQLCipher (abrir, migrar até a v4, apagar na revogação), câmera e
+pasta das fotos, GPS, link `geo:` do Navegar, notificação da jornada e envio com o app em segundo plano.
+
+**Decisões do usuário em aberto:** marca d'água de hora/GPS nas fotos; criptografar as fotos à parte; modo noturno,
+alerta de emergencial, "Estou chegando" e modo luva (ideias do protótipo).
+
+### Onde paramos (19/11/2026, fim do dia) — superado pelo de 20/11
 **Estado:** M6a a M6d do app de campo prontos, com commit: `~/Iapp/aurora-app-campo` (último `ff488f9`) e a branch
 `feature/catalogo-de-servicos` do back (`ultimaSequencia` no pacote e `GET /campo/equipes`). **Falta o push** nos três
 repositórios (`aurora-servicos`, `aurora-frontend-servicos`, `aurora-app-campo`; a chave SSH tem senha).
