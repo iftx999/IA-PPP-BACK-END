@@ -68,7 +68,19 @@ aceito como base (19/11/2026).
   envio" (pelo indicador da fila ou pelo menu): pendentes, último envio, próxima tentativa, situação da localização
   (com "Abrir ajustes" quando a permissão foi retirada) e as ações dos últimos 2 dias com a resposta do servidor.
 
+- **Publicação interna (6g), Android Enterprise** (escolha do cliente, 20/11/2026): aparelho totalmente gerenciado,
+  app privado no Managed Google Play com instalação forçada e atualização automática de alta prioridade. **Um só
+  APK para todas as empresas:** a configuração gerenciada (`app_restrictions.xml`: `api_url`, `identidade_url`,
+  `codigo_empresa`, `mapa_tiles`, `mapa_atribuicao`) vale sobre os valores da compilação e é lida ao abrir o app
+  (canal nativo com o `RestrictionsManager`, sem plugin). Endereços só com HTTPS. Com `codigo_empresa`, o app não
+  pergunta nem deixa trocar a empresa, e uma mudança do código no console apaga os dados da anterior. O release
+  só é assinado com a chave da empresa, lida de `AURORA_ASSINATURA_*`; sem ela, o build para em vez de usar a chave
+  de debug. A política recomendada (permissões pré-concedidas, hora automática, depuração desligada, exceção de
+  bateria, wipe e revogação) e o roteiro do primeiro teste estão em `docs/publicacao-android-enterprise.md` do app.
+  Ficam com a empresa: criar e guardar a chave (assinatura de apps do Google Play recomendada), decidir o nome do
+  pacote antes da primeira publicação e escolher o provedor de tiles.
+
 **Consequências.** Mais um repositório e uma cadeia de build (Flutter e Android SDK) para manter. A publicação
 interna (assinatura e distribuição pelo MDM da empresa) entra no fim do M6. Próximas etapas: jornada e pacote do dia
 (6b), fila local criptografada com SQLCipher e sincronização (6c), encerramento com parâmetros e fotos (6d), posições e
-tela da fila (6e). Falta no M6: mapa da rota no app e publicação interna.
+tela da fila (6e). Mapa da rota: ADR 0048. Publicação: 6g, acima.

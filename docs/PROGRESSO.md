@@ -648,7 +648,30 @@ token não leva os papéis de `realm-management` e a Admin API responde 403. Flu
   gatilho desligado); app 83 testes (rota, mapa, acessibilidade claro e escuro); APK de debug compilado.
 - **Não testado em aparelho:** mapa com tiles reais e gestos.
 
-### Onde paramos (20/11/2026, fim do M6f) — retomar daqui
+### App de campo, M6g: publicação interna pelo Android Enterprise — ADR 0047
+- **Decisão do cliente (20/11):** Android Enterprise; chave de assinatura e provedor de tiles ficam para depois.
+- **App:** configuração gerenciada (API, login, código da empresa, tiles) lida do MDM ao abrir, valendo sobre a
+  compilação; com a empresa fixada pelo MDM, sem tela de empresa nem "Trocar empresa", e a troca no console apaga
+  os dados da anterior. Release assinado só com `AURORA_ASSINATURA_*` (sem elas, o build para). Guia
+  `docs/publicacao-android-enterprise.md` (chave, build, app privado, campos, política, primeiro teste).
+- **Testes:** 89 no app; release assinado com uma chave descartável conferido (assinatura, `versionCode`,
+  restrições no manifesto) e apagado.
+
+### Onde paramos (20/11/2026, fim do M6) — retomar daqui
+**Estado:** M6 completo (6a a 6g), com commit: `~/Iapp/aurora-app-campo` e a branch `feature/catalogo-de-servicos`
+do back. **Falta o push** nos três repositórios (a chave SSH tem senha; o app ainda sem remoto).
+
+**Com a empresa (depois):** criar e guardar a chave de assinatura; decidir o nome do pacote (`dev.aurora.campo`
+ou do domínio dela) antes da primeira publicação; provedor de tiles; primeiro teste em aparelho cadastrado no MDM
+(roteiro na seção 7 do guia).
+
+**Próximo:** M7 — indicadores (J12) e os gatilhos automáticos de reotimização (emergencial nova, paralisação longa,
+atraso de 30 min).
+
+**Decisões do usuário em aberto:** marca d'água de hora/GPS nas fotos; criptografar as fotos à parte; modo noturno,
+alerta de emergencial, "Estou chegando" e modo luva (ideias do protótipo).
+
+### Onde paramos (20/11/2026, fim do M6f) — superado pelo do fim do M6
 **Estado:** M6a a M6f prontos, com commit: `~/Iapp/aurora-app-campo` e a branch `feature/catalogo-de-servicos` do back.
 **Falta o push** nos três repositórios (`aurora-servicos`, `aurora-frontend-servicos`, `aurora-app-campo`; a chave SSH
 tem senha; o app ainda sem remoto).
