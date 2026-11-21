@@ -1,6 +1,7 @@
 package dev.aurora.roteirizacao.service;
 
 import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -256,6 +257,48 @@ public class RoteirizacaoService implements Reotimizacoes {
 	@Transactional(readOnly = true)
 	public java.util.Optional<Roteirizacao> publicadaDaEquipe(UUID equipe, LocalDate data) {
 		return repositorio.publicadaDaEquipe(equipe, data).flatMap(repositorio::buscar);
+	}
+
+	/**
+	 * ADR 0050: a rota publicada no meio da jornada (reotimização ou nova publicação do
+	 * programador) espera o agente conferir a nova ordem; a calculada no início da
+	 * jornada não.
+	 */
+	public static boolean exigeConfirmacao(Roteirizacao publicada, Instant inicioDaJornada) {
+		return publicada.origem() != OrigemRoteirizacao.JORNADA && publicada.publicadaEm() != null
+				&& publicada.publicadaEm().isAfter(inicioDaJornada);
+	}
+
+	@Transactional(readOnly = true)
+	public java.util.Optional<Instant> confirmacao(UUID roteirizacao, UUID equipe) {
+		return repositorio.confirmacao(roteirizacao, equipe);
+	}
+
+	/**
+	 * ADR 0050: o agente confirmou a nova ordem no app. Vale para a rota publicada mais
+	 * recente da equipe; uma já substituída é recusada (o app baixa a atual). Repetir não
+	 * muda a primeira confirmação.
+	 * @return quando ficou confirmada
+	 */
+	@Transactional
+	public Instant confirmarNoCampo(UUID roteirizacao, UUID equipe, Instant confirmadaEm) {
+		var atual = repositorio.publicadaDaEquipe(equipe, LocalDate.now(relogio))
+			.orElseThrow(() -> new ConflitoException("Não há rota publicada para a equipe hoje."));
+		if (!atual.equals(roteirizacao)) {
+			throw new ConflitoException("Esta rota já foi substituída por outra. Baixe a rota atual.");
+		}
+		var agora = relogio.instant();
+		// Na precisão do banco (microssegundos): a resposta é igual à leitura posterior.
+		var momento = (confirmadaEm.isAfter(agora) ? agora : confirmadaEm)
+			.truncatedTo(java.time.temporal.ChronoUnit.MICROS);
+		if (repositorio.confirmar(roteirizacao, equipe, momento, usuario())) {
+			var detalhes = new LinkedHashMap<String, @Nullable Object>();
+			detalhes.put("equipe", equipe.toString());
+			detalhes.put("confirmadaEm", momento.toString());
+			auditoria.registrar(TipoEvento.ROTA_CONFIRMADA_NO_CAMPO, "roteirizacao/" + roteirizacao, detalhes);
+			return momento;
+		}
+		return repositorio.confirmacao(roteirizacao, equipe).orElse(momento);
 	}
 
 	@Transactional(readOnly = true)

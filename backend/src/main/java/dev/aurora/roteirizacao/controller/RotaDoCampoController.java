@@ -15,7 +15,11 @@ import org.jspecify.annotations.Nullable;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -23,7 +27,8 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * Rota do dia no app de campo (J8, ADR 0048): a publicada mais recente da equipe da
  * jornada aberta, com o traçado para o mapa. ETag = id da roteirização: o celular só
- * baixa de novo quando a rota muda (304 Not Modified). Sem rota publicada: 204.
+ * baixa de novo quando a rota muda (304 Not Modified). Sem rota publicada: 204. A rota
+ * publicada no meio da jornada espera o agente confirmar a nova ordem (ADR 0050).
  */
 @RestController
 @RequestMapping("/api/v1/campo")
@@ -58,14 +63,24 @@ class RotaDoCampoController {
 	record RotaResponse(UUID roteirizacaoId, String origem, String calculo, @Nullable Instant publicadaEm,
 			Instant inicio, Instant fimPrevisto, double km, int minutosDeslocamento, int minutosServico,
 			@Nullable Double partidaLatitude, @Nullable Double partidaLongitude, List<List<double[]>> tracado,
-			List<ParadaResponse> paradas) {
+			List<ParadaResponse> paradas, boolean exigeConfirmacao, @Nullable Instant confirmadaEm) {
+	}
+
+	/**
+	 * @param confirmadaEm hora do celular (a do servidor, se vier adiantada)
+	 */
+	record ConfirmacaoRequest(@NotNull UUID roteirizacaoId, @NotNull Instant confirmadaEm) {
+	}
+
+	record ConfirmacaoResponse(UUID roteirizacaoId, Instant confirmadaEm) {
 	}
 
 	@GetMapping("/rota")
 	ResponseEntity<RotaResponse> rota(
 			@RequestHeader(name = "X-Aurora-Dispositivo", required = false) @Nullable UUID dispositivo,
 			@RequestHeader(name = "If-None-Match", required = false) @Nullable String conhecida) {
-		var equipe = jornadas.equipeEmJornada(dispositivo);
+		var jornada = jornadas.jornadaAberta(dispositivo);
+		var equipe = jornada.equipeId();
 		var publicada = roteirizacoes.publicadaDaEquipe(equipe, LocalDate.now(relogio)).orElse(null);
 		var rota = publicada == null ? null
 				: publicada.rotas().stream().filter(r -> r.equipeId().equals(equipe)).findFirst().orElse(null);
@@ -76,10 +91,23 @@ class RotaDoCampoController {
 		if (etag.equals(conhecida)) {
 			return ResponseEntity.status(HttpStatus.NOT_MODIFIED).eTag(etag).build();
 		}
-		return ResponseEntity.ok().eTag(etag).body(resposta(publicada, rota));
+		var exige = RoteirizacaoService.exigeConfirmacao(publicada, jornada.inicio());
+		var confirmada = exige ? roteirizacoes.confirmacao(publicada.id(), equipe).orElse(null) : null;
+		return ResponseEntity.ok().eTag(etag).body(resposta(publicada, rota, exige, confirmada));
 	}
 
-	private static RotaResponse resposta(Roteirizacao r, Roteirizacao.RotaCalculada rota) {
+	/** ADR 0050: o agente conferiu e confirmou a nova ordem das OS. */
+	@PostMapping("/rota/confirmacao")
+	ConfirmacaoResponse confirmar(
+			@RequestHeader(name = "X-Aurora-Dispositivo", required = false) @Nullable UUID dispositivo,
+			@Valid @RequestBody ConfirmacaoRequest pedido) {
+		var equipe = jornadas.jornadaAberta(dispositivo).equipeId();
+		return new ConfirmacaoResponse(pedido.roteirizacaoId(),
+				roteirizacoes.confirmarNoCampo(pedido.roteirizacaoId(), equipe, pedido.confirmadaEm()));
+	}
+
+	private static RotaResponse resposta(Roteirizacao r, Roteirizacao.RotaCalculada rota, boolean exige,
+			@Nullable Instant confirmada) {
 		var partida = rota.partida();
 		return new RotaResponse(r.id(), r.origem().name(), r.calculo() == null ? "LINHA_RETA" : r.calculo().name(),
 				r.publicadaEm(), rota.inicio(), rota.fimPrevisto(), rota.km(), rota.minutosDeslocamento(),
@@ -93,7 +121,8 @@ class RotaDoCampoController {
 					.stream()
 					.map(p -> new ParadaResponse(p.ordemServicoId(), p.ordem(), p.chegadaPrevista(), p.saidaPrevista(),
 							latitude(p.local()), longitude(p.local())))
-					.toList());
+					.toList(),
+				exige, confirmada);
 	}
 
 	private static @Nullable Double latitude(@Nullable Coordenada c) {

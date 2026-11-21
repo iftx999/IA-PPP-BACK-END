@@ -44,12 +44,13 @@ class OperacaoController {
 
 	record EquipeNoDiaResponse(UUID id, String nome, UUID unidadeId, boolean emJornada, @Nullable Instant jornadaInicio,
 			@Nullable Instant jornadaFim, @Nullable PontoDaOperacaoDto posicao, @Nullable Instant posicaoEm,
-			@Nullable Double precisaoM, @Nullable Integer atrasoMin, @Nullable Instant fimPrevisto) {
+			@Nullable Double precisaoM, @Nullable Integer atrasoMin, @Nullable Instant fimPrevisto,
+			boolean rotaAguardandoConfirmacao, @Nullable Instant rotaConfirmadaEm) {
 
 		static EquipeNoDiaResponse de(EquipeNoDia e) {
 			return new EquipeNoDiaResponse(e.id(), e.nome(), e.unidadeId(), e.emJornada(), e.jornadaInicio(),
 					e.jornadaFim(), PontoDaOperacaoDto.de(e.posicao()), e.posicaoEm(), e.precisaoM(), e.atrasoMin(),
-					e.fimPrevisto());
+					e.fimPrevisto(), e.rotaAguardandoConfirmacao(), e.rotaConfirmadaEm());
 		}
 
 	}
@@ -156,6 +157,13 @@ class OperacaoController {
 
 	}
 
+	/**
+	 * Avisos da web (ADR 0050): quantas sugestões estão abertas hoje no escopo e as mais
+	 * novas.
+	 */
+	record ResumoDasSugestoesResponse(int abertas, List<SugestaoReotimizacaoResponse> recentes) {
+	}
+
 	private final OperacaoDoDiaService dia;
 
 	private final IndicadoresDaOperacaoService indicadores;
@@ -188,6 +196,13 @@ class OperacaoController {
 	List<SugestaoReotimizacaoResponse> sugestoes(@RequestParam(required = false) @Nullable UUID unidade,
 			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) @Nullable LocalDate data) {
 		return sugestoes.doDia(unidade, data).stream().map(SugestaoReotimizacaoResponse::de).toList();
+	}
+
+	@GetMapping("/sugestoes/resumo")
+	ResumoDasSugestoesResponse resumo() {
+		var resumo = sugestoes.resumo();
+		return new ResumoDasSugestoesResponse(resumo.abertas(),
+				resumo.recentes().stream().map(SugestaoReotimizacaoResponse::de).toList());
 	}
 
 	/**

@@ -49,3 +49,4 @@ gera um novo ADR que o substitui.
 | [0047](0047-app-de-campo-flutter.md) | App de campo em Flutter: projeto próprio, login OIDC com PKCE, PIN e sessão sem rede | Aceito |
 | [0048](0048-rota-no-inicio-da-jornada.md) | Rota calculada no início da jornada (posição do agente) e mapa da rota no app | Aceito |
 | [0049](0049-acompanhamento-da-operacao.md) | Acompanhamento da operação de campo (mapa do dia, indicadores) e sugestões automáticas de reotimização | Aceito |
+| [0050](0050-confirmacao-da-rota-avisos-e-modo-noturno.md) | Confirmação da nova rota pelo agente, avisos da operação e modo noturno do app | Aceito |

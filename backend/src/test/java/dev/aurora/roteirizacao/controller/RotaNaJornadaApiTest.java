@@ -115,6 +115,8 @@ class RotaNaJornadaApiTest {
 
 		var rota = esperarRota(celular);
 		assertThat(rota.get("origem").asString()).isEqualTo("JORNADA");
+		// A do início da jornada não espera confirmação do agente (ADR 0050).
+		assertThat(rota.get("exigeConfirmacao").asBoolean()).isFalse();
 		assertThat(rota.get("calculo").asString()).isEqualTo("LINHA_RETA");
 		assertThat(rota.get("partidaLongitude").asDouble()).isEqualTo(-47.035);
 		assertThat(rota.get("tracado").size()).isZero();

@@ -62,6 +62,16 @@ public class SugestoesDeReotimizacaoService {
 		return transacao.execute(s -> repositorio.doDia(area, dia));
 	}
 
+	/** Abertas hoje em todo o escopo e as 5 mais novas (avisos da web). */
+	public record Resumo(int abertas, List<Sugestao> recentes) {
+	}
+
+	public Resumo resumo() {
+		var hoje = LocalDate.now(relogio);
+		return transacao
+			.execute(s -> new Resumo(repositorio.abertasNoEscopo(hoje), repositorio.recentesNoEscopo(hoje)));
+	}
+
 	/** Pedido montado a partir das sugestões abertas da unidade. */
 	private record Pedido(UUID unidade, List<UUID> sugestoes, List<UUID> equipes, List<UUID> extras) {
 	}

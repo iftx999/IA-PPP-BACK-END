@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
+import dev.aurora.campanhas.JornadaAberta;
 import dev.aurora.campanhas.JornadaIniciada;
 import dev.aurora.campanhas.JornadasDoCampo;
 import dev.aurora.campanhas.model.AmostraDePosicao;
@@ -114,6 +115,17 @@ public class JornadaService implements JornadasDoCampo {
 		return jornadas.abertas(equipes.equipesDe(OrdemServicoService.usuario()))
 			.stream()
 			.map(Jornada::equipeId)
+			.findFirst()
+			.orElseThrow(() -> new ConflitoException("Não há jornada aberta."));
+	}
+
+	@Override
+	@Transactional
+	public JornadaAberta jornadaAberta(@Nullable UUID dispositivoId) {
+		dispositivos.exigir(dispositivoId, false);
+		return jornadas.abertas(equipes.equipesDe(OrdemServicoService.usuario()))
+			.stream()
+			.map(j -> new JornadaAberta(j.id(), j.equipeId(), j.inicio()))
 			.findFirst()
 			.orElseThrow(() -> new ConflitoException("Não há jornada aberta."));
 	}

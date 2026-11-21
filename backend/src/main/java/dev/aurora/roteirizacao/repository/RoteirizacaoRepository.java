@@ -161,6 +161,33 @@ public class RoteirizacaoRepository {
 			.optional();
 	}
 
+	/**
+	 * Quando o agente confirmou a rota da equipe nesta roteirização (ADR 0050); vazio se
+	 * ainda não confirmou.
+	 */
+	public Optional<Instant> confirmacao(UUID roteirizacao, UUID equipe) {
+		return jdbc.sql("SELECT confirmada_em FROM rota WHERE roteirizacao_id = :r AND equipe_id = :e")
+			.param("r", roteirizacao)
+			.param("e", equipe)
+			.query((l, n) -> Optional.ofNullable(l.getTimestamp("confirmada_em")).map(Timestamp::toInstant))
+			.optional()
+			.flatMap(o -> o);
+	}
+
+	/**
+	 * @return true se registrou agora (a primeira confirmação vale)
+	 */
+	public boolean confirmar(UUID roteirizacao, UUID equipe, Instant momento, UUID usuario) {
+		return jdbc.sql("""
+				UPDATE rota SET confirmada_em = :momento, confirmada_por = :usuario
+				 WHERE roteirizacao_id = :r AND equipe_id = :e AND confirmada_em IS NULL""")
+			.param("momento", Timestamp.from(momento))
+			.param("usuario", usuario)
+			.param("r", roteirizacao)
+			.param("e", equipe)
+			.update() == 1;
+	}
+
 	/** RN-23 de cada par equipe × OS: área, habilidade e veículo. */
 	public List<Compatibilidade> compatibilidades(Collection<UUID> equipes, Collection<UUID> ordens) {
 		if (equipes.isEmpty() || ordens.isEmpty()) {

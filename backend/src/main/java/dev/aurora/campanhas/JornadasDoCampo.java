@@ -14,4 +14,10 @@ public interface JornadasDoCampo {
 	 */
 	UUID equipeEmJornada(@Nullable UUID dispositivoId);
 
+	/**
+	 * A jornada aberta da pessoa (equipe e início), conferindo o celular.
+	 * @throws dev.aurora.comum.ConflitoException sem jornada aberta
+	 */
+	JornadaAberta jornadaAberta(@Nullable UUID dispositivoId);
+
 }

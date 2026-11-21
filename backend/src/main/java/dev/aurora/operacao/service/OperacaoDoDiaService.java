@@ -62,8 +62,9 @@ public class OperacaoDoDiaService {
 			repositorio.rotasPublicadas(emJornada, dia).forEach(r -> rotas.put(r.equipeId(), r));
 			equipes = equipes.stream().map(e -> {
 				var rota = rotas.get(e.id());
-				return rota == null || !e.emJornada() ? e : e.comAtraso(
-						EstimativaDeAtraso.minutos(rota.paradas(), e.jornadaInicio(), agora), rota.fimPrevisto());
+				return rota == null || !e.emJornada() ? e
+						: e.comRota(EstimativaDeAtraso.minutos(rota.paradas(), e.jornadaInicio(), agora),
+								rota.fimPrevisto(), rota.aguardandoConfirmacao(e.jornadaInicio()), rota.confirmadaEm());
 			}).toList();
 		}
 		return new MapaDoDia(dia, agora, equipes, ordens, sugestoes.abertasDoDia(area, dia));

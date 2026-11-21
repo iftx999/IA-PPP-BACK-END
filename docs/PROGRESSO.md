@@ -672,7 +672,30 @@ token não leva os papéis de `realm-management` e a Admin API responde 403. Flu
   `SugestaoDeTempoPadraoTest`); front 105 testes de unidade, lint, E2E `operacao-do-dia.spec.ts` e a tela na
   varredura de acessibilidade nos dois temas. E2E DB de cópia agora na V36.
 
-### Onde paramos (21/11/2026, fim do M7) — retomar daqui
+### Decisões de 21/11 depois do M7: confirmação da rota, avisos e modo noturno — ADR 0050
+- **Decisões do cliente:** o agente confirma a próxima rota no app; sugestões de reotimização aprovadas pelo
+  programador (como na ADR 0049); notificação; modo noturno; **sem** marca d'água nas fotos.
+- **Back:** V37 (`rota.confirmada_em/por`), `exigeConfirmacao` e `confirmadaEm` em `GET /campo/rota`,
+  `POST /campo/rota/confirmacao`, situação da confirmação no mapa do dia, `GET /operacao/sugestoes/resumo`.
+- **App:** nova ordem pendente até o agente conferir (tela "Nova ordem das OS"), confirmação guardada sem sinal,
+  conferência da rota a cada 2 min, aviso do Android; modo noturno pelo pôr e nascer do sol (menu "Tema da tela").
+- **Web:** contador no menu "Operação do dia", aviso na tela e notificação do navegador para sugestões novas;
+  confirmação do agente na lista das equipes.
+- **Testes:** back `verify` completo; app 109 testes e APK de debug; front 106 testes, lint, E2E e axe nos dois
+  temas. **Não testado em aparelho:** o aviso do Android.
+
+### Onde paramos (21/11/2026, depois da ADR 0050) — retomar daqui
+**Estado:** M1 a M7 do doc 10 e a ADR 0050 prontos, com commit: branch `feature/catalogo-de-servicos` dos dois
+repositórios e `~/Iapp/aurora-app-campo`. **Falta o push** nos três (a chave SSH tem senha; o app ainda sem remoto) e
+o merge da branch em `main` (ordem: partição → atendimento ao titular → esta). E2E DB de cópia na V37.
+
+**Com a empresa (depois):** chave de assinatura e nome do pacote do app; provedor de tiles; primeiro teste em
+aparelho cadastrado no MDM (inclui o aviso do Android e o modo noturno).
+
+**Decisões do usuário em aberto:** criptografar as fotos à parte; alerta sonoro de emergencial; "Estou chegando";
+modo luva.
+
+### Onde paramos (21/11/2026, fim do M7) — superado pelo de depois da ADR 0050
 **Estado:** M1 a M7 do doc 10 prontos, com commit: branch `feature/catalogo-de-servicos` dos dois repositórios e
 `~/Iapp/aurora-app-campo`. **Falta o push** nos três (a chave SSH tem senha; o app ainda sem remoto) e o merge da
 branch em `main` (ordem: partição → atendimento ao titular → esta).

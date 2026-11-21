@@ -121,6 +121,9 @@ public enum TipoEvento {
 	 */
 	REOTIMIZACAO_SUGERIDA_ACEITA, REOTIMIZACAO_SUGERIDA_IGNORADA,
 
+	/** ADR 0050: o agente confirmou no app a nova ordem das OS. */
+	ROTA_CONFIRMADA_NO_CAMPO,
+
 	/** ADR 0021: páginas digitalizadas lidas por OCR (nome herdado). */
 	TEXTO_RECONHECIDO_POR_OCR,
 

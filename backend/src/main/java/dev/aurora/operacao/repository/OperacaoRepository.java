@@ -125,7 +125,7 @@ public class OperacaoRepository {
 			.query((l, n) -> new EquipeNoDia(l.getObject("id", UUID.class), l.getString("nome"),
 					l.getObject("unidade_id", UUID.class), l.getObject("jornada_id", UUID.class), instante(l, "inicio"),
 					instante(l, "fim"), ponto(l, "lat", "lon"), instante(l, "posicao_em"), decimal(l, "precisao_m"),
-					null, null))
+					null, null, false, null))
 			.list();
 	}
 
@@ -139,11 +139,13 @@ public class OperacaoRepository {
 		}
 		var linhas = jdbc.sql("""
 				WITH ultima AS (
-				    SELECT DISTINCT ON (ro.equipe_id) ro.id, ro.equipe_id, ro.fim_previsto
+				    SELECT DISTINCT ON (ro.equipe_id) ro.id, ro.equipe_id, ro.fim_previsto, ro.confirmada_em, r.origem,
+				           r.publicada_em
 				      FROM rota ro JOIN roteirizacao r ON r.id = ro.roteirizacao_id
 				     WHERE r.data = :data AND r.situacao = 'PUBLICADA' AND ro.equipe_id = ANY (CAST(:equipes AS uuid[]))
 				     ORDER BY ro.equipe_id, r.publicada_em DESC)
-				SELECT u.id AS rota_id, u.equipe_id, u.fim_previsto, p.ordem_servico_id, p.ordem, p.chegada_prevista,
+				SELECT u.id AS rota_id, u.equipe_id, u.fim_previsto, u.confirmada_em, u.origem, u.publicada_em,
+				       p.ordem_servico_id, p.ordem, p.chegada_prevista,
 				       p.saida_prevista, p.minutos_ate, o.status, o.iniciada_em,
 				       CASE WHEN o.status IN ('ENCERRADA', 'DEVOLVIDA', 'CANCELADA') OR o.equipe_id <> u.equipe_id
 				            THEN COALESCE(o.movimentada_em, o.atualizado_em) END AS fim_em
@@ -154,7 +156,8 @@ public class OperacaoRepository {
 			.param("data", Date.valueOf(data))
 			.param("equipes", equipes.toArray(UUID[]::new))
 			.query((l, n) -> new Object[] { l.getObject("rota_id", UUID.class), l.getObject("equipe_id", UUID.class),
-					instante(l, "fim_previsto"),
+					instante(l, "fim_previsto"), l.getString("origem"), instante(l, "publicada_em"),
+					instante(l, "confirmada_em"),
 					new ParadaPrevista(l.getObject("ordem_servico_id", UUID.class), l.getInt("ordem"),
 							instante(l, "chegada_prevista"), instante(l, "saida_prevista"), l.getInt("minutos_ate"),
 							l.getString("status"), instante(l, "iniciada_em"), instante(l, "fim_em")) })
@@ -164,8 +167,12 @@ public class OperacaoRepository {
 			porRota.computeIfAbsent((UUID) linha[0], k -> new ArrayList<>()).add(linha);
 		}
 		var rotas = new ArrayList<RotaPublicada>();
-		porRota.forEach((rota, lista) -> rotas.add(new RotaPublicada(rota, (UUID) lista.getFirst()[1],
-				(Instant) lista.getFirst()[2], lista.stream().map(o -> (ParadaPrevista) o[3]).toList())));
+		porRota.forEach((rota, lista) -> {
+			var primeira = lista.getFirst();
+			rotas.add(new RotaPublicada(rota, (UUID) primeira[1], (Instant) primeira[2], (String) primeira[3],
+					(Instant) primeira[4], (Instant) primeira[5],
+					lista.stream().map(o -> (ParadaPrevista) o[6]).toList()));
+		});
 		return rotas;
 	}
 

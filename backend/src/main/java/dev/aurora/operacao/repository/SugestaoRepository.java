@@ -69,6 +69,21 @@ public class SugestaoRepository {
 			.single();
 	}
 
+	/** Abertas no dia em todo o escopo do usuário (o RLS limita). */
+	public int abertasNoEscopo(LocalDate data) {
+		return jdbc.sql("SELECT count(*) FROM sugestao_reotimizacao WHERE data = :data AND situacao = 'ABERTA'")
+			.param("data", Date.valueOf(data))
+			.query(Integer.class)
+			.single();
+	}
+
+	public List<Sugestao> recentesNoEscopo(LocalDate data) {
+		return jdbc.sql(CAMPOS + " WHERE s.data = :data AND s.situacao = 'ABERTA' ORDER BY s.criada_em DESC LIMIT 5")
+			.param("data", Date.valueOf(data))
+			.query(SugestaoRepository::mapear)
+			.list();
+	}
+
 	/** Lê travando a linha (aceitar e ignorar não correm juntos). */
 	public Optional<Sugestao> travar(UUID id) {
 		return jdbc.sql(CAMPOS + " WHERE s.id = :id FOR UPDATE OF s")

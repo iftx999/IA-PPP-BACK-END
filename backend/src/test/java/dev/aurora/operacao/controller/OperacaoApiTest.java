@@ -197,6 +197,11 @@ class OperacaoApiTest {
 		mvc.perform(
 				get("/api/v1/operacao/dia").param("unidade", t.cidadeA().toString()).with(token("sub-programador-op")))
 			.andExpect(jsonPath("$.sugestoesAbertas").value(4));
+		// Avisos da web: o resumo do escopo inteiro.
+		mvc.perform(get("/api/v1/operacao/sugestoes/resumo").with(token("sub-programador-op")))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.abertas").value(4))
+			.andExpect(jsonPath("$.recentes", org.hamcrest.Matchers.hasSize(4)));
 
 		// Ignorar é uma decisão só; a mesma não é decidida duas vezes.
 		var atraso = porGatilho.get("ATRASO").get("id").asString();
@@ -269,6 +274,36 @@ class OperacaoApiTest {
 			.andExpect(jsonPath("$.situacao").value("PUBLICADA"));
 		// Publicada, a emergencial entrou na rota: a sugestão dela não volta.
 		assertThat(detectar().abertas()).isZero();
+
+		// ADR 0050: publicada no meio da jornada, a nova ordem espera o agente confirmar
+		// no app.
+		var nova = ler(mvc.perform(get("/api/v1/campo/rota").header(CELULAR, celular).with(token("sub-agente-op")))
+			.andExpect(status().isOk()));
+		assertThat(nova.get("roteirizacaoId").asString()).isEqualTo(roteirizacao);
+		assertThat(nova.get("exigeConfirmacao").asBoolean()).isTrue();
+		assertThat(nova.get("confirmadaEm").isNull()).isTrue();
+		mvc.perform(
+				get("/api/v1/operacao/dia").param("unidade", t.cidadeA().toString()).with(token("sub-programador-op")))
+			.andExpect(jsonPath("$.equipes[?(@.id == '%s')].rotaAguardandoConfirmacao".formatted(equipe)).value(true));
+		// A da jornada já foi substituída: confirmar ela é recusado.
+		campo("/api/v1/campo/rota/confirmacao", """
+				{"roteirizacaoId":"%s","confirmadaEm":"%s"}""".formatted(jornada, Instant.now()), celular)
+			.andExpect(status().isConflict());
+		var confirmada = ler(campo("/api/v1/campo/rota/confirmacao", """
+				{"roteirizacaoId":"%s","confirmadaEm":"%s"}""".formatted(roteirizacao, Instant.now().minusSeconds(30)),
+				celular)
+			.andExpect(status().isOk()));
+		// Repetir (a fila reenviou) não muda a primeira confirmação.
+		campo("/api/v1/campo/rota/confirmacao", """
+				{"roteirizacaoId":"%s","confirmadaEm":"%s"}""".formatted(roteirizacao, Instant.now()), celular)
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.confirmadaEm").value(confirmada.get("confirmadaEm").asString()));
+		mvc.perform(get("/api/v1/campo/rota").header(CELULAR, celular).with(token("sub-agente-op")))
+			.andExpect(jsonPath("$.confirmadaEm").value(confirmada.get("confirmadaEm").asString()));
+		mvc.perform(
+				get("/api/v1/operacao/dia").param("unidade", t.cidadeA().toString()).with(token("sub-programador-op")))
+			.andExpect(jsonPath("$.equipes[?(@.id == '%s')].rotaAguardandoConfirmacao".formatted(equipe)).value(false))
+			.andExpect(jsonPath("$.equipes[?(@.id == '%s')].rotaConfirmadaEm".formatted(equipe)).isNotEmpty());
 
 		// Indicadores do dia (a emergencial, publicada, já conta).
 		var ind = ler(mvc
