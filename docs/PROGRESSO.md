@@ -657,7 +657,34 @@ token não leva os papéis de `realm-management` e a Admin API responde 403. Flu
 - **Testes:** 89 no app; release assinado com uma chave descartável conferido (assinatura, `versionCode`,
   restrições no manifesto) e apagado.
 
-### Onde paramos (20/11/2026, fim do M6) — retomar daqui
+### Operação do dia e sugestões de reotimização, M7 — ADR 0049
+- **Back:** módulo `operacao` (`/api/v1/operacao`: mapa do dia, indicadores, sugestões; `os:programar`), migração
+  V36 (`sugestao_reotimizacao` com RLS, índices para os indicadores, tarefa `detectar-reotimizacao`). Atraso estimado
+  contra a rota publicada; indicadores de prazo, tempo real × padrão (com sugestão de novo tempo padrão), motivos e
+  produtividade (horas, km pelas posições, deslocamento). Detector a cada 2 min abre sugestões para emergencial nova,
+  paralisação acima de 30 min, devolução e atraso ≥ 30 min; aceitar junta as da unidade numa reotimização que o
+  programador confere e publica. API pública `Reotimizacoes`. **Correção do M5:** publicar uma reotimização de parte
+  das equipes não descarta mais a rota publicada das outras.
+- **Front:** tela "Operação do dia" (`/operacao`, menu Campo): sugestões com Reotimizar/Ignorar, mapa com equipes e
+  OS por situação (emergencial com anel), lista das equipes com atraso, e aba Indicadores (números, gráfico de prazo
+  por serviço com tabela, tempos, motivos, produtividade). Atualiza a cada 30 s.
+- **Testes:** back `verify` completo verde (427 testes; novos `OperacaoApiTest`, `EstimativaDeAtrasoTest`,
+  `SugestaoDeTempoPadraoTest`); front 105 testes de unidade, lint, E2E `operacao-do-dia.spec.ts` e a tela na
+  varredura de acessibilidade nos dois temas. E2E DB de cópia agora na V36.
+
+### Onde paramos (21/11/2026, fim do M7) — retomar daqui
+**Estado:** M1 a M7 do doc 10 prontos, com commit: branch `feature/catalogo-de-servicos` dos dois repositórios e
+`~/Iapp/aurora-app-campo`. **Falta o push** nos três (a chave SSH tem senha; o app ainda sem remoto) e o merge da
+branch em `main` (ordem: partição → atendimento ao titular → esta).
+
+**Com a empresa (depois):** chave de assinatura e nome do pacote do app; provedor de tiles; primeiro teste em
+aparelho cadastrado no MDM (roteiro na seção 7 do guia do app).
+
+**Decisões do usuário em aberto:** marca d'água de hora/GPS nas fotos; criptografar as fotos à parte; modo noturno,
+alerta de emergencial, "Estou chegando" e modo luva (ideias do protótipo); confirmação da nova rota pelo agente no
+app; notificação das sugestões de reotimização além do contador na tela.
+
+### Onde paramos (20/11/2026, fim do M6) — superado pelo do fim do M7
 **Estado:** M6 completo (6a a 6g), com commit: `~/Iapp/aurora-app-campo` e a branch `feature/catalogo-de-servicos`
 do back. **Falta o push** nos três repositórios (a chave SSH tem senha; o app ainda sem remoto).
 

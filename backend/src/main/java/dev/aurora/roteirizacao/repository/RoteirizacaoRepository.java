@@ -363,11 +363,21 @@ public class RoteirizacaoRepository {
 				 WHERE id = :id""").param("id", id).param("usuario", usuario).update();
 	}
 
-	/** A publicada antes, do mesmo dia e unidade, deixa de valer. */
+	/**
+	 * A publicada antes, do mesmo dia e unidade, deixa de valer quando a nova cobre todas
+	 * as equipes dela. Uma reotimização de parte das equipes (J7, ADR 0049) não tira a
+	 * rota das outras: o app de cada equipe segue com a publicada mais recente que a
+	 * inclui.
+	 */
 	public void substituirPublicadas(UUID unidade, LocalDate data, UUID exceto) {
 		jdbc.sql("""
-				UPDATE roteirizacao SET situacao = 'DESCARTADA'
-				 WHERE unidade_id = :unidade AND data = :data AND situacao = 'PUBLICADA' AND id <> :exceto""")
+				UPDATE roteirizacao r SET situacao = 'DESCARTADA'
+				 WHERE r.unidade_id = :unidade AND r.data = :data AND r.situacao = 'PUBLICADA' AND r.id <> :exceto
+				   AND NOT EXISTS (
+				       SELECT 1 FROM rota antiga
+				        WHERE antiga.roteirizacao_id = r.id
+				          AND antiga.equipe_id NOT IN (SELECT nova.equipe_id FROM rota nova
+				                                        WHERE nova.roteirizacao_id = :exceto))""")
 			.param("unidade", unidade)
 			.param("data", Date.valueOf(data))
 			.param("exceto", exceto)

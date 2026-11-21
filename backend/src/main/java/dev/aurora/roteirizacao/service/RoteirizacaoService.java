@@ -18,6 +18,7 @@ import dev.aurora.comum.ConflitoException;
 import dev.aurora.comum.RecursoNaoEncontradoException;
 import dev.aurora.comum.RegraVioladaException;
 import dev.aurora.contexto.ContextoAcesso;
+import dev.aurora.roteirizacao.Reotimizacoes;
 import dev.aurora.roteirizacao.model.Candidatas;
 import dev.aurora.roteirizacao.model.OrdemParaRota;
 import dev.aurora.roteirizacao.model.OrigemRoteirizacao;
@@ -41,7 +42,7 @@ import org.springframework.transaction.support.TransactionTemplate;
  * RN-25) só mexe nas OS quando é publicado.
  */
 @Service
-public class RoteirizacaoService {
+public class RoteirizacaoService implements Reotimizacoes {
 
 	private static final Logger LOG = LoggerFactory.getLogger(RoteirizacaoService.class);
 
@@ -132,8 +133,16 @@ public class RoteirizacaoService {
 	 * execução ficam fixas no começo.
 	 */
 	public Roteirizacao reotimizar(UUID unidade, List<UUID> equipes) {
+		return reotimizar(unidade, equipes, List.of());
+	}
+
+	/**
+	 * J7: como {@link #reotimizar(UUID, List)}, incluindo OS ainda sem equipe no dia
+	 * (ex.: uma emergencial que acabou de entrar); a otimização escolhe a equipe.
+	 */
+	public Roteirizacao reotimizar(UUID unidade, List<UUID> equipes, List<UUID> extras) {
 		var hoje = LocalDate.now(relogio);
-		var ordens = new LinkedHashSet<UUID>();
+		var ordens = new LinkedHashSet<UUID>(extras);
 		var fixadas = new LinkedHashMap<UUID, List<UUID>>();
 		transacao.executeWithoutResult(s -> {
 			for (var equipe : new LinkedHashSet<>(equipes)) {
@@ -152,6 +161,11 @@ public class RoteirizacaoService {
 		}
 		return calcular(new PedidoRoteirizacao(unidade, hoje, OrigemRoteirizacao.REOTIMIZACAO, equipes,
 				List.copyOf(ordens), fixadas, null));
+	}
+
+	@Override
+	public UUID pedirReotimizacao(UUID unidade, List<UUID> equipes, List<UUID> extras) {
+		return reotimizar(unidade, equipes, extras).id();
 	}
 
 	/**

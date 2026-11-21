@@ -394,8 +394,8 @@ Cada marco: branch própria, ADR, testes (unidade, API, E2E, axe nas telas web) 
 | M3 | OS genérica ✅ ADR 0044 | J4, J5, migração da V28, campanhas usando o catálogo, estados novos | M1, M2 |
 | M4 | Execução na API ✅ ADR 0045 | Eventos, fila idempotente, conflitos, devoluções (J11), anexos, jornada, aparelhos (J13) | M3 |
 | M5 | Roteirização ✅ ADR 0046 | Valhalla no compose, Timefold, J6, J7 | M3 |
-| M6 | App Flutter | J8, J9, J10, fila offline, segurança do aparelho, publicação interna | M4, M5 |
-| M7 | Indicadores | J12, mapa do dia | M4–M6 |
+| M6 | App Flutter ✅ ADR 0047, 0048 | J8, J9, J10, fila offline, segurança do aparelho, publicação interna | M4, M5 |
+| M7 | Indicadores ✅ ADR 0049 | J12, mapa do dia, gatilhos de reotimização (J7) | M4–M6 |
 
 ## 10.13 Fora do escopo (por agora)
 

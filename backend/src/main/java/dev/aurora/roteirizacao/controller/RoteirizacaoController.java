@@ -122,7 +122,11 @@ class RoteirizacaoController {
 	record RecalculoRequest(@NotNull @Size(max = 50) List<@NotNull @Valid FixacaoRequest> fixadas) {
 	}
 
-	record ReotimizacaoRequest(@NotNull UUID unidadeId, @NotNull @Size(min = 1, max = 50) List<@NotNull UUID> equipes) {
+	/**
+	 * @param ordens OS ainda sem equipe no dia a incluir (ex.: emergencial nova)
+	 */
+	record ReotimizacaoRequest(@NotNull UUID unidadeId, @NotNull @Size(min = 1, max = 50) List<@NotNull UUID> equipes,
+			@Nullable @Size(max = 200) List<@NotNull UUID> ordens) {
 	}
 
 	private final RoteirizacaoService roteirizacoes;
@@ -207,7 +211,8 @@ class RoteirizacaoController {
 	@PostMapping("/reotimizar")
 	@ResponseStatus(HttpStatus.ACCEPTED)
 	RoteirizacaoResponse reotimizar(@Valid @RequestBody ReotimizacaoRequest pedido) {
-		return RoteirizacaoResponse.de(roteirizacoes.reotimizar(pedido.unidadeId(), pedido.equipes()));
+		return RoteirizacaoResponse.de(roteirizacoes.reotimizar(pedido.unidadeId(), pedido.equipes(),
+				pedido.ordens() == null ? List.of() : pedido.ordens()));
 	}
 
 	/** Publica: as rotas viram a programação das equipes no dia, na ordem calculada. */

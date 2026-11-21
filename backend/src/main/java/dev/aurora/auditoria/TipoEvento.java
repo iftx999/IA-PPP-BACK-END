@@ -116,6 +116,11 @@ public enum TipoEvento {
 	 */
 	ROTEIRIZACAO_PEDIDA, ROTEIRIZACAO_PUBLICADA, ROTEIRIZACAO_DESCARTADA,
 
+	/**
+	 * ADR 0049: sugestão automática de reotimização aceita ou ignorada pelo programador.
+	 */
+	REOTIMIZACAO_SUGERIDA_ACEITA, REOTIMIZACAO_SUGERIDA_IGNORADA,
+
 	/** ADR 0021: páginas digitalizadas lidas por OCR (nome herdado). */
 	TEXTO_RECONHECIDO_POR_OCR,
 

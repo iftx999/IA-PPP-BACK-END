@@ -48,3 +48,4 @@ gera um novo ADR que o substitui.
 | [0046](0046-roteirizacao.md) | Roteirização: Valhalla para a malha viária, Timefold para a ordem e a equipe de cada OS | Aceito |
 | [0047](0047-app-de-campo-flutter.md) | App de campo em Flutter: projeto próprio, login OIDC com PKCE, PIN e sessão sem rede | Aceito |
 | [0048](0048-rota-no-inicio-da-jornada.md) | Rota calculada no início da jornada (posição do agente) e mapa da rota no app | Aceito |
+| [0049](0049-acompanhamento-da-operacao.md) | Acompanhamento da operação de campo (mapa do dia, indicadores) e sugestões automáticas de reotimização | Aceito |
