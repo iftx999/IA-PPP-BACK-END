@@ -124,6 +124,9 @@ public enum TipoEvento {
 	/** ADR 0050: o agente confirmou no app a nova ordem das OS. */
 	ROTA_CONFIRMADA_NO_CAMPO,
 
+	/** ADR 0052: telefones dos imóveis importados e aviso de chegada ao morador. */
+	CONTATOS_DE_IMOVEIS_IMPORTADOS, AVISO_DE_CHEGADA,
+
 	/** ADR 0021: páginas digitalizadas lidas por OCR (nome herdado). */
 	TEXTO_RECONHECIDO_POR_OCR,
 

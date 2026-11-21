@@ -33,8 +33,11 @@ public record PacoteDoDia(long versao, boolean diferenca, UUID equipeId, String 
 	 * OS com a versão do serviço (chave dos parâmetros).
 	 *
 	 * @param ultimaSequencia último evento do campo já processado nesta OS
+	 * @param avisoDeChegada o imóvel tem celular para o "Estou chegando" (ADR 0052)
+	 * @param avisadoEm quando o morador foi avisado, se já foi
 	 */
-	public record OrdemDoPacote(OrdemServico ordem, UUID servicoVersaoId, int ultimaSequencia) {
+	public record OrdemDoPacote(OrdemServico ordem, UUID servicoVersaoId, int ultimaSequencia, boolean avisoDeChegada,
+			@Nullable Instant avisadoEm) {
 	}
 
 }

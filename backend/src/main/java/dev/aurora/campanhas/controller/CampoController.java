@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import dev.aurora.campanhas.model.AcaoDeCampo;
+import dev.aurora.campanhas.model.AvisoDeChegada;
 import dev.aurora.campanhas.model.AmostraDePosicao;
 import dev.aurora.campanhas.model.Anexo;
 import dev.aurora.campanhas.model.DadosDispositivo;
@@ -19,12 +20,15 @@ import dev.aurora.campanhas.model.Posicao;
 import dev.aurora.campanhas.model.RespostaDoEvento;
 import dev.aurora.campanhas.model.ResultadoOrdem;
 import dev.aurora.campanhas.service.AnexoService;
+import dev.aurora.campanhas.service.AvisoDeChegadaService;
 import dev.aurora.campanhas.service.DispositivoService;
 import dev.aurora.campanhas.service.ExecucaoService;
 import dev.aurora.campanhas.service.JornadaService;
 import dev.aurora.contexto.ExigePermissao;
 import dev.aurora.servicos.ParametroDaOrdem;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import org.jspecify.annotations.Nullable;
@@ -61,8 +65,11 @@ class CampoController {
 
 	private final AnexoService anexos;
 
+	private final AvisoDeChegadaService avisos;
+
 	CampoController(DispositivoService dispositivos, JornadaService jornadas, ExecucaoService execucao,
-			AnexoService anexos) {
+			AnexoService anexos, AvisoDeChegadaService avisos) {
+		this.avisos = avisos;
 		this.dispositivos = dispositivos;
 		this.jornadas = jornadas;
 		this.execucao = execucao;
@@ -128,7 +135,23 @@ class CampoController {
 	/**
 	 * @param ultimaSequencia o próximo evento do celular nesta OS é este + 1
 	 */
-	record OrdemDoPacoteResponse(OrdemServicoResponse ordem, UUID servicoVersaoId, int ultimaSequencia) {
+	record OrdemDoPacoteResponse(OrdemServicoResponse ordem, UUID servicoVersaoId, int ultimaSequencia,
+			boolean avisoDeChegada, @Nullable Instant avisadoEm) {
+	}
+
+	/** "Estou chegando" (ADR 0052). */
+	record AvisoDeChegadaRequest(@NotNull UUID id, @Min(1) @Max(120) int minutos, @NotNull Instant ocorridoEm) {
+	}
+
+	/**
+	 * @param situacao ENVIADO, REGISTRADO (sem provedor de SMS) ou FALHOU (tente de novo)
+	 */
+	record AvisoDeChegadaResponse(UUID id, UUID osId, int minutos, String situacao, Instant ocorridoEm) {
+
+		static AvisoDeChegadaResponse de(AvisoDeChegada a) {
+			return new AvisoDeChegadaResponse(a.id(), a.osId(), a.minutos(), a.situacao(), a.ocorridoEm());
+		}
+
 	}
 
 	/**
@@ -153,7 +176,7 @@ class CampoController {
 					p.ordens()
 						.stream()
 						.map(o -> new OrdemDoPacoteResponse(OrdemServicoResponse.de(o.ordem()), o.servicoVersaoId(),
-								o.ultimaSequencia()))
+								o.ultimaSequencia(), o.avisoDeChegada(), o.avisadoEm()))
 						.toList(),
 					parametros, p.motivos().stream().map(MotivoDaOrdemResponse::de).toList(), p.raioInicioM(),
 					p.geradoEm());
@@ -313,6 +336,18 @@ class CampoController {
 			.map(a -> new AmostraDePosicao(a.momento(), new Posicao(a.latitude(), a.longitude(), a.precisaoM())))
 			.toList();
 		return new PosicoesResponse(jornadas.registrarPosicoes(dispositivo, amostras));
+	}
+
+	/**
+	 * "Estou chegando" (ADR 0052): SMS ao morador de que a equipe está a caminho. Repetir
+	 * o mesmo id devolve o mesmo aviso.
+	 */
+	@PostMapping("/ordens/{os}/aviso-de-chegada")
+	AvisoDeChegadaResponse avisarChegada(
+			@RequestHeader(name = DISPOSITIVO, required = false) @Nullable UUID dispositivo, @PathVariable UUID os,
+			@Valid @RequestBody AvisoDeChegadaRequest pedido) {
+		return AvisoDeChegadaResponse
+			.de(avisos.avisar(dispositivo, pedido.id(), os, pedido.minutos(), pedido.ocorridoEm()));
 	}
 
 }

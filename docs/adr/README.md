@@ -50,3 +50,5 @@ gera um novo ADR que o substitui.
 | [0048](0048-rota-no-inicio-da-jornada.md) | Rota calculada no início da jornada (posição do agente) e mapa da rota no app | Aceito |
 | [0049](0049-acompanhamento-da-operacao.md) | Acompanhamento da operação de campo (mapa do dia, indicadores) e sugestões automáticas de reotimização | Aceito |
 | [0050](0050-confirmacao-da-rota-avisos-e-modo-noturno.md) | Confirmação da nova rota pelo agente, avisos da operação e modo noturno do app | Aceito |
+| [0051](0051-fotos-cifradas-alerta-de-emergencial-e-modo-luva.md) | Fotos cifradas no celular, alerta de OS emergencial e modo luva | Aceito |
+| [0052](0052-aviso-de-chegada-ao-morador.md) | "Estou chegando": aviso de chegada ao morador por SMS, com o celular cifrado | Aceito |

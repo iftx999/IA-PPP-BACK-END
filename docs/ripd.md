@@ -8,9 +8,9 @@
 | Item | Conteúdo |
 |---|---|
 | Sistema | Aurora — serviços de campo (doc 10; ADR 0042 a 0045) |
-| Versão | 0.1 · 18/11/2026 |
-| Operações cobertas | 1. Localização dos funcionários de campo (esta versão) |
-| Operações a incluir | Endereço dos imóveis (exceção à RN-09, ADR 0043); fotos das OS |
+| Versão | 0.2 · 21/11/2026 |
+| Operações cobertas | 1. Localização dos funcionários de campo · 2. Celular do morador para o aviso de chegada (ADR 0052) |
+| Operações a incluir | Endereço dos imóveis (exceção à RN-09, ADR 0043); fotos das OS (cifradas no celular desde a ADR 0051) |
 
 ---
 
@@ -100,3 +100,43 @@ Consentimento **não** é a base recomendada: na relação de trabalho ele não 
 | 4 | Aviso de privacidade e indicador de coleta no app | Desenvolvimento | M6 |
 | 5 | Auditoria da consulta às posições e extrato por agente | Desenvolvimento | M7 |
 | 6 | Cláusula de coleta nos contratos com terceirizadas | Controlador | Antes de incluir equipes terceirizadas |
+
+---
+
+## 2. Celular do morador para o aviso de chegada ("Estou chegando", ADR 0052)
+
+### 2.1 Descrição do tratamento
+- **Dado:** número de celular ligado à matrícula do imóvel, recebido da concessionária em arquivo
+  (`matricula;telefone`). Não há nome, CPF nem outro dado do morador.
+- **Uso:** quando o agente toca "Estou chegando" numa OS programada daquele imóvel, a Aurora envia um SMS: a equipe
+  está a caminho (serviço e tempo estimado), sem nome do agente nem do morador. Um aviso por OS.
+- **Quem envia o SMS:** um provedor contratado pela concessionária (suboperador). Enquanto não houver provedor
+  configurado, nada é enviado: o aviso só fica registrado.
+
+### 2.2 Finalidade e base legal (a confirmar pelo controlador)
+- Finalidade: evitar visita perdida (imóvel fechado) e avisar o morador da chegada da equipe para um serviço que
+  ele pediu ou que a concessionária precisa fazer no imóvel.
+- Bases possíveis: execução de contrato de prestação do serviço (art. 7º, V) ou legítimo interesse (art. 7º, IX),
+  com o morador podendo pedir para não receber (a concessionária manda a linha com o telefone em branco).
+
+### 2.3 Minimização e segurança
+- O número fica **cifrado** no banco (AES-256-GCM, chave fora do banco: `AURORA_CHAVE_CONTATOS`); em claro só os
+  4 últimos dígitos, para conferência. Decifrado só no servidor, no momento do envio.
+- **Nunca** vai para o app do agente, para as telas da web, para os logs ou para a trilha de auditoria.
+- Importação só por quem gerencia logradouros e endereços (`logradouro:gerenciar`), e só para imóveis com endereço
+  importado; cada importação e cada aviso ficam na trilha (sem o número).
+- Só celular (SMS); número inválido ou fixo é recusado na importação.
+
+### 2.4 Retenção
+- O número fica enquanto a concessionária mantiver o imóvel no arquivo; a linha com o telefone em branco o apaga.
+  Trocar a chave torna ilegíveis os números já importados.
+- O registro do aviso (OS, hora, situação, 4 últimos dígitos) segue a guarda das OS.
+
+### 2.5 Ações pendentes
+
+| # | Ação | Responsável | Quando |
+|---|---|---|---|
+| 1 | Confirmar a base legal e o texto do SMS | Controlador | Antes de ligar o envio |
+| 2 | Contratar o provedor de SMS (contrato de suboperação) e configurar o adaptador | Controlador / Desenvolvimento | Idem |
+| 3 | Canal para o morador pedir para não receber (opt-out) e atualização do arquivo | Controlador | Idem |
+

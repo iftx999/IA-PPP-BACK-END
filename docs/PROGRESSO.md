@@ -684,7 +684,26 @@ token não leva os papéis de `realm-management` e a Admin API responde 403. Flu
 - **Testes:** back `verify` completo; app 109 testes e APK de debug; front 106 testes, lint, E2E e axe nos dois
   temas. **Não testado em aparelho:** o aviso do Android.
 
-### Onde paramos (21/11/2026, depois da ADR 0050) — retomar daqui
+### Ideias do protótipo aprovadas (21/11): fotos cifradas, emergencial, modo luva, "Estou chegando" — ADR 0051, 0052
+- **App:** fotos cifradas com a chave no Android Keystore; alerta da OS emergencial (canal próprio, vibração, cartão
+  na Hoje); modo luva (botões de 72 dp e ações por toque longo); botão "Estou chegando".
+- **Back:** V38 (`imovel_contato` cifrado, `aviso_de_chegada`), importação dos celulares, aviso por SMS atrás da
+  porta `EnvioDeSms` (padrão `registro`, sem envio até a empresa contratar o provedor), chave
+  `AURORA_CHAVE_CONTATOS`. RIPD seção 2.
+- **Web:** "Importar celulares" em Logradouros, com o total de imóveis com celular.
+- **Testes:** back `verify`; app 127 testes e APK; front 106 testes, lint e E2E. **Não testado em aparelho:**
+  Keystore, alerta da emergencial e vibração.
+
+### Onde paramos (21/11/2026, depois das ADR 0051 e 0052) — retomar daqui
+**Estado:** M1 a M7 do doc 10 e as ADR 0050 a 0052 prontos, com commit. Todas as ideias do protótipo decididas e
+feitas. **Falta o push** nos três repositórios (a chave SSH tem senha; o app ainda sem remoto) e o merge da branch
+em `main` (ordem: partição → atendimento ao titular → esta). E2E DB de cópia na V38.
+
+**Com a empresa (depois):** chave de assinatura e nome do pacote do app; provedor de tiles; **provedor de SMS**
+(contrato e adaptador), base legal e texto do aviso, opt-out do morador (RIPD seção 2); `AURORA_CHAVE_CONTATOS` em
+produção; primeiro teste em aparelho cadastrado no MDM.
+
+### Onde paramos (21/11/2026, depois da ADR 0050) — superado pelo de depois das ADR 0051 e 0052
 **Estado:** M1 a M7 do doc 10 e a ADR 0050 prontos, com commit: branch `feature/catalogo-de-servicos` dos dois
 repositórios e `~/Iapp/aurora-app-campo`. **Falta o push** nos três (a chave SSH tem senha; o app ainda sem remoto) e
 o merge da branch em `main` (ordem: partição → atendimento ao titular → esta). E2E DB de cópia na V37.

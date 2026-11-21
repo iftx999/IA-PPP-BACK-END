@@ -18,6 +18,7 @@ import dev.aurora.campanhas.model.EquipeDoDia;
 import dev.aurora.campanhas.model.Jornada;
 import dev.aurora.campanhas.model.PacoteDoDia;
 import dev.aurora.campanhas.model.Posicao;
+import dev.aurora.campanhas.repository.ContatoRepository;
 import dev.aurora.campanhas.repository.EquipeRepository;
 import dev.aurora.campanhas.repository.ExecucaoRepository;
 import dev.aurora.campanhas.repository.JornadaRepository;
@@ -67,9 +68,11 @@ public class JornadaService implements JornadasDoCampo {
 
 	private final ApplicationEventPublisher eventos;
 
+	private final ContatoRepository contatos;
+
 	JornadaService(JornadaRepository jornadas, EquipeRepository equipes, OrdemServicoRepository ordens,
 			ExecucaoRepository execucao, DispositivoService dispositivos, DadosPessoaisDasOrdens dadosPessoais,
-			Servicos servicos, Clock relogio, ApplicationEventPublisher eventos) {
+			Servicos servicos, Clock relogio, ApplicationEventPublisher eventos, ContatoRepository contatos) {
 		this.jornadas = jornadas;
 		this.equipes = equipes;
 		this.ordens = ordens;
@@ -79,6 +82,7 @@ public class JornadaService implements JornadasDoCampo {
 		this.servicos = servicos;
 		this.relogio = relogio;
 		this.eventos = eventos;
+		this.contatos = contatos;
 	}
 
 	/**
@@ -203,12 +207,15 @@ public class JornadaService implements JornadasDoCampo {
 		var motivos = servicos.motivosParaOrdem().stream().filter(m -> MOTIVOS_DO_CAMPO.contains(m.tipo())).toList();
 		var jornada = jornadas.abertas(List.of(equipe)).stream().findFirst().orElse(null);
 		var nome = equipes.buscar(equipe).orElseThrow(RecursoNaoEncontradoException::new).nome();
+		var avisos = contatos.situacoes(versaoDaOrdem.keySet());
+		var semContato = new ContatoRepository.SituacaoDoAviso(false, null);
 		return new PacoteDoDia(versao, desde != null, equipe, nome, jornada,
 				noPacote.stream().map(OrdemServicoRepository.NoPacote::id).sorted().toList(),
-				detalhes.stream()
-					.map(o -> new PacoteDoDia.OrdemDoPacote(o, versaoDaOrdem.get(o.id()), sequencias.get(o.id())))
-					.toList(),
-				parametros, motivos, execucao.raioDoInicio(), agora);
+				detalhes.stream().map(o -> {
+					var aviso = avisos.getOrDefault(o.id(), semContato);
+					return new PacoteDoDia.OrdemDoPacote(o, versaoDaOrdem.get(o.id()), sequencias.get(o.id()),
+							aviso.temContato(), aviso.avisadoEm());
+				}).toList(), parametros, motivos, execucao.raioDoInicio(), agora);
 	}
 
 	/**
