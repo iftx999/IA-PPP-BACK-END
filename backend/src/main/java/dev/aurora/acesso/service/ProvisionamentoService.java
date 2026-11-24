@@ -23,7 +23,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 @Service
 class ProvisionamentoService implements ProvisionamentoDeCliente {
 
-	static final String ADMINISTRADOR = "Administrador do tenant";
+	static final String ADMINISTRADOR = "Administrador da empresa";
 
 	/**
 	 * Perfis do sistema: o cliente não edita; cria os seus a partir do catálogo (RN-16).

@@ -1,6 +1,8 @@
 package dev.aurora.campanhas.controller;
 
+import java.io.ByteArrayOutputStream;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
@@ -15,13 +17,16 @@ import dev.aurora.campanhas.model.EventoDaOrdem;
 import dev.aurora.campanhas.model.FaixaDoLote;
 import dev.aurora.campanhas.model.FiltroOrdens;
 import dev.aurora.campanhas.model.Ignorada;
+import dev.aurora.campanhas.model.Justificativa;
 import dev.aurora.campanhas.model.LadoDaFaixa;
+import dev.aurora.campanhas.model.OrdenacaoOrdens;
 import dev.aurora.campanhas.model.OrigemOrdem;
 import dev.aurora.campanhas.model.PreviaLote;
 import dev.aurora.campanhas.model.Prioridade;
 import dev.aurora.campanhas.model.Programacao;
 import dev.aurora.campanhas.model.ResultadoCriacao;
 import dev.aurora.campanhas.model.ResultadoOrdem;
+import dev.aurora.campanhas.model.ResumoOrdens;
 import dev.aurora.campanhas.model.StatusOrdem;
 import dev.aurora.campanhas.model.TipoConflito;
 import dev.aurora.campanhas.model.TipoEquipe;
@@ -41,6 +46,8 @@ import org.jspecify.annotations.Nullable;
 import tools.jackson.databind.JsonNode;
 
 import org.springframework.http.CacheControl;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -156,6 +163,31 @@ class OrdemController {
 	record ProgramacaoResponse(int programadas, int foraDaArea, int incompativeis, int ignoradas) {
 	}
 
+	record CancelamentoRequest(@NotNull @Size(min = 1, max = 200) List<@NotNull UUID> ordens, @NotNull UUID motivoId,
+			@Nullable @Size(max = 500) String observacao) {
+	}
+
+	/**
+	 * @param ignoradas não canceladas: com a equipe, encerradas, canceladas ou fora da
+	 * área
+	 */
+	record CancelamentoResponse(int canceladas, int ignoradas) {
+	}
+
+	/**
+	 * @param planejadas sem equipe
+	 * @param programadasHoje em aberto, com a data de hoje
+	 * @param conflitos de campo à espera de decisão
+	 */
+	record ResumoOrdensResponse(long abertas, long emergenciais, long atrasadas, long devolvidas, long planejadas,
+			long programadasHoje, long conflitos) {
+
+		static ResumoOrdensResponse de(ResumoOrdens r) {
+			return new ResumoOrdensResponse(r.abertas(), r.emergenciais(), r.atrasadas(), r.devolvidas(),
+					r.planejadas(), r.programadasHoje(), r.conflitos());
+		}
+	}
+
 	/**
 	 * Equipe ativa para programar (o cadastro fica em {@code /equipes}).
 	 *
@@ -169,6 +201,8 @@ class OrdemController {
 					e.ordensEmCampo());
 		}
 	}
+
+	private static final MediaType CSV = new MediaType("text", "csv", StandardCharsets.UTF_8);
 
 	private final ProgramacaoService programacao;
 
@@ -321,13 +355,54 @@ class OrdemController {
 			@RequestParam(defaultValue = "false") boolean atrasadas,
 			@RequestParam(defaultValue = "false") boolean abertas,
 			@RequestParam(required = false) @Nullable @Size(max = 40) String busca,
+			@RequestParam(defaultValue = "PRIORIDADE") OrdenacaoOrdens.Campo ordenar,
+			@RequestParam(defaultValue = "false") boolean decrescente,
 			@RequestParam(defaultValue = "0") @Min(0) @Max(10_000) int pagina,
 			@RequestParam(defaultValue = "50") @Min(1) @Max(200) int tamanho) {
-		var termo = busca == null || busca.isBlank() ? null : busca.strip();
-		var p = programacao.listar(new FiltroOrdens(campanha, status, equipe, conferencia, prioridade, atrasadas,
-				abertas, servico, unidade, lote, origem, data, termo), pagina, tamanho);
+		var p = programacao.listar(
+				new FiltroOrdens(campanha, status, equipe, conferencia, prioridade, atrasadas, abertas, servico,
+						unidade, lote, origem, data, termo(busca)),
+				new OrdenacaoOrdens(ordenar, decrescente), pagina, tamanho);
 		return new PaginaResponse(p.itens().stream().map(OrdemServicoResponse::de).toList(), p.total(), p.pagina(),
 				p.tamanho());
+	}
+
+	private static @Nullable String termo(@Nullable String busca) {
+		return busca == null || busca.isBlank() ? null : busca.strip();
+	}
+
+	/** O que pede atenção de quem programa (página inicial). */
+	@GetMapping("/resumo")
+	ResumoOrdensResponse resumo() {
+		return ResumoOrdensResponse.de(programacao.resumo());
+	}
+
+	/**
+	 * RN-12: a lista em CSV, com os mesmos filtros e ordem; exige também
+	 * {@code relatorio:exportar}. Até 20 mil OS.
+	 */
+	@GetMapping("/exportacao.csv")
+	ResponseEntity<byte[]> exportar(@RequestParam(required = false) @Nullable StatusOrdem status,
+			@RequestParam(required = false) @Nullable UUID servico,
+			@RequestParam(required = false) @Nullable UUID equipe,
+			@RequestParam(required = false) @Nullable UUID unidade, @RequestParam(required = false) @Nullable UUID lote,
+			@RequestParam(required = false) @Nullable OrigemOrdem origem,
+			@RequestParam(required = false) @Nullable Prioridade prioridade,
+			@RequestParam(required = false) @Nullable LocalDate data,
+			@RequestParam(defaultValue = "false") boolean atrasadas,
+			@RequestParam(defaultValue = "false") boolean abertas,
+			@RequestParam(required = false) @Nullable @Size(max = 40) String busca,
+			@RequestParam(defaultValue = "PRIORIDADE") OrdenacaoOrdens.Campo ordenar,
+			@RequestParam(defaultValue = "false") boolean decrescente) {
+		var arquivo = new ByteArrayOutputStream();
+		programacao.exportarCsv(new FiltroOrdens(null, status, equipe, null, prioridade, atrasadas, abertas, servico,
+				unidade, lote, origem, data, termo(busca)), new OrdenacaoOrdens(ordenar, decrescente), arquivo);
+		return ResponseEntity.ok()
+			.contentType(CSV)
+			.cacheControl(CacheControl.noStore())
+			.header(HttpHeaders.CONTENT_DISPOSITION,
+					ContentDisposition.attachment().filename("ordens-de-servico.csv").build().toString())
+			.body(arquivo.toByteArray());
 	}
 
 	@GetMapping("/{id}")
@@ -370,6 +445,13 @@ class OrdemController {
 	ProgramacaoResponse programar(@Valid @RequestBody ProgramacaoRequest pedido) {
 		var r = programacao.programar(new Programacao(pedido.ordens(), pedido.equipeId(), pedido.data()));
 		return new ProgramacaoResponse(r.enviadas(), r.foraDaArea(), r.incompativeis(), r.ignoradas());
+	}
+
+	/** Cancela várias com o mesmo motivo. */
+	@PostMapping("/cancelar")
+	CancelamentoResponse cancelarVarias(@Valid @RequestBody CancelamentoRequest pedido) {
+		var r = programacao.cancelarVarias(pedido.ordens(), new Justificativa(pedido.motivoId(), pedido.observacao()));
+		return new CancelamentoResponse(r.canceladas(), r.ignoradas());
 	}
 
 	@PostMapping("/{id}/cancelar")

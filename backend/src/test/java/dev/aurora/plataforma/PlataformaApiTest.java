@@ -127,7 +127,8 @@ class PlataformaApiTest {
 		assertThat(consulta("""
 				SELECT count(*) FROM usuario_perfil_escopo e JOIN perfil p ON p.id = e.perfil_id
 				  JOIN unidade u ON u.id = e.unidade_id
-				 WHERE e.tenant_id = ? AND p.nome = 'Administrador do tenant' AND u.unidade_pai_id IS NULL""", cliente))
+				 WHERE e.tenant_id = ? AND p.nome = 'Administrador da empresa' AND u.unidade_pai_id IS NULL""",
+				cliente))
 			.isEqualTo(1);
 		assertThat(consulta("SELECT count(*) FROM evento_auditoria WHERE tenant_id = ? AND tipo = 'CLIENTE_CRIADO'",
 				cliente))

@@ -15,7 +15,7 @@ final class EscopoAdministrativo {
 	static ContextoAcesso exigirTenantInteiro() {
 		var contexto = ContextoAcesso.exigir();
 		if (!contexto.abrangeTenantInteiro()) {
-			throw new AccessDeniedException("A administração de acesso exige escopo no tenant inteiro.");
+			throw new AccessDeniedException("A administração de acesso exige escopo na empresa inteira.");
 		}
 		return contexto;
 	}

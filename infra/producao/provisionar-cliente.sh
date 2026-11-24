@@ -38,7 +38,7 @@ ON CONFLICT (id) DO NOTHING;
 -- Perfis do sistema (não editáveis; o cliente cria os seus a partir do catálogo, RN-16).
 CREATE TEMP TABLE perfis_sistema (nome text, descricao text, permissoes text[]) ON COMMIT DROP;
 INSERT INTO perfis_sistema VALUES
-  ('Administrador do tenant', 'Usuários, perfis, unidades e integrações',
+  ('Administrador da empresa', 'Usuários, perfis, unidades e integrações',
    ARRAY['assistente:usar','campanha:gerenciar','contrato:gerenciar','contrato:ler','dados_pessoais:ler',
          'indicador:gerenciar','indicador:ler','integracao:gerenciar','mapa:marcar','os:executar','relatorio:exportar',
          'unidade:gerenciar','unidade:ler','usuario:gerenciar']),
@@ -63,7 +63,7 @@ SELECT gen_random_uuid(), :'tenant', lower(:'email'), :'admin', now()
  WHERE NOT EXISTS (SELECT 1 FROM usuario WHERE tenant_id = :'tenant' AND email = lower(:'email'));
 INSERT INTO usuario_perfil_escopo (id, tenant_id, usuario_id, perfil_id, unidade_id)
 SELECT gen_random_uuid(), :'tenant', u.id, f.id, :'raiz'
-  FROM usuario u JOIN perfil f ON f.tenant_id = u.tenant_id AND f.nome = 'Administrador do tenant'
+  FROM usuario u JOIN perfil f ON f.tenant_id = u.tenant_id AND f.nome = 'Administrador da empresa'
  WHERE u.tenant_id = :'tenant' AND u.email = lower(:'email')
    AND NOT EXISTS (SELECT 1 FROM usuario_perfil_escopo e WHERE e.usuario_id = u.id AND e.perfil_id = f.id);
 COMMIT;

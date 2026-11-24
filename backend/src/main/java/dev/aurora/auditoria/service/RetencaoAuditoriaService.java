@@ -107,7 +107,7 @@ public class RetencaoAuditoriaService implements RetencaoDaTrilha {
 
 	private static void exigirTenantInteiro() {
 		if (!ContextoAcesso.exigir().abrangeTenantInteiro()) {
-			throw new AccessDeniedException("A trilha de auditoria exige a permissão no tenant inteiro.");
+			throw new AccessDeniedException("A trilha de auditoria exige a permissão na empresa inteira.");
 		}
 	}
 

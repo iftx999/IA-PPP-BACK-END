@@ -100,7 +100,7 @@ class PerfisApiTest {
 				{"nome":"Admin personalizado","permissoes":["unidade:ler"]}""").with(token("sub-admin")))
 			.andExpect(status().isConflict())
 			.andExpect(jsonPath("$.detail",
-					is("O tenant ficaria sem administrador: mantenha a permissão de gerenciar usuários.")));
+					is("A empresa ficaria sem administrador: mantenha a permissão de gerenciar usuários.")));
 	}
 
 	@Test

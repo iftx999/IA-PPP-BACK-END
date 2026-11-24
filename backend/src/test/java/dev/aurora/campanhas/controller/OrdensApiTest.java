@@ -27,6 +27,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -64,6 +65,12 @@ class OrdensApiTest {
 		DadosDeTeste.criarUsuario(t, "sub-admin-os", "admin@os.teste", t.grupo());
 		var gestor = DadosDeTeste.criarPerfil(t, "Gestor de serviços", "os:programar", "dados_pessoais:ler");
 		DadosDeTeste.criarUsuario(t, "sub-programador", "programador@os.teste", t.concessao(), gestor);
+		var exportador = DadosDeTeste.criarPerfil(t, "Exportador", "os:programar", "relatorio:exportar");
+		DadosDeTeste.criarUsuario(t, "sub-exportador", "exportador@os.teste", t.concessao(), exportador);
+		var soExporta = DadosDeTeste.criarPerfil(t, "Só exporta", "relatorio:exportar");
+		var soPrograma = DadosDeTeste.criarPerfil(t, "Só programa", "os:programar");
+		var fora = DadosDeTeste.criarUsuario(t, "sub-exporta-fora", "fora@os.teste", t.cidadeA(), soPrograma);
+		DadosDeTeste.conceder(t, fora, soExporta, t.cidadeB());
 		var semDados = DadosDeTeste.criarPerfil(t, "Programador sem dados", "os:programar");
 		DadosDeTeste.criarUsuario(t, "sub-sem-dados", "semdados@os.teste", t.cidadeA(), semDados);
 		var equipeDeCampo = DadosDeTeste.criarPerfil(t, "Campo", "os:executar");
@@ -254,6 +261,78 @@ class OrdensApiTest {
 			.andExpect(status().isOk())
 			.andExpect(jsonPath("$.status").value("CANCELADA"))
 			.andExpect(jsonPath("$.motivoNome").value("OS duplicada"));
+		// Página inicial: só o que está em aberto conta, e as contagens batem com a
+		// lista.
+		var resumo = ler(
+				mvc.perform(get("/api/v1/ordens/resumo").with(token("sub-programador"))).andExpect(status().isOk()));
+		assertThat(resumo.get("abertas").asLong())
+			.isEqualTo(lista("?abertas=true", "sub-programador").get("total").asLong());
+		assertThat(resumo.get("planejadas").asLong())
+			.isEqualTo(lista("?status=PLANEJADA", "sub-programador").get("total").asLong());
+		assertThat(resumo.get("programadasHoje").asLong())
+			.isEqualTo(lista("?abertas=true&data=" + hoje, "sub-programador").get("total").asLong());
+		mvc.perform(get("/api/v1/ordens/resumo").with(token("sub-campo-os"))).andExpect(status().isForbidden());
+
+		// Ordenação pelas colunas, nos dois sentidos.
+		var crescente = numeros(lista("?ordenar=NUMERO", "sub-programador"));
+		var decrescente = numeros(lista("?ordenar=NUMERO&decrescente=true", "sub-programador"));
+		assertThat(crescente).isSorted();
+		assertThat(decrescente).isEqualTo(crescente.reversed());
+		for (var campo : new String[] { "SERVICO", "UNIDADE", "PRAZO", "EQUIPE", "SITUACAO" }) {
+			assertThat(numeros(lista("?decrescente=true&ordenar=" + campo, "sub-programador")))
+				.containsExactlyInAnyOrderElementsOf(crescente);
+		}
+		mvc.perform(get("/api/v1/ordens?ordenar=o.numero").with(token("sub-programador")))
+			.andExpect(status().isBadRequest());
+
+		// Exportação: exige poder exportar; quem não lê dados pessoais recebe a matrícula
+		// mascarada; a emissão fica na trilha.
+		mvc.perform(get("/api/v1/ordens/exportacao.csv").with(token("sub-programador")))
+			.andExpect(status().isForbidden());
+		var csv = mvc.perform(get("/api/v1/ordens/exportacao.csv?abertas=true").with(token("sub-exportador")))
+			.andExpect(status().isOk())
+			.andExpect(content().contentTypeCompatibleWith("text/csv"))
+			.andReturn()
+			.getResponse()
+			.getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
+		assertThat(csv.lines()).hasSize((int) resumo.get("abertas").asLong() + 1);
+		assertThat(csv).contains("os;servico;origem").doesNotContain("2001002");
+		// Só onde a pessoa pode exportar: programa na Cidade A, exporta só na Cidade B.
+		assertThat(mvc.perform(get("/api/v1/ordens/exportacao.csv").with(token("sub-exporta-fora")))
+			.andExpect(status().isOk())
+			.andReturn()
+			.getResponse()
+			.getContentAsString(java.nio.charset.StandardCharsets.UTF_8)
+			.lines()).hasSize(1);
+
+		// Cancelar várias: a já cancelada e a desconhecida são ignoradas; motivo errado
+		// recusa tudo.
+		var ultimas = lista("?status=PLANEJADA&ordenar=NUMERO", "sub-programador").get("itens");
+		var alguma = ultimas.isEmpty() ? null : ultimas.get(ultimas.size() - 1).get("id").asString();
+		postar("/api/v1/ordens/cancelar", "{\"ordens\":[\"%s\"],\"motivoId\":\"%s\"}"
+			.formatted(alguma == null ? idTrecho : alguma, enderecoNaoEncontrado), "sub-programador")
+			.andExpect(status().isUnprocessableContent());
+		postar("/api/v1/ordens/cancelar",
+				"{\"ordens\":[\"%s\",\"%s\"],\"motivoId\":\"%s\"}".formatted(idLote2, UUID.randomUUID(), duplicada),
+				"sub-programador")
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.canceladas").value(0))
+			.andExpect(jsonPath("$.ignoradas").value(2));
+		var criada = ler(postar("/api/v1/ordens/imoveis", """
+				{"servicoId":"%s","matriculas":["2001005"],"prioridade":"BAIXA"}""".formatted(limpezaDeCaixa(opcoes)),
+				"sub-programador")
+			.andExpect(status().isCreated()));
+		assertThat(criada.get("criadas").asInt()).isEqualTo(1);
+		var nova = lista("?ordenar=NUMERO&decrescente=true", "sub-programador").get("itens")
+			.get(0)
+			.get("id")
+			.asString();
+		postar("/api/v1/ordens/cancelar", "{\"ordens\":[\"%s\"],\"motivoId\":\"%s\"}".formatted(nova, duplicada),
+				"sub-programador")
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.canceladas").value(1))
+			.andExpect(jsonPath("$.ignoradas").value(0));
+
 		// A cancelada some da lista de abertas e continua na lista completa.
 		assertThat(lista("?abertas=true&tamanho=200", "sub-programador").toString()).doesNotContain(idLote2.toString());
 		assertThat(lista("?tamanho=200", "sub-programador").toString()).contains(idLote2.toString());
@@ -306,6 +385,22 @@ class OrdensApiTest {
 
 	private JsonNode ler(ResultActions resposta) throws Exception {
 		return json.readTree(resposta.andReturn().getResponse().getContentAsString());
+	}
+
+	private static java.util.List<Long> numeros(JsonNode pagina) {
+		var numeros = new java.util.ArrayList<Long>();
+		pagina.get("itens").forEach(i -> numeros.add(i.get("numero").asLong()));
+		return numeros;
+	}
+
+	/** Um serviço de imóvel que o resto do teste não usa. */
+	private static String limpezaDeCaixa(JsonNode opcoes) {
+		for (var s : opcoes.get("servicos")) {
+			if (!"TRECHO".equals(s.get("alvo").asString()) && !"VISTORIA".equals(s.get("codigo").asString())) {
+				return s.get("id").asString();
+			}
+		}
+		throw new AssertionError("catálogo sem outro serviço de imóvel");
 	}
 
 	private JsonNode lista(String filtro, String sub) throws Exception {

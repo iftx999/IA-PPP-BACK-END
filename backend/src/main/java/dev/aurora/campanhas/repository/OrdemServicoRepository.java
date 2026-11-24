@@ -20,10 +20,12 @@ import dev.aurora.campanhas.model.ContagemMotivo;
 import dev.aurora.campanhas.model.FaixaDoLote;
 import dev.aurora.campanhas.model.FiltroOrdens;
 import dev.aurora.campanhas.model.OrdemServico;
+import dev.aurora.campanhas.model.OrdenacaoOrdens;
 import dev.aurora.campanhas.model.OrigemOrdem;
 import dev.aurora.campanhas.model.Prioridade;
 import dev.aurora.campanhas.model.Produtividade;
 import dev.aurora.campanhas.model.ResultadoOrdem;
+import dev.aurora.campanhas.model.ResumoOrdens;
 import dev.aurora.campanhas.model.StatusOrdem;
 import dev.aurora.campanhas.model.TipoEquipe;
 import org.jspecify.annotations.Nullable;
@@ -319,11 +321,56 @@ public class OrdemServicoRepository {
 	// ----- Consultas -----
 
 	public List<OrdemServico> listar(FiltroOrdens filtro, Instant agora, int pagina, int tamanho) {
-		return filtrar(SELECAO + FILTROS + ORDEM + " LIMIT :limite OFFSET :inicio", filtro, agora)
+		return listar(filtro, OrdenacaoOrdens.TRABALHO, agora, pagina, tamanho);
+	}
+
+	public List<OrdemServico> listar(FiltroOrdens filtro, OrdenacaoOrdens ordenacao, Instant agora, int pagina,
+			int tamanho) {
+		return filtrar(SELECAO + FILTROS + ordem(ordenacao) + " LIMIT :limite OFFSET :inicio", filtro, agora)
 			.param("limite", tamanho)
 			.param("inicio", (long) pagina * tamanho)
 			.query(OrdemServicoRepository::mapear)
 			.list();
+	}
+
+	/**
+	 * Só trechos fixos de SQL: o campo vem de um enum. Sem equipe fica no fim; o número
+	 * desempata.
+	 */
+	private static String ordem(OrdenacaoOrdens ordenacao) {
+		var campo = switch (ordenacao.campo()) {
+			case PRIORIDADE -> null;
+			case NUMERO -> "o.numero";
+			case SERVICO -> "v.nome";
+			case UNIDADE -> "u.nome";
+			case PRAZO -> "o.prazo_em";
+			case EQUIPE -> "e.nome";
+			case SITUACAO -> """
+					array_position(ARRAY['PLANEJADA', 'PROGRAMADA', 'EM_EXECUCAO', 'PARALISADA', 'DEVOLVIDA',
+					                     'ENCERRADA', 'CANCELADA'], CAST(o.status AS text))""";
+		};
+		if (campo == null) {
+			return ORDEM;
+		}
+		return " ORDER BY " + campo + (ordenacao.decrescente() ? " DESC" : "") + " NULLS LAST, o.numero";
+	}
+
+	/** Contagens da página inicial; os conflitos vêm do repositório deles. */
+	public ResumoOrdens resumo(Instant agora, LocalDate hoje, long conflitos) {
+		return jdbc.sql("""
+				SELECT count(*) AS abertas,
+				       count(*) FILTER (WHERE o.prioridade = 'EMERGENCIAL') AS emergenciais,
+				       count(*) FILTER (WHERE o.prazo_em < :agora) AS atrasadas,
+				       count(*) FILTER (WHERE o.status = 'DEVOLVIDA') AS devolvidas,
+				       count(*) FILTER (WHERE o.status = 'PLANEJADA') AS planejadas,
+				       count(*) FILTER (WHERE o.data_programada = :hoje) AS programadas_hoje
+				  FROM ordem_servico o
+				 WHERE o.status IN ('PLANEJADA', 'PROGRAMADA', 'EM_EXECUCAO', 'PARALISADA', 'DEVOLVIDA')""")
+			.param("agora", Timestamp.from(agora))
+			.param("hoje", Date.valueOf(hoje))
+			.query((l, n) -> new ResumoOrdens(l.getLong("abertas"), l.getLong("emergenciais"), l.getLong("atrasadas"),
+					l.getLong("devolvidas"), l.getLong("planejadas"), l.getLong("programadas_hoje"), conflitos))
+			.single();
 	}
 
 	public long contar(FiltroOrdens filtro, Instant agora) {

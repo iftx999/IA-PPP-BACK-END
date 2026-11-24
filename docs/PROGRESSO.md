@@ -695,13 +695,21 @@ token não leva os papéis de `realm-management` e a Admin API responde 403. Flu
   Keystore, alerta da emergencial e vibração.
 
 ### Onde paramos (24/11/2026, revisão de UI/UX do front) — retomar daqui
-**Estado:** revisão de usabilidade do front feita, com commit (branch `feature/catalogo-de-servicos` do front e do
-back): letra mínima de 12 px, menu com ícones e grupos que recolhem, busca geral (Ctrl+K), filtros "Mais filtros" e OS
-em aberto por padrão (`GET /api/v1/ordens?abertas=true`), barra de seleção, diálogos que perguntam antes de descartar,
-"Tentar de novo", telas em 390 px. **Falta o push.**
+**Estado:** revisão de usabilidade feita, com commit (branch `feature/catalogo-de-servicos` do front e do back): letra
+mínima de 12 px, menu com ícones e grupos que recolhem, busca geral (Ctrl+K), "Mais filtros", OS em aberto por padrão,
+diálogos que perguntam antes de descartar, "Tentar de novo", telas em 390 px; página inicial de quem programa
+(`/inicio`, `GET /api/v1/ordens/resumo`); ordenar (`ordenar`, `decrescente`), exportar (`/ordens/exportacao.csv`, RN-12)
+e cancelar várias OS (`POST /api/v1/ordens/cancelar`); perfil "Administrador da empresa" (V39). E2E DB na V39. **Falta o
+push.**
 
-**Próximas ideias de uso:** ordenar colunas e exportar a Programação de OS, cancelar várias, filtros favoritos, página
-inicial por perfil, teste com usuários reais. **Segurança pendente:** versões do Keycloak, Spring Boot e Grafana.
+**Merge:** a V30 (atendimento ao titular) procura o perfil pelo nome antigo. Na ordem combinada (partição → titular →
+esta) ela roda antes da V39 e não muda nada; fora dessa ordem, ajustar o nome na V30.
+
+**Decisão em aberto:** "Gestor de serviços" e "Gestor comercial" não têm `relatorio:exportar`; sem ela o botão Exportar
+da Programação de OS não aparece para eles.
+
+**Próximas ideias de uso:** filtros favoritos, teste com usuários reais. **Segurança pendente:** versões do Keycloak,
+Spring Boot e Grafana.
 
 ### Onde paramos (21/11/2026, depois das ADR 0051 e 0052) — superado pelo de 24/11
 **Estado:** M1 a M7 do doc 10 e as ADR 0050 a 0052 prontos, com commit. Todas as ideias do protótipo decididas e

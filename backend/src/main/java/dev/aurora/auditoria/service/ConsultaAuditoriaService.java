@@ -105,7 +105,7 @@ public class ConsultaAuditoriaService {
 	public long exportarCsv(Pedido pedido, OutputStream destino) {
 		var contexto = exigirTenantInteiro();
 		if (contexto.escoposDe(EXPORTAR).stream().noneMatch(caminho -> caminho.indexOf('.') < 0)) {
-			throw new AccessDeniedException("Exportar a trilha exige permissão de exportação no tenant inteiro.");
+			throw new AccessDeniedException("Exportar a trilha exige permissão de exportação na empresa inteira.");
 		}
 		var filtro = filtro(pedido);
 		var zona = relogio.getZone();
@@ -161,7 +161,7 @@ public class ConsultaAuditoriaService {
 	private static ContextoAcesso exigirTenantInteiro() {
 		var contexto = ContextoAcesso.exigir();
 		if (!contexto.abrangeTenantInteiro()) {
-			throw new AccessDeniedException("A trilha de auditoria exige a permissão no tenant inteiro.");
+			throw new AccessDeniedException("A trilha de auditoria exige a permissão na empresa inteira.");
 		}
 		return contexto;
 	}

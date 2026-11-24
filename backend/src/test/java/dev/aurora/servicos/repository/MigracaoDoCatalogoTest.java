@@ -161,6 +161,34 @@ class MigracaoDoCatalogoTest {
 			assertThat(linhas.getInt(3)).as("raio padrão do início fora do local").isEqualTo(300);
 			assertThat(linhas.getBoolean(4)).as("RLS forçado").isTrue();
 		}
+
+		// V39: o perfil do sistema muda de nome; quem já tem um próprio com o nome novo
+		// fica como está.
+		var comNomeNovo = UUID.randomUUID();
+		try (var c = DriverManager.getConnection(url, "postgres", BancoDeTeste.SENHA_SUPERUSUARIO);
+				var s = c.createStatement()) {
+			s.execute("INSERT INTO tenant (id, nome, codigo) VALUES ('%s', 'Com nome novo', 'com-nome-novo')"
+				.formatted(comNomeNovo));
+			s.execute("""
+					INSERT INTO perfil (id, tenant_id, nome, sistema)
+					VALUES (gen_random_uuid(), '%1$s', 'Administrador do tenant', true),
+					       (gen_random_uuid(), '%1$s', 'Administrador da empresa', false)""".formatted(comNomeNovo));
+		}
+		flyway.target("39").load().migrate();
+		try (var c = DriverManager.getConnection(url, "postgres", BancoDeTeste.SENHA_SUPERUSUARIO);
+				var s = c.createStatement();
+				var linhas = s.executeQuery("""
+						SELECT (SELECT count(*) FROM perfil
+						         WHERE tenant_id = '%1$s' AND sistema AND nome = 'Administrador da empresa'),
+						       (SELECT count(*) FROM perfil
+						         WHERE tenant_id = '%2$s' AND sistema AND nome = 'Administrador do tenant'),
+						       (SELECT relforcerowsecurity FROM pg_class WHERE relname = 'perfil')""".formatted(cliente,
+						comNomeNovo))) {
+			linhas.next();
+			assertThat(linhas.getLong(1)).isEqualTo(1);
+			assertThat(linhas.getLong(2)).isEqualTo(1);
+			assertThat(linhas.getBoolean(3)).as("RLS forçado de perfil religado").isTrue();
+		}
 	}
 
 	/**

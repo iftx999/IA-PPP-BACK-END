@@ -1,20 +1,27 @@
 package dev.aurora.campanhas.service;
 
+import java.io.OutputStream;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.security.DigestOutputStream;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeSet;
 import java.util.UUID;
 import java.util.function.BiFunction;
 
@@ -25,25 +32,33 @@ import dev.aurora.campanhas.model.FiltroOrdens;
 import dev.aurora.campanhas.model.Ignorada;
 import dev.aurora.campanhas.model.Justificativa;
 import dev.aurora.campanhas.model.OrdemServico;
+import dev.aurora.campanhas.model.OrdenacaoOrdens;
 import dev.aurora.campanhas.model.PaginaOrdens;
 import dev.aurora.campanhas.model.PreviaLote;
 import dev.aurora.campanhas.model.Prioridade;
 import dev.aurora.campanhas.model.Programacao;
+import dev.aurora.campanhas.model.ResultadoCancelamento;
 import dev.aurora.campanhas.model.ResultadoCriacao;
 import dev.aurora.campanhas.model.ResultadoDistribuicao;
+import dev.aurora.campanhas.model.ResumoOrdens;
 import dev.aurora.campanhas.model.StatusOrdem;
+import dev.aurora.campanhas.repository.ConflitoRepository;
 import dev.aurora.campanhas.repository.EquipeRepository;
 import dev.aurora.campanhas.repository.OrdemServicoRepository;
 import dev.aurora.campanhas.repository.OrdemServicoRepository.NovasOrdens;
 import dev.aurora.campanhas.repository.OrdemServicoRepository.Origem;
 import dev.aurora.comum.ConflitoException;
+import dev.aurora.comum.EscritorCsv;
 import dev.aurora.comum.RecursoNaoEncontradoException;
 import dev.aurora.comum.RegraVioladaException;
+import dev.aurora.contexto.ContextoAcesso;
 import dev.aurora.servicos.MotivoDaOrdem;
 import dev.aurora.servicos.ServicoDaOrdem;
 import dev.aurora.servicos.Servicos;
+import dev.aurora.unidades.Unidades;
 import org.jspecify.annotations.Nullable;
 
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -69,6 +84,17 @@ public class ProgramacaoService {
 	/** Ignoradas devolvidas na resposta (o total vem à parte). */
 	static final int IGNORADAS_NA_RESPOSTA = 200;
 
+	/** Cancelamento de uma vez: a página da lista. */
+	static final int LIMITE_DO_CANCELAMENTO = 200;
+
+	static final int LIMITE_DA_EXPORTACAO = 20_000;
+
+	private static final String EXPORTAR = "relatorio:exportar";
+
+	private static final DateTimeFormatter DATA = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+
+	private static final DateTimeFormatter DATA_E_HORA = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+
 	static final String JA_TEM_OS = "Já tem OS aberta deste serviço";
 
 	private final OrdemServicoRepository ordens;
@@ -81,17 +107,24 @@ public class ProgramacaoService {
 
 	private final DadosPessoaisDasOrdens dadosPessoais;
 
+	private final ConflitoRepository conflitos;
+
+	private final Unidades unidades;
+
 	private final Auditoria auditoria;
 
 	private final Clock relogio;
 
 	ProgramacaoService(OrdemServicoRepository ordens, EquipeRepository equipes, Servicos servicos,
-			MotivosDaOrdem motivos, DadosPessoaisDasOrdens dadosPessoais, Auditoria auditoria, Clock relogio) {
+			MotivosDaOrdem motivos, DadosPessoaisDasOrdens dadosPessoais, ConflitoRepository conflitos,
+			Unidades unidades, Auditoria auditoria, Clock relogio) {
 		this.ordens = ordens;
 		this.equipes = equipes;
 		this.servicos = servicos;
 		this.motivos = motivos;
 		this.dadosPessoais = dadosPessoais;
+		this.conflitos = conflitos;
+		this.unidades = unidades;
 		this.auditoria = auditoria;
 		this.relogio = relogio;
 	}
@@ -106,9 +139,10 @@ public class ProgramacaoService {
 	}
 
 	@Transactional
-	public PaginaOrdens listar(FiltroOrdens filtro, int pagina, int tamanho) {
+	public PaginaOrdens listar(FiltroOrdens filtro, OrdenacaoOrdens ordenacao, int pagina, int tamanho) {
 		var agora = relogio.instant();
-		var itens = dadosPessoais.aplicar(ordens.listar(filtro, agora, pagina, tamanho), "Lista de ordens de serviço");
+		var itens = dadosPessoais.aplicar(ordens.listar(filtro, ordenacao, agora, pagina, tamanho),
+				"Lista de ordens de serviço");
 		return new PaginaOrdens(itens, ordens.contar(filtro, agora), pagina, tamanho);
 	}
 
@@ -116,6 +150,76 @@ public class ProgramacaoService {
 	public OrdemServico buscar(UUID id) {
 		var ordem = ordens.buscar(id, relogio.instant()).orElseThrow(RecursoNaoEncontradoException::new);
 		return dadosPessoais.aplicar(List.of(ordem), "Detalhe de ordem de serviço").getFirst();
+	}
+
+	/** O que pede atenção de quem programa. */
+	@Transactional(readOnly = true)
+	public ResumoOrdens resumo() {
+		return ordens.resumo(relogio.instant(), LocalDate.now(relogio), conflitos.contar(true));
+	}
+
+	/**
+	 * RN-12: CSV da lista com os mesmos filtros e ordem. Além de programar, a pessoa
+	 * precisa poder exportar na unidade de cada OS; as demais ficam de fora. Dados
+	 * pessoais seguem a regra da lista; a emissão vai para a trilha.
+	 */
+	@Transactional
+	public void exportarCsv(FiltroOrdens filtro, OrdenacaoOrdens ordenacao, OutputStream destino) {
+		var contexto = ContextoAcesso.exigir();
+		if (!contexto.pode(EXPORTAR)) {
+			throw new AccessDeniedException("Seu perfil não permite exportar relatórios.");
+		}
+		var agora = relogio.instant();
+		if (ordens.contar(filtro, agora) > LIMITE_DA_EXPORTACAO) {
+			throw new RegraVioladaException(
+					"A lista passa de " + LIMITE_DA_EXPORTACAO + " OS. Use os filtros para exportar em partes.");
+		}
+		var podePorUnidade = new HashMap<UUID, Boolean>();
+		var permitidas = ordens.listar(filtro, ordenacao, agora, 0, LIMITE_DA_EXPORTACAO)
+			.stream()
+			.filter(o -> podePorUnidade.computeIfAbsent(o.unidadeId(),
+					id -> unidades.caminhoNoEscopo(id).map(c -> contexto.podeEm(EXPORTAR, c)).orElse(false)))
+			.toList();
+		var resumo = sha256();
+		try (var csv = new EscritorCsv(new DigestOutputStream(destino, resumo))) {
+			csv.linha("os", "servico", "origem", "alvo", "matricula", "trecho", "logradouro", "numero", "complemento",
+					"unidade", "prioridade", "prazo", "atrasada", "equipe", "data_programada", "situacao", "resultado",
+					"motivo");
+			for (var o : dadosPessoais.aplicar(permitidas, "Exportação de ordens de serviço")) {
+				csv.linha(o.numero(), o.servicoNome(), o.origem(), o.alvo(), o.matricula(), o.trechoCodigo(),
+						o.logradouroNome(), o.numeroImovel(), o.complemento(), o.unidadeNome(), o.prioridade(),
+						DATA_E_HORA.format(o.prazoEm().atZone(relogio.getZone())), o.atrasada() ? "sim" : "não",
+						o.equipeNome(), o.dataProgramada() == null ? null : DATA.format(o.dataProgramada()), o.status(),
+						o.resultado(), o.motivoNome());
+			}
+		}
+		var detalhes = new LinkedHashMap<String, @Nullable Object>();
+		detalhes.put("formato", "CSV");
+		detalhes.put("linhas", permitidas.size());
+		detalhes.put("sha256", HexFormat.of().formatHex(resumo.digest()));
+		detalhes.put("situacao",
+				filtro.status() != null ? filtro.status().name() : filtro.somenteAbertas() ? "ABERTAS" : "TODAS");
+		detalhes.put("atrasadas", filtro.somenteAtrasadas());
+		detalhes.put("servico", texto(filtro.servicoId()));
+		detalhes.put("equipe", texto(filtro.equipeId()));
+		detalhes.put("unidade", texto(filtro.unidadeId()));
+		detalhes.put("prioridade", texto(filtro.prioridade()));
+		detalhes.put("origem", texto(filtro.origem()));
+		detalhes.put("data", texto(filtro.dataProgramada()));
+		auditoria.registrar(TipoEvento.RELATORIO_EXPORTADO, "ordens-de-servico", detalhes);
+	}
+
+	private static @Nullable String texto(@Nullable Object valor) {
+		return valor == null ? null : valor.toString();
+	}
+
+	private static MessageDigest sha256() {
+		try {
+			return MessageDigest.getInstance("SHA-256");
+		}
+		catch (NoSuchAlgorithmException impossivel) {
+			throw new IllegalStateException(impossivel);
+		}
 	}
 
 	// ----- Criação -----
@@ -336,6 +440,34 @@ public class ProgramacaoService {
 					? "A OS já está com a equipe em execução; peça a devolução antes de cancelar."
 					: "Esta OS já foi encerrada ou cancelada.");
 		}
+		cancelar(id, travada, pedido);
+		return buscar(id);
+	}
+
+	/**
+	 * Cancela várias com o mesmo motivo. As que já foram a campo, acabaram ou estão fora
+	 * da área ficam como estão e são contadas; motivo que não vale para o serviço de uma
+	 * delas recusa o pedido inteiro.
+	 */
+	@Transactional
+	public ResultadoCancelamento cancelarVarias(List<UUID> lista, Justificativa pedido) {
+		// Sempre na mesma ordem: dois pedidos ao mesmo tempo não se travam um ao outro.
+		var ids = new TreeSet<>(lista);
+		if (ids.isEmpty() || ids.size() > LIMITE_DO_CANCELAMENTO) {
+			throw new RegraVioladaException("Escolha de 1 a " + LIMITE_DO_CANCELAMENTO + " OS.");
+		}
+		int canceladas = 0;
+		for (var id : ids) {
+			var travada = ordens.travar(id);
+			if (travada.isPresent() && travada.get().status().cancelavel()) {
+				cancelar(id, travada.get(), pedido);
+				canceladas++;
+			}
+		}
+		return new ResultadoCancelamento(canceladas, ids.size() - canceladas);
+	}
+
+	private void cancelar(UUID id, OrdemServicoRepository.Travada travada, Justificativa pedido) {
 		var justificativa = motivos.validar(pedido.motivoId(), "CANCELAMENTO", travada.servicoId(), pedido.observacao(),
 				"Informe o motivo do cancelamento.");
 		ordens.movimentar(id, StatusOrdem.CANCELADA, justificativa.motivoId(), justificativa.observacao(),
@@ -345,7 +477,6 @@ public class ProgramacaoService {
 		detalhes.put("statusAnterior", travada.status().name());
 		detalhes.put("motivo", justificativa.motivoId().toString());
 		auditoria.registrar(TipoEvento.ORDEM_CANCELADA, "ordem-de-servico/" + id, detalhes);
-		return buscar(id);
 	}
 
 	// ----- Apoio -----
