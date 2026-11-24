@@ -694,7 +694,16 @@ token não leva os papéis de `realm-management` e a Admin API responde 403. Flu
 - **Testes:** back `verify`; app 127 testes e APK; front 106 testes, lint e E2E. **Não testado em aparelho:**
   Keystore, alerta da emergencial e vibração.
 
-### Onde paramos (21/11/2026, depois das ADR 0051 e 0052) — retomar daqui
+### Onde paramos (24/11/2026, revisão de UI/UX do front) — retomar daqui
+**Estado:** revisão de usabilidade do front feita, com commit (branch `feature/catalogo-de-servicos` do front e do
+back): letra mínima de 12 px, menu com ícones e grupos que recolhem, busca geral (Ctrl+K), filtros "Mais filtros" e OS
+em aberto por padrão (`GET /api/v1/ordens?abertas=true`), barra de seleção, diálogos que perguntam antes de descartar,
+"Tentar de novo", telas em 390 px. **Falta o push.**
+
+**Próximas ideias de uso:** ordenar colunas e exportar a Programação de OS, cancelar várias, filtros favoritos, página
+inicial por perfil, teste com usuários reais. **Segurança pendente:** versões do Keycloak, Spring Boot e Grafana.
+
+### Onde paramos (21/11/2026, depois das ADR 0051 e 0052) — superado pelo de 24/11
 **Estado:** M1 a M7 do doc 10 e as ADR 0050 a 0052 prontos, com commit. Todas as ideias do protótipo decididas e
 feitas. **Falta o push** nos três repositórios (a chave SSH tem senha; o app ainda sem remoto) e o merge da branch
 em `main` (ordem: partição → atendimento ao titular → esta). E2E DB de cópia na V38.

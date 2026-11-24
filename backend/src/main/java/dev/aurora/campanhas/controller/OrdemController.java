@@ -305,6 +305,7 @@ class OrdemController {
 	/**
 	 * @param busca número da OS ou matrícula exata
 	 * @param unidade a unidade e as de baixo
+	 * @param abertas sem as encerradas e canceladas
 	 */
 	@GetMapping
 	PaginaResponse listar(@RequestParam(required = false) @Nullable StatusOrdem status,
@@ -318,12 +319,13 @@ class OrdemController {
 			@RequestParam(required = false) @Nullable Conferencia conferencia,
 			@RequestParam(required = false) @Nullable LocalDate data,
 			@RequestParam(defaultValue = "false") boolean atrasadas,
+			@RequestParam(defaultValue = "false") boolean abertas,
 			@RequestParam(required = false) @Nullable @Size(max = 40) String busca,
 			@RequestParam(defaultValue = "0") @Min(0) @Max(10_000) int pagina,
 			@RequestParam(defaultValue = "50") @Min(1) @Max(200) int tamanho) {
 		var termo = busca == null || busca.isBlank() ? null : busca.strip();
 		var p = programacao.listar(new FiltroOrdens(campanha, status, equipe, conferencia, prioridade, atrasadas,
-				servico, unidade, lote, origem, data, termo), pagina, tamanho);
+				abertas, servico, unidade, lote, origem, data, termo), pagina, tamanho);
 		return new PaginaResponse(p.itens().stream().map(OrdemServicoResponse::de).toList(), p.total(), p.pagina(),
 				p.tamanho());
 	}

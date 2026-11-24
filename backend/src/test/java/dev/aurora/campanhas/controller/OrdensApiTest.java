@@ -254,6 +254,9 @@ class OrdensApiTest {
 			.andExpect(status().isOk())
 			.andExpect(jsonPath("$.status").value("CANCELADA"))
 			.andExpect(jsonPath("$.motivoNome").value("OS duplicada"));
+		// A cancelada some da lista de abertas e continua na lista completa.
+		assertThat(lista("?abertas=true&tamanho=200", "sub-programador").toString()).doesNotContain(idLote2.toString());
+		assertThat(lista("?tamanho=200", "sub-programador").toString()).contains(idLote2.toString());
 		postar("/api/v1/ordens/" + idLote2 + "/cancelar", "{\"motivoId\":\"%s\"}".formatted(duplicada),
 				"sub-programador")
 			.andExpect(status().isConflict());

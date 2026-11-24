@@ -94,6 +94,7 @@ public class OrdemServicoRepository {
 			   AND (CAST(:prioridade AS text) IS NULL OR o.prioridade = CAST(:prioridade AS text))
 			   AND (NOT :atrasadas OR (o.status IN ('PLANEJADA', 'PROGRAMADA', 'EM_EXECUCAO', 'PARALISADA', 'DEVOLVIDA')
 			                           AND o.prazo_em < :agora))
+			   AND (NOT :abertas OR o.status IN ('PLANEJADA', 'PROGRAMADA', 'EM_EXECUCAO', 'PARALISADA', 'DEVOLVIDA'))
 			   AND (CAST(:servico AS uuid) IS NULL OR o.servico_id = CAST(:servico AS uuid))
 			   AND (CAST(:unidade AS uuid) IS NULL OR o.unidade_id IN (
 			        SELECT x.id FROM unidade x
@@ -337,6 +338,7 @@ public class OrdemServicoRepository {
 			.param("conferencia", filtro.conferencia() == null ? null : filtro.conferencia().name())
 			.param("prioridade", filtro.prioridade() == null ? null : filtro.prioridade().name())
 			.param("atrasadas", filtro.somenteAtrasadas())
+			.param("abertas", filtro.somenteAbertas())
 			.param("servico", filtro.servicoId())
 			.param("unidade", filtro.unidadeId())
 			.param("lote", filtro.loteId())
