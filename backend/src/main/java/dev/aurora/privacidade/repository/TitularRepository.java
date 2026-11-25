@@ -58,22 +58,22 @@ public class TitularRepository {
 
 	public List<OrdemDeServico> ordens(String matricula) {
 		return jdbc.sql("""
-				SELECT o.id, o.numero, c.nome AS campanha, o.tipo, o.status, o.prazo, e.nome AS equipe, o.motivo,
+				SELECT o.id, o.numero, c.nome AS campanha, v.nome AS servico, o.status, o.prazo_em,
+				       e.nome AS equipe, mo.nome AS motivo,
 				       o.observacao, o.resultado_em, o.criada_em
 				  FROM ordem_servico o
-				  JOIN campanha c ON c.id = o.campanha_id
+				  JOIN servico_versao v ON v.id = o.servico_versao_id
+				  LEFT JOIN campanha c ON c.id = o.campanha_id
+				  LEFT JOIN motivo mo ON mo.id = o.motivo_id
 				  LEFT JOIN equipe e ON e.id = o.equipe_id
 				 WHERE o.tenant_id = app_tenant() AND o.codigo_origem = ?
-				 ORDER BY o.criada_em""")
-			.param(matricula)
-			.query((r, n) -> {
-				var resultado = r.getTimestamp("resultado_em");
-				return new OrdemDeServico(r.getObject("id", UUID.class), r.getInt("numero"), r.getString("campanha"),
-						r.getString("tipo"), r.getString("status"), r.getDate("prazo").toLocalDate(),
-						r.getString("equipe"), r.getString("motivo"), r.getString("observacao"),
-						resultado == null ? null : resultado.toInstant(), r.getTimestamp("criada_em").toInstant());
-			})
-			.list();
+				 ORDER BY o.criada_em""").param(matricula).query((r, n) -> {
+			var resultado = r.getTimestamp("resultado_em");
+			return new OrdemDeServico(r.getObject("id", UUID.class), r.getLong("numero"), r.getString("campanha"),
+					r.getString("servico"), r.getString("status"), r.getTimestamp("prazo_em").toInstant(),
+					r.getString("equipe"), r.getString("motivo"), r.getString("observacao"),
+					resultado == null ? null : resultado.toInstant(), r.getTimestamp("criada_em").toInstant());
+		}).list();
 	}
 
 }

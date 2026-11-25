@@ -10,6 +10,7 @@ import dev.aurora.privacidade.model.RelatorioDoTitular;
 import dev.aurora.privacidade.repository.TitularRepository;
 import org.jspecify.annotations.Nullable;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,6 +28,7 @@ public class AtendimentoAoTitularService {
 
 	private final Clock relogio;
 
+	@Autowired
 	AtendimentoAoTitularService(TitularRepository titulares, Auditoria auditoria) {
 		this(titulares, auditoria, Clock.systemUTC());
 	}
