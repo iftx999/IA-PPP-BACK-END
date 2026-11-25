@@ -45,6 +45,12 @@ public enum TipoEvento {
 	ACESSO_DADO_PESSOAL,
 
 	/**
+	 * ADR 0041: relatório do que a Aurora guarda de uma matrícula, emitido para atender um
+	 * titular (LGPD, art. 18), com o protocolo do pedido. A matrícula não vai para a trilha.
+	 */
+	ATENDIMENTO_AO_TITULAR,
+
+	/**
 	 * Emissão de relatório ou exportação (CSV/PDF), com filtros e quantidade de linhas
 	 * (RN-12).
 	 */
