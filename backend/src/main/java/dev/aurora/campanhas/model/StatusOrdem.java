@@ -4,23 +4,50 @@ import java.util.EnumSet;
 import java.util.Set;
 
 /**
- * Fluxo da OS (ADR 0036): planejada → em campo (distribuída a uma equipe) → resultado.
- * Reagendada continua em campo, com nova data.
+ * Ciclo da OS (doc 10, 10.6; ADR 0044): planejada → programada (equipe e data) → em
+ * execução ⇄ paralisada → encerrada; devolvida volta para a programação; cancelada sai
+ * dela. Iniciar, paralisar e retomar vêm do app (M4).
  */
 public enum StatusOrdem {
 
-	PLANEJADA, EM_CAMPO, REAGENDADA, EXECUTADA, RECUSADA, INVIAVEL, CANCELADA;
+	PLANEJADA, PROGRAMADA, EM_EXECUCAO, PARALISADA, DEVOLVIDA, ENCERRADA, CANCELADA;
 
-	/** Em aberto: ainda espera trabalho de campo. */
-	public static final Set<StatusOrdem> ABERTAS = EnumSet.of(PLANEJADA, EM_CAMPO, REAGENDADA);
+	/** Em aberto: ainda espera trabalho de campo ou programação. */
+	public static final Set<StatusOrdem> ABERTAS = EnumSet.of(PLANEJADA, PROGRAMADA, EM_EXECUCAO, PARALISADA,
+			DEVOLVIDA);
+
+	/** Com uma equipe, numa data. */
+	public static final Set<StatusOrdem> COM_EQUIPE = EnumSet.of(PROGRAMADA, EM_EXECUCAO, PARALISADA);
 
 	public boolean aberta() {
 		return ABERTAS.contains(this);
 	}
 
-	/** Com a equipe, esperando o resultado. */
-	public boolean emCampo() {
-		return this == EM_CAMPO || this == REAGENDADA;
+	public boolean comEquipe() {
+		return COM_EQUIPE.contains(this);
+	}
+
+	/** Programar ou reprogramar (equipe e data). */
+	public boolean programavel() {
+		return this == PLANEJADA || this == PROGRAMADA || this == DEVOLVIDA;
+	}
+
+	/** Cancelar: só antes de a equipe começar. */
+	public boolean cancelavel() {
+		return this == PLANEJADA || this == PROGRAMADA || this == DEVOLVIDA;
+	}
+
+	/** A equipe devolve para a programação. */
+	public boolean devolvivel() {
+		return COM_EQUIPE.contains(this);
+	}
+
+	/**
+	 * Encerrar: em execução ou, no registro feito depois na web (sem o app), programada.
+	 * Paralisada precisa ser retomada antes.
+	 */
+	public boolean encerravel() {
+		return this == PROGRAMADA || this == EM_EXECUCAO;
 	}
 
 }

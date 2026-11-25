@@ -3,7 +3,9 @@ package dev.aurora.campanhas.service;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -20,7 +22,6 @@ import dev.aurora.auditoria.TipoEvento;
 import dev.aurora.campanhas.model.AcaoCampanha;
 import dev.aurora.campanhas.model.Campanha;
 import dev.aurora.campanhas.model.Candidato;
-import dev.aurora.campanhas.model.Conferencia;
 import dev.aurora.campanhas.model.Distribuicao;
 import dev.aurora.campanhas.model.FiltroOrdens;
 import dev.aurora.campanhas.model.ImpactoNaMeta;
@@ -30,16 +31,18 @@ import dev.aurora.campanhas.model.PaginaOrdens;
 import dev.aurora.campanhas.model.PainelCampanha;
 import dev.aurora.campanhas.model.Previa;
 import dev.aurora.campanhas.model.Prioridade;
+import dev.aurora.campanhas.model.Programacao;
 import dev.aurora.campanhas.model.Recorte;
 import dev.aurora.campanhas.model.ResultadoDistribuicao;
 import dev.aurora.campanhas.model.StatusCampanha;
 import dev.aurora.campanhas.repository.CampanhaRepository;
-import dev.aurora.campanhas.repository.EquipeRepository;
 import dev.aurora.campanhas.repository.OrdemServicoRepository;
 import dev.aurora.comum.ConflitoException;
 import dev.aurora.comum.RecursoNaoEncontradoException;
 import dev.aurora.comum.RegraVioladaException;
 import dev.aurora.contexto.ContextoAcesso;
+import dev.aurora.servicos.ServicoDaOrdem;
+import dev.aurora.servicos.Servicos;
 import dev.aurora.unidades.Unidade;
 import dev.aurora.unidades.Unidades;
 import org.jspecify.annotations.Nullable;
@@ -67,8 +70,6 @@ public class CampanhaService {
 
 	private final OrdemServicoRepository ordens;
 
-	private final EquipeRepository equipes;
-
 	private final Medicoes medicoes;
 
 	private final Unidades unidades;
@@ -77,26 +78,33 @@ public class CampanhaService {
 
 	private final DadosPessoaisDasOrdens dadosPessoais;
 
+	private final ProgramacaoService programacao;
+
+	private final Servicos servicos;
+
 	private final Clock relogio;
 
-	CampanhaService(CampanhaRepository campanhas, OrdemServicoRepository ordens, EquipeRepository equipes,
-			Medicoes medicoes, Unidades unidades, Auditoria auditoria, DadosPessoaisDasOrdens dadosPessoais,
-			Clock relogio) {
+	CampanhaService(CampanhaRepository campanhas, OrdemServicoRepository ordens, Medicoes medicoes, Unidades unidades,
+			Auditoria auditoria, DadosPessoaisDasOrdens dadosPessoais, ProgramacaoService programacao,
+			Servicos servicos, Clock relogio) {
 		this.campanhas = campanhas;
 		this.ordens = ordens;
-		this.equipes = equipes;
 		this.medicoes = medicoes;
 		this.unidades = unidades;
 		this.auditoria = auditoria;
 		this.dadosPessoais = dadosPessoais;
+		this.programacao = programacao;
+		this.servicos = servicos;
 		this.relogio = relogio;
 	}
 
 	@Transactional(readOnly = true)
-	public Previa previa(Recorte recorte) {
+	public Previa previa(Recorte recorte, AcaoCampanha acao) {
 		var unidade = validar(recorte);
 		var competencia = competencia();
-		var candidatos = campanhas.candidatos(recorte, competencia);
+		var servicosDaAcao = servicosDa(acao);
+		var candidatos = campanhas.candidatos(recorte, competencia, servicosDaAcao.factivel().id(),
+				servicosDaAcao.cortado().id());
 		var novos = candidatos.stream().filter(c -> !c.comOsAberta()).toList();
 		var prioridades = prioridades(novos, competencia);
 		var contagem = new ContagemPorPrioridade();
@@ -120,7 +128,12 @@ public class CampanhaService {
 		}
 		var unidade = validar(nova.recorte());
 		var competencia = competencia();
-		var novos = campanhas.candidatos(nova.recorte(), competencia).stream().filter(c -> !c.comOsAberta()).toList();
+		var servicosDaAcao = servicosDa(nova.acao());
+		var novos = campanhas
+			.candidatos(nova.recorte(), competencia, servicosDaAcao.factivel().id(), servicosDaAcao.cortado().id())
+			.stream()
+			.filter(c -> !c.comOsAberta())
+			.toList();
 		if (novos.isEmpty()) {
 			throw new RegraVioladaException("Nenhum imóvel sem ligação neste recorte (sem OS em aberto).");
 		}
@@ -136,8 +149,11 @@ public class CampanhaService {
 		}
 		campanhas.inserir(id, nome, nova.recorte(), nova.acao(), competencia, nova.prazo(), impacto.ligados(),
 				impacto.comRede(), usuario);
-		var criadas = ordens.inserir(id, nova.prazo(),
-				novasOrdens(novos, nova.acao(), prioridades(novos, competencia)));
+		var prazo = nova.prazo().atTime(LocalTime.of(23, 59, 59)).atZone(relogio.getZone()).toInstant();
+		var criadas = ordens
+			.inserir(novasOrdens(novos, servicosDaAcao, prioridades(novos, competencia), prazo),
+					new OrdemServicoRepository.Origem(id, null, null, usuario))
+			.size();
 		var detalhes = new LinkedHashMap<String, @Nullable Object>();
 		detalhes.put("nome", nome);
 		detalhes.put("origem", nova.recorte().origem().name());
@@ -147,67 +163,62 @@ public class CampanhaService {
 		detalhes.put("prazo", nova.prazo().toString());
 		detalhes.put("ordens", criadas);
 		auditoria.registrar(TipoEvento.CAMPANHA_CRIADA, "campanha/" + id, detalhes);
-		return campanhas.buscar(id, hoje).orElseThrow();
+		return campanhas.buscar(id, relogio.instant()).orElseThrow();
 	}
 
 	@Transactional(readOnly = true)
 	public List<Campanha> listar(@Nullable StatusCampanha status) {
-		return campanhas.listar(status, LocalDate.now(relogio));
+		return campanhas.listar(status, relogio.instant());
 	}
 
 	@Transactional(readOnly = true)
 	public PainelCampanha painel(UUID id) {
-		var hoje = LocalDate.now(relogio);
-		var campanha = campanhas.buscar(id, hoje).orElseThrow(RecursoNaoEncontradoException::new);
+		var agora = relogio.instant();
+		var campanha = campanhas.buscar(id, agora).orElseThrow(RecursoNaoEncontradoException::new);
 		var unidade = unidades.buscarNoEscopo(campanha.unidadeId()).orElseThrow(RecursoNaoEncontradoException::new);
 		var competencias = medicoes.competencias();
 		var funil = campanha.funil();
 		// Se as OS de ligação ainda em aberto virarem ligação.
 		var abertasDeLigacao = campanha.acao() == AcaoCampanha.LIGACAO
-				? funil.planejadas() - funil.executadas() - funil.recusadas() - funil.inviaveis() : 0;
-		var agora = competencias.isEmpty() ? impacto(unidade, null, null, 0) : impacto(unidade, competencias.getFirst(),
-				indicador(unidade.id(), competencias.getFirst()), Math.max(0, abertasDeLigacao));
-		return new PainelCampanha(campanha, ordens.produtividade(id, hoje), ordens.motivos(id), agora);
+				? funil.planejadas() - funil.executadas() - funil.naoExecutadas() : 0;
+		var adesao = competencias.isEmpty() ? impacto(unidade, null, null, 0)
+				: impacto(unidade, competencias.getFirst(), indicador(unidade.id(), competencias.getFirst()),
+						Math.max(0, abertasDeLigacao));
+		return new PainelCampanha(campanha, ordens.produtividade(id, relogio.instant()), ordens.motivos(id), adesao);
 	}
 
 	@Transactional
 	public PaginaOrdens ordens(UUID id, FiltroOrdens filtro, int pagina, int tamanho) {
-		var hoje = LocalDate.now(relogio);
-		var campanha = campanhas.buscar(id, hoje).orElseThrow(RecursoNaoEncontradoException::new);
-		var itens = ordens.listar(id, filtro, hoje, pagina, tamanho);
+		var agora = relogio.instant();
+		var campanha = campanhas.buscar(id, agora).orElseThrow(RecursoNaoEncontradoException::new);
+		var itens = ordens.listar(filtro, agora, pagina, tamanho);
 		var visiveis = dadosPessoais.aplicar(itens, "Ordens de serviço da campanha " + campanha.nome());
-		return new PaginaOrdens(visiveis, ordens.contar(id, filtro, hoje), pagina, tamanho);
+		return new PaginaOrdens(visiveis, ordens.contar(filtro, agora), pagina, tamanho);
 	}
 
+	/**
+	 * Programa OS da campanha para uma equipe numa data. Sem lista: as planejadas e
+	 * devolvidas, na ordem de prioridade, até a quantidade (ou todas).
+	 */
 	@Transactional
 	public ResultadoDistribuicao distribuir(UUID id, Distribuicao pedido) {
 		var status = campanhas.travar(id).orElseThrow(RecursoNaoEncontradoException::new);
 		if (status != StatusCampanha.ATIVA) {
 			throw new ConflitoException("A campanha não está ativa.");
 		}
-		var equipe = equipes.buscar(pedido.equipeId())
-			.orElseThrow(() -> new RegraVioladaException("Escolha uma equipe da sua área."));
-		if (!equipe.ativa()) {
-			throw new RegraVioladaException("A equipe está desativada.");
-		}
 		if (pedido.quantidade() != null && pedido.quantidade() <= 0) {
 			throw new RegraVioladaException("Informe quantas OS enviar.");
 		}
-		var lista = pedido.ordens().isEmpty() ? null : pedido.ordens();
-		if (lista != null && lista.size() > LIMITE_DE_ORDENS) {
+		if (pedido.ordens().size() > LIMITE_DE_ORDENS) {
 			throw new RegraVioladaException("Envie no máximo " + LIMITE_DE_ORDENS + " OS por vez.");
 		}
 		var limite = pedido.quantidade() == null ? LIMITE_DE_ORDENS : Math.min(pedido.quantidade(), LIMITE_DE_ORDENS);
-		var envio = ordens.distribuir(id, equipe.id(), lista, pedido.prioridade(), limite);
-		if (envio.enviadas() > 0) {
-			var detalhes = new LinkedHashMap<String, @Nullable Object>();
-			detalhes.put("equipe", equipe.id().toString());
-			detalhes.put("equipeNome", equipe.nome());
-			detalhes.put("enviadas", envio.enviadas());
-			detalhes.put("foraDaArea", envio.foraDaArea());
-			auditoria.registrar(TipoEvento.ORDENS_DISTRIBUIDAS, "campanha/" + id, detalhes);
+		var lista = pedido.ordens().isEmpty() ? ordens.paraProgramarDaCampanha(id, pedido.prioridade(), limite)
+				: pedido.ordens();
+		if (lista.isEmpty()) {
+			throw new RegraVioladaException("Não há OS planejadas ou devolvidas para enviar.");
 		}
-		return new ResultadoDistribuicao(envio.enviadas(), envio.foraDaArea());
+		return programacao.programar(new Programacao(lista, pedido.equipeId(), pedido.data()), id);
 	}
 
 	@Transactional
@@ -229,10 +240,10 @@ public class CampanhaService {
 		if (usuario == null) {
 			throw new IllegalStateException("Campanha finalizada fora de uma requisição");
 		}
-		var canceladas = ordens.cancelarAbertas(id);
+		var canceladas = ordens.cancelarAbertas(id, usuario);
 		campanhas.finalizar(id, novo, usuario);
 		auditoria.registrar(evento, "campanha/" + id, Map.of("ordensCanceladas", canceladas));
-		return campanhas.buscar(id, LocalDate.now(relogio)).orElseThrow();
+		return campanhas.buscar(id, relogio.instant()).orElseThrow();
 	}
 
 	private Unidade validar(Recorte recorte) {
@@ -281,30 +292,58 @@ public class CampanhaService {
 		};
 	}
 
-	private static OrdemServicoRepository.NovasOrdens novasOrdens(List<Candidato> candidatos, AcaoCampanha acao,
-			Map<UUID, Prioridade> prioridades) {
+	/** Serviços do catálogo que a ação gera no imóvel factível e no cortado. */
+	record ServicosDaAcao(ServicoDaOrdem factivel, ServicoDaOrdem cortado) {
+
+		ServicoDaOrdem para(String situacao) {
+			return "CORTADO".equals(situacao) ? cortado : factivel;
+		}
+	}
+
+	private ServicosDaAcao servicosDa(AcaoCampanha acao) {
+		return new ServicosDaAcao(servicoAtivo(acao.servicoPara("FACTIVEL")),
+				servicoAtivo(acao.servicoPara("CORTADO")));
+	}
+
+	private ServicoDaOrdem servicoAtivo(String codigo) {
+		var servico = servicos.servicoParaOrdem(codigo)
+			.orElseThrow(() -> new RegraVioladaException("O serviço " + codigo + " não está no catálogo."));
+		if (!servico.ativo()) {
+			throw new RegraVioladaException("O serviço " + servico.nome() + " está inativo no catálogo.");
+		}
+		return servico;
+	}
+
+	private static OrdemServicoRepository.NovasOrdens novasOrdens(List<Candidato> candidatos, ServicosDaAcao acao,
+			Map<UUID, Prioridade> prioridades, Instant prazo) {
 		var ordenados = new ArrayList<>(candidatos);
 		ordenados.sort((a, b) -> {
 			var p = prioridades.get(a.unidadeId()).compareTo(prioridades.get(b.unidadeId()));
 			return p != 0 ? p : a.matricula().compareTo(b.matricula());
 		});
-		var matriculas = new ArrayList<String>();
+		var matriculas = new ArrayList<@Nullable String>();
+		var trechos = new ArrayList<@Nullable UUID>();
 		var unidadesDasOrdens = new ArrayList<UUID>();
-		var tipos = new ArrayList<String>();
-		var situacoes = new ArrayList<String>();
-		var prioridadesDasOrdens = new ArrayList<String>();
-		var conferencias = new ArrayList<String>();
+		var servicosDasOrdens = new ArrayList<UUID>();
+		var versoes = new ArrayList<UUID>();
+		var situacoes = new ArrayList<@Nullable String>();
+		var prioridadesDasOrdens = new ArrayList<Prioridade>();
+		var prazos = new ArrayList<Instant>();
+		var quantidades = new ArrayList<BigDecimal>();
 		for (var c : ordenados) {
+			var servico = acao.para(c.situacao());
 			matriculas.add(c.matricula());
+			trechos.add(null);
 			unidadesDasOrdens.add(c.unidadeId());
-			tipos.add(acao.tipoPara(c.situacao()).name());
+			servicosDasOrdens.add(servico.id());
+			versoes.add(servico.versaoId());
 			situacoes.add(c.situacao());
-			prioridadesDasOrdens.add(prioridades.get(c.unidadeId()).name());
-			// A conferência começa quando a OS de ligação é executada.
-			conferencias.add(Conferencia.NAO_SE_APLICA.name());
+			prioridadesDasOrdens.add(prioridades.get(c.unidadeId()));
+			prazos.add(prazo);
+			quantidades.add(BigDecimal.ONE);
 		}
-		return new OrdemServicoRepository.NovasOrdens(matriculas, unidadesDasOrdens, tipos, situacoes,
-				prioridadesDasOrdens, conferencias);
+		return new OrdemServicoRepository.NovasOrdens(matriculas, trechos, unidadesDasOrdens, servicosDasOrdens,
+				versoes, situacoes, prioridadesDasOrdens, prazos, quantidades);
 	}
 
 	private ImpactoNaMeta impacto(Unidade unidade, YearMonth competencia, long novasLigacoes) {
@@ -351,7 +390,7 @@ public class CampanhaService {
 
 		void somar(Prioridade prioridade) {
 			switch (prioridade) {
-				case ALTA -> alta++;
+				case EMERGENCIAL, ALTA -> alta++;
 				case MEDIA -> media++;
 				case BAIXA -> baixa++;
 			}

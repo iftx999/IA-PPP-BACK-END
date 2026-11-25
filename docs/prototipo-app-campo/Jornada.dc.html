@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Iniciar jornada</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&amp;family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#0a6b5b}a:hover{color:#074d41}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #f4f8f7; color: #0b1a1f; font-family: Inter, system-ui, sans-serif; display: flex; flex-direction: column; padding: 28px 16px 24px; gap: 18px">
+  <div style="display: flex; flex-direction: column; gap: 4px">
+    <span style="font-size: 13px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #0a6b5b">Quarta, 18 de novembro</span>
+    <h1 style="margin: 0; font-family: Archivo, sans-serif; font-weight: 800; font-size: 28px; line-height: 1.15">Bom dia, Ana</h1>
+  </div>
+
+  <fieldset style="margin: 0; padding: 0; border: 0; display: flex; flex-direction: column; gap: 8px">
+    <legend style="font-size: 14px; font-weight: 600; color: #3d5359; margin-bottom: 8px">Com qual equipe você sai hoje?</legend>
+    <sc-for list="{{equipes}}" as="e" hint-placeholder-count="2">
+      <button type="button" onClick="{{e.escolher}}" aria-pressed="{{e.marcada}}" style="min-height: 60px; text-align: left; padding: 10px 14px; border-radius: 12px; border: {{e.borda}}; background: #ffffff; color: #0b1a1f; font: inherit; display: flex; align-items: center; gap: 12px; cursor: pointer">
+        <span style="width: 22px; height: 22px; border-radius: 50%; border: 2px solid #0a6b5b; background: {{e.ponto}}; flex: none"></span>
+        <span style="display: flex; flex-direction: column; gap: 2px">
+          <span style="font-weight: 700; font-size: 16px">{{e.nome}}</span>
+          <span style="font-size: 13px; color: #3d5359">{{e.resumo}}</span>
+        </span>
+      </button>
+    </sc-for>
+  </fieldset>
+
+  <section aria-label="Antes de sair" style="background: #ffffff; border: 1px solid #d3e0dd; border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 10px">
+    <sc-for list="{{checagens}}" as="c" hint-placeholder-count="3">
+      <div style="display: flex; align-items: center; gap: 10px; font-size: 15px">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#176038" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"></path></svg>
+        <span>{{c.texto}}</span>
+      </div>
+    </sc-for>
+  </section>
+
+  <p style="margin: 0; padding: 12px 14px; border-radius: 12px; background: #e6f1ee; color: #0b1a1f; font-size: 14px; line-height: 1.45">
+    <strong>Sua localização é usada só durante a jornada</strong> para calcular a rota e acompanhar as OS. Ao encerrar a jornada, o envio para.
+    <a href="Fila.dc.html">Saiba mais</a>
+  </p>
+
+  <a href="Main.dc.html" style="margin-top: auto; min-height: 64px; border-radius: 16px; background: #0a6b5b; color: #ffffff; display: flex; align-items: center; justify-content: center; gap: 10px; font-family: Archivo, sans-serif; font-weight: 700; font-size: 20px; text-decoration: none">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4v16l13-8z"></path></svg>
+    Iniciar jornada
+  </a>
+  <p style="margin: 0; font-size: 13px; color: #3d5359; text-align: center">Com sinal: a rota é calculada a partir de onde você está. Sem sinal: segue a rota prévia.</p>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { equipe: 'rede' };
+  }
+  renderVals() {
+    const lista = [
+      { id: 'rede', nome: 'Equipe Rede Centro', resumo: '5 OS hoje · 1 emergencial · caminhão hidrojato' },
+      { id: 'ligacao', nome: 'Equipe Ligações Norte', resumo: '3 OS hoje · caminhonete' }
+    ];
+    return {
+      equipes: lista.map((e) => {
+        const marcada = this.state.equipe === e.id;
+        return { ...e, marcada: marcada ? 'true' : 'false', borda: marcada ? '2px solid #0a6b5b' : '1px solid #d3e0dd',
+          ponto: marcada ? '#0a6b5b' : 'transparent', escolher: () => this.setState({ equipe: e.id }) };
+      }),
+      checagens: [
+        { texto: 'GPS ligado · precisão de 6 m' },
+        { texto: 'Pacote do dia baixado às 06:58' },
+        { texto: 'Bateria em 82%' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

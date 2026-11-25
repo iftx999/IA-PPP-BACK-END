@@ -52,7 +52,7 @@ class FiltroContextoAcesso extends OncePerRequestFilter {
 			throw new ServletException("falha ao resolver o contexto de acesso", erro);
 		}
 		if (contexto == null) {
-			resposta.sendError(HttpStatus.FORBIDDEN.value(), "Usuário sem acesso a este tenant");
+			resposta.sendError(HttpStatus.FORBIDDEN.value(), "Usuário sem acesso a esta empresa");
 			return;
 		}
 

@@ -135,7 +135,7 @@ public class SsoCorporativoService {
 
 	private String emissor(ContextoAcesso contexto) {
 		return tenants.buscarEmissor(contexto.tenantId())
-			.orElseThrow(() -> new RegraVioladaException("O tenant não tem provedor de identidade configurado."));
+			.orElseThrow(() -> new RegraVioladaException("A empresa não tem provedor de identidade configurado."));
 	}
 
 	private static Configuracao configuracao(String emissor, Optional<ProvedorCorporativo> provedor, boolean confia) {

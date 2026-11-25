@@ -77,7 +77,7 @@ public class PerfilService {
 		boolean administra = dados.permissoes().contains(Permissao.GERIR_USUARIOS);
 		if (!administra && perfis.contarAdministradores(id, false, null, null) == 0) {
 			throw new ConflitoException(
-					"O tenant ficaria sem administrador: mantenha a permissão de gerenciar usuários.");
+					"A empresa ficaria sem administrador: mantenha a permissão de gerenciar usuários.");
 		}
 		try {
 			perfis.atualizar(id, dados.nome().strip(), dados.descricao());

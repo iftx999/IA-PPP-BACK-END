@@ -42,3 +42,14 @@ gera um novo ADR que o substitui.
 | [0035](0035-simulador-de-penalidades.md) | Simulador de penalidades: regra calculável na penalidade aprovada e projeção mês a mês | Aceito |
 | [0036](0036-campanhas-e-ordens-de-servico.md) | Campanhas de ligação e ordens de serviço, conferidas pela carga mensal | Aceito |
 | [0038](0038-situacao-mensal-particionada.md) | Situação mensal dos imóveis particionada por ano | Aceito |
+| [0042](0042-catalogo-de-servicos.md) | Catálogo de serviços de campo: serviços versionados com parâmetros de encerramento | Aceito |
+| [0043](0043-logradouros-e-trechos.md) | Logradouros e trechos da concessionária e o endereço dos imóveis | Aceito |
+| [0044](0044-os-generica-e-programacao.md) | OS genérica do catálogo e programação por imóvel, trecho e logradouro | Aceito |
+| [0045](0045-execucao-de-campo-na-api.md) | Execução de campo na API: eventos idempotentes, jornada, fotos em partes, conflitos e celulares | Aceito |
+| [0046](0046-roteirizacao.md) | Roteirização: Valhalla para a malha viária, Timefold para a ordem e a equipe de cada OS | Aceito |
+| [0047](0047-app-de-campo-flutter.md) | App de campo em Flutter: projeto próprio, login OIDC com PKCE, PIN e sessão sem rede | Aceito |
+| [0048](0048-rota-no-inicio-da-jornada.md) | Rota calculada no início da jornada (posição do agente) e mapa da rota no app | Aceito |
+| [0049](0049-acompanhamento-da-operacao.md) | Acompanhamento da operação de campo (mapa do dia, indicadores) e sugestões automáticas de reotimização | Aceito |
+| [0050](0050-confirmacao-da-rota-avisos-e-modo-noturno.md) | Confirmação da nova rota pelo agente, avisos da operação e modo noturno do app | Aceito |
+| [0051](0051-fotos-cifradas-alerta-de-emergencial-e-modo-luva.md) | Fotos cifradas no celular, alerta de OS emergencial e modo luva | Aceito |
+| [0052](0052-aviso-de-chegada-ao-morador.md) | "Estou chegando": aviso de chegada ao morador por SMS, com o celular cifrado | Aceito |

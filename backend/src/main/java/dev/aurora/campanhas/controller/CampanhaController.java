@@ -16,7 +16,6 @@ import dev.aurora.campanhas.model.Distribuicao;
 import dev.aurora.campanhas.model.FiltroOrdens;
 import dev.aurora.campanhas.model.Funil;
 import dev.aurora.campanhas.model.ImpactoNaMeta;
-import dev.aurora.campanhas.model.MotivoResultado;
 import dev.aurora.campanhas.model.NovaCampanha;
 import dev.aurora.campanhas.model.OrigemCampanha;
 import dev.aurora.campanhas.model.Previa;
@@ -28,6 +27,7 @@ import dev.aurora.campanhas.model.StatusOrdem;
 import dev.aurora.campanhas.model.TipoEquipe;
 import dev.aurora.campanhas.service.CampanhaService;
 import dev.aurora.campanhas.service.OrdemServicoService;
+import dev.aurora.campanhas.service.ProgramacaoService;
 import dev.aurora.contexto.ExigePermissao;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.AssertTrue;
@@ -125,14 +125,17 @@ class CampanhaController {
 		}
 	}
 
+	/**
+	 * @param semEquipe planejadas e devolvidas (esperando programação)
+	 */
 	record FunilResponse(long total, long planejadas, long emCampo, long executadas, long confirmadas, long divergentes,
-			long pendentesDeConferencia, long recusadas, long inviaveis, long reagendadas, long canceladas,
-			long semEquipe, long atrasadas) {
+			long pendentesDeConferencia, long naoExecutadas, long devolvidas, long canceladas, long semEquipe,
+			long atrasadas) {
 
 		static FunilResponse de(Funil f) {
 			return new FunilResponse(f.total(), f.planejadas(), f.emCampo(), f.executadas(), f.confirmadas(),
-					f.divergentes(), f.pendentesDeConferencia(), f.recusadas(), f.inviaveis(), f.reagendadas(),
-					f.canceladas(), f.semEquipe(), f.atrasadas());
+					f.divergentes(), f.pendentesDeConferencia(), f.naoExecutadas(), f.devolvidas(), f.canceladas(),
+					f.semEquipe(), f.atrasadas());
 		}
 	}
 
@@ -150,18 +153,21 @@ class CampanhaController {
 	}
 
 	record ProdutividadeResponse(UUID equipeId, String equipeNome, TipoEquipe tipo, long emCampo, long executadas,
-			long confirmadas, long recusadas, long inviaveis, long atrasadas) {
+			long confirmadas, long naoExecutadas, long devolvidas, long atrasadas) {
 
 		static ProdutividadeResponse de(Produtividade p) {
 			return new ProdutividadeResponse(p.equipeId(), p.equipeNome(), p.tipo(), p.emCampo(), p.executadas(),
-					p.confirmadas(), p.recusadas(), p.inviaveis(), p.atrasadas());
+					p.confirmadas(), p.naoExecutadas(), p.devolvidas(), p.atrasadas());
 		}
 	}
 
-	record MotivoResponse(StatusOrdem status, MotivoResultado motivo, long quantidade) {
+	/**
+	 * @param tipo NAO_EXECUCAO ou DEVOLUCAO
+	 */
+	record MotivoResponse(String tipo, String codigo, String nome, long quantidade) {
 
 		static MotivoResponse de(ContagemMotivo m) {
-			return new MotivoResponse(m.status(), m.motivo(), m.quantidade());
+			return new MotivoResponse(m.tipo(), m.codigo(), m.nome(), m.quantidade());
 		}
 	}
 
@@ -176,27 +182,47 @@ class CampanhaController {
 	}
 
 	/**
-	 * @param ordens OS escolhidas; vazia = as planejadas na ordem de prioridade
+	 * @param data dia da programação
+	 * @param ordens OS escolhidas; vazia = as planejadas e devolvidas na ordem de
+	 * prioridade
 	 * @param prioridade só com a lista vazia: envia só as dessa prioridade
 	 * @param quantidade só com a lista vazia: até quantas enviar
 	 */
-	record DistribuicaoRequest(@NotNull UUID equipeId, @NotNull @Size(max = 5000) List<@NotNull UUID> ordens,
-			@Nullable Prioridade prioridade, @Nullable @Min(1) @Max(5000) Integer quantidade) {
+	record DistribuicaoRequest(@NotNull UUID equipeId, @NotNull LocalDate data,
+			@NotNull @Size(max = 5000) List<@NotNull UUID> ordens, @Nullable Prioridade prioridade,
+			@Nullable @Min(1) @Max(5000) Integer quantidade) {
 	}
 
 	/**
 	 * @param foraDaArea não enviadas: o imóvel fica fora da unidade onde a equipe atua
+	 * @param incompativeis não enviadas: o serviço exige habilidade ou veículo que a
+	 * equipe não tem (RN-23)
+	 * @param ignoradas não enviadas: já em execução, encerradas ou canceladas
 	 */
-	record DistribuicaoResponse(int enviadas, int foraDaArea) {
+	record DistribuicaoResponse(int enviadas, int foraDaArea, int incompativeis, int ignoradas) {
 	}
 
 	private final CampanhaService campanhas;
 
 	private final OrdemServicoService ordens;
 
-	CampanhaController(CampanhaService campanhas, OrdemServicoService ordens) {
+	private final ProgramacaoService programacao;
+
+	CampanhaController(CampanhaService campanhas, OrdemServicoService ordens, ProgramacaoService programacao) {
 		this.campanhas = campanhas;
 		this.ordens = ordens;
+		this.programacao = programacao;
+	}
+
+	/** Motivos de não execução, para o gestor encerrar pela empreiteira. */
+	@GetMapping("/motivos")
+	List<MotivoDaOrdemResponse> motivos() {
+		return programacao.opcoes()
+			.motivos()
+			.stream()
+			.filter(m -> "NAO_EXECUCAO".equals(m.tipo()))
+			.map(MotivoDaOrdemResponse::de)
+			.toList();
 	}
 
 	@GetMapping
@@ -204,10 +230,15 @@ class CampanhaController {
 		return campanhas.listar(status).stream().map(CampanhaResponse::de).toList();
 	}
 
-	/** Quantos imóveis entram e o impacto na meta, sem criar nada. */
+	/**
+	 * Quantos imóveis entram e o impacto na meta, sem criar nada.
+	 * @param acao define o serviço de cada imóvel (os que já têm OS aberta dele ficam de
+	 * fora)
+	 */
 	@PostMapping("/previa")
-	PreviaResponse previa(@Valid @RequestBody RecorteDaCampanha recorte) {
-		return PreviaResponse.de(campanhas.previa(recorte.recorte()));
+	PreviaResponse previa(@Valid @RequestBody RecorteDaCampanha recorte,
+			@RequestParam(defaultValue = "LIGACAO") AcaoCampanha acao) {
+		return PreviaResponse.de(campanhas.previa(recorte.recorte(), acao));
 	}
 
 	@PostMapping
@@ -233,32 +264,32 @@ class CampanhaController {
 			@RequestParam(defaultValue = "false") boolean atrasadas,
 			@RequestParam(defaultValue = "0") @Min(0) @Max(10_000) int pagina,
 			@RequestParam(defaultValue = "50") @Min(1) @Max(200) int tamanho) {
-		var p = campanhas.ordens(id, new FiltroOrdens(status, equipe, conferencia, prioridade, atrasadas), pagina,
-				tamanho);
+		var p = campanhas.ordens(id, FiltroOrdens.daCampanha(id, status, equipe, conferencia, prioridade, atrasadas),
+				pagina, tamanho);
 		return new PaginaOrdensResponse(p.itens().stream().map(OrdemServicoResponse::de).toList(), p.total(),
 				p.pagina(), p.tamanho());
 	}
 
 	@PostMapping("/{id}/distribuir")
 	DistribuicaoResponse distribuir(@PathVariable UUID id, @Valid @RequestBody DistribuicaoRequest pedido) {
-		var r = campanhas.distribuir(id,
-				new Distribuicao(pedido.equipeId(), pedido.ordens(), pedido.prioridade(), pedido.quantidade()));
-		return new DistribuicaoResponse(r.enviadas(), r.foraDaArea());
+		var r = campanhas.distribuir(id, new Distribuicao(pedido.equipeId(), pedido.data(), pedido.ordens(),
+				pedido.prioridade(), pedido.quantidade()));
+		return new DistribuicaoResponse(r.enviadas(), r.foraDaArea(), r.incompativeis(), r.ignoradas());
 	}
 
 	/** Resultado informado pelo gestor (ex.: empreiteira sem acesso à Aurora). */
 	@PutMapping("/ordens/{ordem}/resultado")
 	OrdemServicoResponse registrar(@PathVariable UUID ordem, @Valid @RequestBody ResultadoRequest pedido) {
-		return OrdemServicoResponse.de(ordens.registrarPeloGestor(ordem, pedido.registro()));
+		return OrdemServicoResponse.de(ordens.encerrarPeloGestor(ordem, pedido.registro()));
 	}
 
-	/** Conclui a campanha; as OS ainda em aberto são canceladas. */
+	/** Conclui a campanha; as OS que ainda não começaram são canceladas. */
 	@PostMapping("/{id}/encerrar")
 	CampanhaResponse encerrar(@PathVariable UUID id) {
 		return CampanhaResponse.de(campanhas.encerrar(id));
 	}
 
-	/** Desiste da campanha; as OS ainda em aberto são canceladas. */
+	/** Desiste da campanha; as OS que ainda não começaram são canceladas. */
 	@PostMapping("/{id}/cancelar")
 	CampanhaResponse cancelar(@PathVariable UUID id) {
 		return CampanhaResponse.de(campanhas.cancelar(id));

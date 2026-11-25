@@ -92,8 +92,11 @@ Escala (rem, base 16 px):
 | `--fs-h1` | 1.75 | Título de página ("Mapa", "Alertas") |
 | `--fs-h2` | 1.125 | Título de cartão |
 | `--fs-body` | 0.9375 | Texto e tabelas |
-| `--fs-small` | 0.8125 | Apoio, rodapé do menu |
-| `--fs-label` | 0.6875 | Rótulos em caixa-alta com espaçamento (`letter-spacing: .12em`), ex.: "INDICADOR CONTRATUAL" |
+| `--fs-small` | 0.875 | Apoio, células de tabela, rodapé do menu |
+| `--fs-label` | 0.8125 | Detalhes, dicas e rótulos de campo |
+| `--fs-caixa-alta` | 0.75 | Só rótulos em caixa-alta com espaçamento (`letter-spacing: .08em`), ex.: "INDICADOR CONTRATUAL" |
+
+Nenhum texto fica abaixo de 12 px (revisão de legibilidade de 24/11/2026; o E2E `busca-e-dialogos` confere).
 
 Números sempre com `font-variant-numeric: tabular-nums` e formato pt-BR (vírgula decimal, ponto de milhar).
 

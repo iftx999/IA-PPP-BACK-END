@@ -48,6 +48,7 @@ class CampanhaPorAreaApiTest {
 		t = DadosDeTeste.criarTenant("Campanha por área");
 		DadosDeTeste.criarAdesao(t);
 		DadosDeTeste.criarHistoricoDeImoveis(t);
+		DadosDeTeste.semearCatalogo(t);
 		var gestor = DadosDeTeste.criarPerfil(t, "Gestor", "campanha:gerenciar", "indicador:ler");
 		DadosDeTeste.criarUsuario(t, "sub-gestor", "gestor@area.teste", t.cidadeA(), gestor);
 		DadosDeTeste.criarUsuario(t, "sub-joana", "joana.campo@area.teste", t.cidadeA(), gestor);
@@ -92,15 +93,19 @@ class CampanhaPorAreaApiTest {
 			.andExpect(status().isOk())
 			.andExpect(jsonPath("$.total").value(2))
 			.andExpect(jsonPath("$.itens[0].matricula").value("••••002"))
-			.andExpect(jsonPath("$.itens[0].tipo").value("VISTORIA"))
+			.andExpect(jsonPath("$.itens[0].servicoCodigo").value("VISTORIA"))
 			.andExpect(jsonPath("$.itens[0].latitude").value(-22.90));
 
-		// Por setor: só cortados, ficam de fora os que já têm OS aberta.
-		postar("/api/v1/campanhas/previa", """
-				{"origem":"SETOR","unidadeId":"%s","situacao":"FACTIVEL"}""".formatted(t.setorA1()), "sub-gestor")
-			.andExpect(status().isOk())
+		// Por setor, só factíveis: ficam de fora os que já têm OS aberta do mesmo serviço
+		// (ADR 0044); para ligação, a vistoria aberta não impede.
+		var setor = """
+				{"origem":"SETOR","unidadeId":"%s","situacao":"FACTIVEL"}""".formatted(t.setorA1());
+		postar("/api/v1/campanhas/previa?acao=VISTORIA", setor, "sub-gestor").andExpect(status().isOk())
 			.andExpect(jsonPath("$.imoveis").value(2))
 			.andExpect(jsonPath("$.comOsAberta").value(2));
+		postar("/api/v1/campanhas/previa", setor, "sub-gestor").andExpect(status().isOk())
+			.andExpect(jsonPath("$.imoveis").value(4))
+			.andExpect(jsonPath("$.comOsAberta").value(0));
 		postar("/api/v1/campanhas/previa", """
 				{"origem":"SETOR","unidadeId":"%s","situacao":"FACTIVEL","motivoCorte":"A_PEDIDO"}"""
 			.formatted(t.setorA1()), "sub-gestor").andExpect(status().isUnprocessableContent());

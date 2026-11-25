@@ -1,11 +1,11 @@
 package dev.aurora.campanhas.model;
 
 /**
- * RN-19: prioridade da OS pelo semáforo da unidade do imóvel (abaixo do alerta, em
- * atenção, demais).
+ * Prioridade da OS (RN-21): define o prazo pelo serviço. Nas campanhas vem do semáforo da
+ * unidade do imóvel (RN-19): abaixo do alerta, em atenção, demais.
  */
 public enum Prioridade {
 
-	ALTA, MEDIA, BAIXA
+	EMERGENCIAL, ALTA, MEDIA, BAIXA
 
 }

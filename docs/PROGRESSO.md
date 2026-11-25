@@ -479,3 +479,370 @@ token não leva os papéis de `realm-management` e a Admin API responde 403. Flu
   não oferece TLS. Exceção com motivo em `spotbugs-excluir.xml` e consequência registrada no ADR 0033.
 - As imagens eram publicadas mesmo com o CI vermelho. Agora o CI chama o workflow de imagens (`workflow_call`) só depois
   de todos os jobs passarem, no push no `main`. A execução manual (`workflow_dispatch`) continua e não passa pelo CI.
+
+## Sessão de 17/11/2026
+
+### Serviços de campo: especificação (doc 10) e M1, catálogo de serviços — ADR 0042 — branch `feature/catalogo-de-servicos`
+- Pedido do autor: cadastro de serviços e parâmetros, programação por ligação ou logradouro com a melhor rota possível
+  e app nativo (Flutter) que funciona sem sinal (fila local), com iniciar, paralisar, devolver e encerrar.
+  Especificação no novo **doc 10** (épico J, RN-20 a RN-27, modelo, roteirização Valhalla + Timefold, app offline,
+  7 marcos); aprovada com as propostas das pendências P1–P10 (doc 06, itens 14–23; P10 continua aberta).
+- **M1 entregue:** módulo `servicos` (V31): grupos, serviços versionados (só inserção nas versões), parâmetros de
+  encerramento com condição, motivos, tipos de veículo, habilidades; catálogo inicial de 12 serviços semeado por
+  função SQL (clientes existentes na V31, novos no provisionamento); perfil **Gestor de serviços**.
+- Telas `/servicos` (filtros na URL, abas serviços / motivos / apoio) e `/servicos/:id` (editor com pré-visualização
+  do formulário do app e histórico de versões); rótulos dos eventos novos na auditoria.
+- Defeitos achados pelo ambiente local e corrigidos: a V31 falhava num banco com clientes (RLS forçado de `tenant`
+  sem contexto) — os testes começam vazios, por isso o novo `MigracaoDoCatalogoTest` migra até a V28, cria um cliente
+  e aplica a V31; e o editor perdia condição, mínimo e máximo dos parâmetros ao recarregar (o `reset()` do formulário
+  reiniciava o `FormArray`), criando versão nova sem mudança.
+- Testes: back-end `DefinicaoServicoTest` (6), `CatalogoApiTest` (3), `MigracaoDoCatalogoTest` (1), `PlataformaApiTest`
+  com 6 perfis e o catálogo semeado (suíte: 338 testes); `FronteirasDoCatalogoTest` (12) e as regras do catálogo no teste de mutação (97%); front `textos.spec.ts` (6), E2E `servicos.spec.ts` e as duas
+  telas no axe (sem violações sérias nos dois temas).
+- Numeração: V31 e ADR 0042 porque V29/V30 e ADR 0037–0041 estão em outras branches. **Ordem de merge:** partição
+  (V29) → atendimento ao titular (V30) → esta, para o Flyway não encontrar migração antiga pendente.
+- Ambiente: E2E rodado num Compose isolado (`-p aurora-servicos-e2e`, cópia do volume de desenvolvimento); o banco de
+  desenvolvimento não foi migrado.
+
+## Sessão de 18/11/2026
+
+### Serviços de campo, M2: logradouros e trechos — ADR 0043 — branch `feature/catalogo-de-servicos`
+- Módulo `logradouros` (V32): `logradouro`, `trecho` (LineString 4674, extensão, faixa e lado), `imovel_endereco`
+  (matrícula → logradouro, trecho, número) e `importacao_logradouro` (histórico com SHA-256; o arquivo não é guardado).
+  RLS por escopo; permissão `logradouro:gerenciar` (Gestor de serviços e Administrador; clientes existentes pela V32).
+- Importação de trechos (GeoJSON por município, lido em fluxo) e de endereços (CSV
+  `matricula;codigo_logradouro;numero;complemento`), sempre com **simulação** antes de gravar; reimportar atualiza
+  pela chave da concessionária, trechos ausentes são informados e não apagados; arquivo passa pelo antivírus.
+- Trecho do imóvel pela faixa/lado ou, sem faixa, pelo trecho mais próximo do ponto; corrigir a faixa refaz a escolha.
+  Cobertura do município: com endereço, com trecho e localização aproximada.
+- Matrícula inteira na lista de imóveis só com `dados_pessoais:ler`, auditada (`ACESSO_DADO_PESSOAL`); senão mascarada.
+- Telas `/logradouros` (busca, cobertura, importação com prévia e relatório, histórico) e `/logradouros/:id` (trechos
+  no mapa, correção auditada do nome e das faixas, imóveis na ordem da numeração). `nucleo/maplibre.ts` prepara o
+  MapLibre para as duas telas de mapa.
+- Testes: back-end `LeitoresDeLogradouroTest` (4), `FronteirasDosLeitoresTest` (5, também no teste de mutação),
+  `LogradourosApiTest` (fluxo completo) e `MigracaoDoCatalogoTest` estendido até a V32; front `textos.spec.ts`,
+  E2E `logradouros.spec.ts` e as duas telas no axe.
+- Correção de acessibilidade em todas as telas: os esqueletos de carregamento tinham `aria-label` num `div` sem papel
+  (o axe acusava de forma intermitente, quando pegava a tela carregando); agora têm `role="status"`.
+- Próximo: M3, OS genérica (J4/J5: OS avulsa por ligação, OS de trecho e lote por logradouro; migração das OS da V28
+  para o catálogo).
+
+### Serviços de campo, M3: OS genérica e programação — ADR 0044 — branch `feature/catalogo-de-servicos`
+- V33: OS com serviço e versão do catálogo (RN-20), alvo imóvel ou trecho, lote por logradouro (`lote_os`),
+  numeração única no cliente (`contador_os`), prazo com hora (RN-21) e feriados por unidade (`feriado`; nacionais
+  calculados, inclusive Sexta-feira Santa e Consciência Negra). Ciclo novo: planejada → programada → em execução ⇄
+  paralisada → encerrada, com devolvida e cancelada. As OS da V28 são migradas (testado em `MigracaoDoCatalogoTest`
+  sobre dados antigos e aplicado na cópia do banco do E2E).
+- API `/api/v1/ordens` (`os:programar`, para Gestor de serviços, Gestor comercial e Administrador): OS avulsas por
+  matrícula, de trecho (quantidade = extensão quando o serviço é por metro), lote por logradouro com prévia, lista com
+  filtros, programar/reprogramar (só na área da equipe), cancelar e encerrar com motivos do catálogo; equipes ativas
+  para quem programa. "Minhas OS" ganha encerrar (executada/não executada) e devolver. Campanhas geram OS do
+  catálogo e a distribuição pede a data. `/api/v1/catalogo/feriados` para os feriados municipais.
+- Front: tela `/ordens` (Programação de OS: filtros na URL, seleção, programar, Nova OS em três modos, cancelar e
+  encerrar), atalhos "OS de trecho" e "Lote de OS na rua" no detalhe do logradouro, campanhas e "Minhas OS" no ciclo
+  novo. Correção geral: `data()` mostrava o dia anterior para datas sem hora (meia-noite UTC).
+- Testes: back-end 354 + novos (`OrdensApiTest`, `RegrasDaProgramacaoTest`, `CalendarioTest`), mutação 96,7%; front
+  93 unitários; E2E `ordens.spec.ts`, `campanhas.spec.ts` atualizado e `/ordens` no axe (dois temas).
+- Pendências: `servicos.spec.ts` falhou uma vez por corrida entre avisos (passou 3/3 isolado); habilidade/veículo da
+  equipe na compatibilidade (M5), parâmetros/fotos no encerramento e eventos da OS (M4).
+- Próximo: M4, execução na API (eventos idempotentes, iniciar/paralisar/retomar, anexos, jornada, aparelhos).
+
+### Serviços de campo, M4: execução na API — ADR 0045 — branch `feature/catalogo-de-servicos`
+- V34: `os_evento` (id do celular, sequência por OS, hora do celular e do servidor, GPS, avisos), `os_anexo` (fotos
+  em partes), `os_conflito`, `jornada`, `posicao_equipe` (expurgo diário após 90 dias), `dispositivo`; OS ganha
+  última sequência, início, "início fora do local" e os valores dos parâmetros. Raio do início por cliente (300 m).
+  Permissão nova `dispositivo:gerenciar` (Administrador e Gestor de serviços).
+- API do app `/api/v1/campo` (`os:executar`, cabeçalho `X-Aurora-Dispositivo`): cadastro do celular, jornada e pacote
+  do dia (com diferença por versão), lote de eventos (iniciar, paralisar, retomar, devolver, encerrar) aplicado uma
+  única vez e na ordem; quem chega antes do anterior espera. Conflitos do 10.9.5: vale o campo quando trabalhou na OS
+  cancelada ou de outra equipe, vale a programação na devolução. Encerrar executada valida os parâmetros da versão da
+  OS (condições, faixas, opções, fotos). Fotos em partes com SHA-256, assinatura do formato e antivírus. Posições só
+  na jornada. Celular bloqueado: 403 com código, mas ainda envia a fila pendente.
+- Web: `GET /ordens/{id}/execucao` e a foto, caixa de conflitos com decisão auditada; `/api/v1/dispositivos`.
+  Front: registros do campo e caixa de conflitos na Programação de OS, atalho de devolvidas, tela `/celulares`.
+- Testes: back-end 407 (novos `CampoApiTest` com o fluxo inteiro, `RegrasDeExecucaoTest` com 30 casos,
+  `MigracaoDoCatalogoTest` até a V34), mutação 97,1%; front 98 unitários; E2E `execucao.spec.ts` (celular simulado
+  pela API com a sessão do navegador), `ordens`, `campanhas` e axe com `/celulares` nos dois temas.
+- Pendências: PIN/biometria e sessão de 7 dias sem rede (app e Keycloak, M6); P10 decidida: celular da empresa;
+  RIPD da localização dos funcionários escrito (`docs/ripd.md`, rascunho para o DPO do cliente); mapa do dia com as posições (M7).
+- Próximo: M5, roteirização (Valhalla no compose, Timefold, J6 e J7).
+
+## Sessão de 19/11/2026
+
+### Serviços de campo, M5: roteirização — ADR 0046 — branch `feature/catalogo-de-servicos`
+- V35: equipe com base (ponto), início e fim da jornada, pausa, tipo de veículo e habilidades (`equipe_habilidade`);
+  RN-23 por inteiro na programação manual, na roteirização e na publicação (função `veiculo_atende`: moto exigida →
+  qualquer veículo; carro → mesmo tipo ou caminhão; caminhão → só o mesmo tipo). Tabelas `roteirizacao`, `rota`,
+  `rota_parada`, `roteirizacao_pendente`; `ordem_servico.sequencia_rota` (ordena Minhas OS e o pacote do app).
+- Valhalla 3.9.3 no compose (dev e produção, digest fixado) com o recorte do OSM (`infra/scripts/recortar-osm.sh`;
+  recorte de teste Limeira/Piracicaba/Rio Claro em `~/Iapp/osm/regiao-teste.osm.pbf`, 13,6 MB, tiles em ~1 min).
+  Matriz em blocos 50 × 50 com cache e disjuntor `rotas`; sem Valhalla, linha reta rotulada.
+- Timefold Solver 2.8.0 (núcleo): equipe e ordem de cada OS pela RN-25 (duras: RN-23 e jornada; médias:
+  emergencial, prazo, prioridade; flexíveis: emergencial cedo, deslocamento, equilíbrio). Pausa no meio da jornada;
+  OS fixadas no começo da rota. 30 s na prévia, 10 s na reotimização, para antes sem melhora.
+- API `/api/v1/roteirizacoes` (`os:programar`): candidatas da unidade no dia, cálculo assíncrono (202 + consulta),
+  recálculo com fixadas/movidas, reotimização do dia (J7), publicar (programa na sequência; substitui a publicação
+  anterior) e descartar; auditado. Equipe sem base é recusada no pedido.
+- Front: formulário da equipe com jornada (timepicker), pausa, veículo, habilidades e base no mapa
+  (`aurora-escolher-ponto`); tela `/roteirizacao` com escolha de equipes e OS, rotas por equipe, OS sem rota com o
+  motivo, fixar/mover, recalcular, publicar, reotimizar e o mapa com o traçado pelas ruas (tracejado na estimativa).
+- Testes: back-end 4 do otimizador, 4 da malha viária (Valhalla falso), `RoteirizacaoApiTest` de ponta a ponta,
+  RN-23 nos testes de OS e campanhas; front 101 unitários; E2E `roteirizacao.spec.ts` contra o Valhalla real (com axe e
+  console limpo) e `/roteirizacao` no axe dos dois temas.
+- Pendências: gatilhos automáticos da reotimização e rota no "Iniciar jornada" (com o app, M6); medir a escala real
+  (50 equipes × 1.500 OS) com o recorte da concessão do cliente (10.14). Regra de veículo da RN-23 confirmada pelo usuário em 19/11/2026.
+
+### App de campo, M6b: jornada e pacote do dia — ADR 0047 — `aurora-app-campo` e branch `feature/catalogo-de-servicos`
+- **Back:** `GET /api/v1/campo/equipes` com as equipes da pessoa e o resumo de hoje (OS abertas, emergenciais,
+  veículo, jornada já aberta), para a tela "Iniciar jornada". O teste de API pegou um `readOnly` indevido (o
+  registro do último contato do celular escreve).
+- **App:** "Iniciar jornada" (escolha da equipe, checagens, aviso de localização) e "Hoje" (OS atual com Navegar,
+  lista na ordem da rota, selos de prazo e situação, puxar para atualizar, encerrar com confirmação). GPS no início;
+  sem sinal, inicia com a programação de hoje já guardada e envia o início quando a conexão volta. Pacote guardado no
+  SQLCipher e atualizado só pelas diferenças (`desde`) quando é do mesmo dia.
+- **Testes:** 27 no app (controle do dia, diferenças do pacote, fluxo das telas, acessibilidade claro e escuro); APK de
+  debug compilado.
+- **Falta no M6:** mapa da rota; fila de ações e sincronização (6c); execução da OS com parâmetros e fotos (6d);
+  envio das posições e tela da fila (6e); publicação interna.
+
+### App de campo, M6c: fila local e sincronização — ADR 0047
+- **Back:** `ultimaSequencia` por OS no pacote do dia (o celular continua a numeração dos eventos mesmo depois de
+  reinstalar).
+- **App:** fila de eventos no SQLCipher; envio em lotes com intervalos crescentes; indicador "x ações pendentes ·
+  último envio hh:mm" com "Enviar agora"; avisos de recusada, superada e conflito; situação das OS com as ações do
+  celular por cima do pacote; revogação envia a fila e confirma a limpeza; encerrar exige a fila vazia e apaga o
+  pacote. "Iniciar OS" e "Retomar OS" já registram eventos (o resto da execução é o 6d).
+- **Testes:** 41 no app; APK de debug compilado. **Não testado em aparelho:** a parte SQLCipher (sem emulador nesta
+  máquina) — conferir no primeiro teste em celular ou AVD.
+
+### App de campo, M6d: execução da OS e fotos — ADR 0047
+- **App:** tela da OS (dados, registro das ações com a situação do envio, ações conforme a situação), motivo de
+  paralisar/devolver, encerramento executado (parâmetros com condição, quantidade, fotos) ou não executado (motivo);
+  fotos enviadas em partes, retomando de onde pararam; indicador "x ações e y fotos pendentes".
+- **Testes:** 55 no app (formulário, envio das fotos, telas de paralisar e encerrar, acessibilidade claro e escuro);
+  APK de debug compilado. **Não testado em aparelho:** câmera, SQLCipher e pasta das fotos (sem emulador aqui).
+- **Em aberto (decisões do usuário):** marca d'água de hora/GPS nas fotos; fotos ficam na pasta privada do app (não
+  criptografadas à parte; o Android já criptografa o armazenamento do app).
+
+### App de campo, M6e: posições da jornada e tela da fila — ADR 0047
+- **App:** coleta de posições durante a jornada pelo serviço em primeiro plano do `geolocator_android` (notificação
+  fixa "Jornada em andamento"; o processo continua vivo em segundo plano e a fila segue enviando), uma posição a cada
+  2 min ou 100 m (5 min ou 250 m com bateria baixa), fila própria no SQLCipher (banco v4), envio depois dos eventos e
+  das fotos em lotes de 500; indicador "Localização registrada · última hh:mm" no Hoje; tela "Fila de envio".
+  Bateria e permissão de notificação por canal nativo (sem `battery_plus`, que traz MPL). Sem WorkManager (motivo na
+  ADR).
+- **Testes:** 73 no app (amostragem, envio das posições, coleta ligando e desligando com a jornada, GPS desligado,
+  bateria baixa, início sem sinal, tela da fila com acessibilidade claro e escuro); APK de debug compilado.
+- **Não testado em aparelho:** serviço em primeiro plano, notificação, permissão do Android 13+ e o comportamento em
+  segundo plano (Doze, economia de bateria do fabricante).
+
+### App de campo, M6f: rota no início da jornada e mapa — ADR 0048
+- **Back:** abrir a jornada publica `JornadaIniciada`; a roteirização calcula a rota da equipe a partir da posição
+  do agente (origem `JORNADA`) e a publica sozinha, só como sequência das OS da própria equipe. Nova
+  `GET /api/v1/campo/rota` com ETag/304. A posição do início da jornada vale como partida até a primeira amostra
+  (também na reotimização). Gatilho desligável por `aurora.roteirizacao.na-jornada`.
+- **App:** rota guardada no SQLCipher e atualizada pelo ETag (e 15 s e 45 s depois de iniciar); tela "Mapa da rota"
+  com `flutter_map` (BSD-3): traçado ou linha reta tracejada, paradas numeradas que abrem a OS, posição do agente,
+  resumo com km, tempo e fim previsto (estimativa). Tiles configuráveis na compilação.
+- **Testes:** back `verify` completo verde (417 testes, novo `RotaNaJornadaApiTest`; `CampoApiTest` roda com o
+  gatilho desligado); app 83 testes (rota, mapa, acessibilidade claro e escuro); APK de debug compilado.
+- **Não testado em aparelho:** mapa com tiles reais e gestos.
+
+### App de campo, M6g: publicação interna pelo Android Enterprise — ADR 0047
+- **Decisão do cliente (20/11):** Android Enterprise; chave de assinatura e provedor de tiles ficam para depois.
+- **App:** configuração gerenciada (API, login, código da empresa, tiles) lida do MDM ao abrir, valendo sobre a
+  compilação; com a empresa fixada pelo MDM, sem tela de empresa nem "Trocar empresa", e a troca no console apaga
+  os dados da anterior. Release assinado só com `AURORA_ASSINATURA_*` (sem elas, o build para). Guia
+  `docs/publicacao-android-enterprise.md` (chave, build, app privado, campos, política, primeiro teste).
+- **Testes:** 89 no app; release assinado com uma chave descartável conferido (assinatura, `versionCode`,
+  restrições no manifesto) e apagado.
+
+### Operação do dia e sugestões de reotimização, M7 — ADR 0049
+- **Back:** módulo `operacao` (`/api/v1/operacao`: mapa do dia, indicadores, sugestões; `os:programar`), migração
+  V36 (`sugestao_reotimizacao` com RLS, índices para os indicadores, tarefa `detectar-reotimizacao`). Atraso estimado
+  contra a rota publicada; indicadores de prazo, tempo real × padrão (com sugestão de novo tempo padrão), motivos e
+  produtividade (horas, km pelas posições, deslocamento). Detector a cada 2 min abre sugestões para emergencial nova,
+  paralisação acima de 30 min, devolução e atraso ≥ 30 min; aceitar junta as da unidade numa reotimização que o
+  programador confere e publica. API pública `Reotimizacoes`. **Correção do M5:** publicar uma reotimização de parte
+  das equipes não descarta mais a rota publicada das outras.
+- **Front:** tela "Operação do dia" (`/operacao`, menu Campo): sugestões com Reotimizar/Ignorar, mapa com equipes e
+  OS por situação (emergencial com anel), lista das equipes com atraso, e aba Indicadores (números, gráfico de prazo
+  por serviço com tabela, tempos, motivos, produtividade). Atualiza a cada 30 s.
+- **Testes:** back `verify` completo verde (427 testes; novos `OperacaoApiTest`, `EstimativaDeAtrasoTest`,
+  `SugestaoDeTempoPadraoTest`); front 105 testes de unidade, lint, E2E `operacao-do-dia.spec.ts` e a tela na
+  varredura de acessibilidade nos dois temas. E2E DB de cópia agora na V36.
+
+### Decisões de 21/11 depois do M7: confirmação da rota, avisos e modo noturno — ADR 0050
+- **Decisões do cliente:** o agente confirma a próxima rota no app; sugestões de reotimização aprovadas pelo
+  programador (como na ADR 0049); notificação; modo noturno; **sem** marca d'água nas fotos.
+- **Back:** V37 (`rota.confirmada_em/por`), `exigeConfirmacao` e `confirmadaEm` em `GET /campo/rota`,
+  `POST /campo/rota/confirmacao`, situação da confirmação no mapa do dia, `GET /operacao/sugestoes/resumo`.
+- **App:** nova ordem pendente até o agente conferir (tela "Nova ordem das OS"), confirmação guardada sem sinal,
+  conferência da rota a cada 2 min, aviso do Android; modo noturno pelo pôr e nascer do sol (menu "Tema da tela").
+- **Web:** contador no menu "Operação do dia", aviso na tela e notificação do navegador para sugestões novas;
+  confirmação do agente na lista das equipes.
+- **Testes:** back `verify` completo; app 109 testes e APK de debug; front 106 testes, lint, E2E e axe nos dois
+  temas. **Não testado em aparelho:** o aviso do Android.
+
+### Ideias do protótipo aprovadas (21/11): fotos cifradas, emergencial, modo luva, "Estou chegando" — ADR 0051, 0052
+- **App:** fotos cifradas com a chave no Android Keystore; alerta da OS emergencial (canal próprio, vibração, cartão
+  na Hoje); modo luva (botões de 72 dp e ações por toque longo); botão "Estou chegando".
+- **Back:** V38 (`imovel_contato` cifrado, `aviso_de_chegada`), importação dos celulares, aviso por SMS atrás da
+  porta `EnvioDeSms` (padrão `registro`, sem envio até a empresa contratar o provedor), chave
+  `AURORA_CHAVE_CONTATOS`. RIPD seção 2.
+- **Web:** "Importar celulares" em Logradouros, com o total de imóveis com celular.
+- **Testes:** back `verify`; app 127 testes e APK; front 106 testes, lint e E2E. **Não testado em aparelho:**
+  Keystore, alerta da emergencial e vibração.
+
+### Onde paramos (24/11/2026, revisão de UI/UX do front) — retomar daqui
+**Estado:** revisão de usabilidade feita, com commit (branch `feature/catalogo-de-servicos` do front e do back): letra
+mínima de 12 px, menu com ícones e grupos que recolhem, busca geral (Ctrl+K), "Mais filtros", OS em aberto por padrão,
+diálogos que perguntam antes de descartar, "Tentar de novo", telas em 390 px; página inicial de quem programa
+(`/inicio`, `GET /api/v1/ordens/resumo`); ordenar (`ordenar`, `decrescente`), exportar (`/ordens/exportacao.csv`, RN-12)
+e cancelar várias OS (`POST /api/v1/ordens/cancelar`); perfil "Administrador da empresa" (V39). E2E DB na V39. **Falta o
+push.**
+
+**Merge:** a V30 (atendimento ao titular) procura o perfil pelo nome antigo. Na ordem combinada (partição → titular →
+esta) ela roda antes da V39 e não muda nada; fora dessa ordem, ajustar o nome na V30.
+
+**Decisão em aberto:** "Gestor de serviços" e "Gestor comercial" não têm `relatorio:exportar`; sem ela o botão Exportar
+da Programação de OS não aparece para eles.
+
+**Próximas ideias de uso:** filtros favoritos, teste com usuários reais. **Segurança pendente:** versões do Keycloak,
+Spring Boot e Grafana.
+
+### Onde paramos (21/11/2026, depois das ADR 0051 e 0052) — superado pelo de 24/11
+**Estado:** M1 a M7 do doc 10 e as ADR 0050 a 0052 prontos, com commit. Todas as ideias do protótipo decididas e
+feitas. **Falta o push** nos três repositórios (a chave SSH tem senha; o app ainda sem remoto) e o merge da branch
+em `main` (ordem: partição → atendimento ao titular → esta). E2E DB de cópia na V38.
+
+**Com a empresa (depois):** chave de assinatura e nome do pacote do app; provedor de tiles; **provedor de SMS**
+(contrato e adaptador), base legal e texto do aviso, opt-out do morador (RIPD seção 2); `AURORA_CHAVE_CONTATOS` em
+produção; primeiro teste em aparelho cadastrado no MDM.
+
+### Onde paramos (21/11/2026, depois da ADR 0050) — superado pelo de depois das ADR 0051 e 0052
+**Estado:** M1 a M7 do doc 10 e a ADR 0050 prontos, com commit: branch `feature/catalogo-de-servicos` dos dois
+repositórios e `~/Iapp/aurora-app-campo`. **Falta o push** nos três (a chave SSH tem senha; o app ainda sem remoto) e
+o merge da branch em `main` (ordem: partição → atendimento ao titular → esta). E2E DB de cópia na V37.
+
+**Com a empresa (depois):** chave de assinatura e nome do pacote do app; provedor de tiles; primeiro teste em
+aparelho cadastrado no MDM (inclui o aviso do Android e o modo noturno).
+
+**Decisões do usuário em aberto:** criptografar as fotos à parte; alerta sonoro de emergencial; "Estou chegando";
+modo luva.
+
+### Onde paramos (21/11/2026, fim do M7) — superado pelo de depois da ADR 0050
+**Estado:** M1 a M7 do doc 10 prontos, com commit: branch `feature/catalogo-de-servicos` dos dois repositórios e
+`~/Iapp/aurora-app-campo`. **Falta o push** nos três (a chave SSH tem senha; o app ainda sem remoto) e o merge da
+branch em `main` (ordem: partição → atendimento ao titular → esta).
+
+**Com a empresa (depois):** chave de assinatura e nome do pacote do app; provedor de tiles; primeiro teste em
+aparelho cadastrado no MDM (roteiro na seção 7 do guia do app).
+
+**Decisões do usuário em aberto:** marca d'água de hora/GPS nas fotos; criptografar as fotos à parte; modo noturno,
+alerta de emergencial, "Estou chegando" e modo luva (ideias do protótipo); confirmação da nova rota pelo agente no
+app; notificação das sugestões de reotimização além do contador na tela.
+
+### Onde paramos (20/11/2026, fim do M6) — superado pelo do fim do M7
+**Estado:** M6 completo (6a a 6g), com commit: `~/Iapp/aurora-app-campo` e a branch `feature/catalogo-de-servicos`
+do back. **Falta o push** nos três repositórios (a chave SSH tem senha; o app ainda sem remoto).
+
+**Com a empresa (depois):** criar e guardar a chave de assinatura; decidir o nome do pacote (`dev.aurora.campo`
+ou do domínio dela) antes da primeira publicação; provedor de tiles; primeiro teste em aparelho cadastrado no MDM
+(roteiro na seção 7 do guia).
+
+**Próximo:** M7 — indicadores (J12) e os gatilhos automáticos de reotimização (emergencial nova, paralisação longa,
+atraso de 30 min).
+
+**Decisões do usuário em aberto:** marca d'água de hora/GPS nas fotos; criptografar as fotos à parte; modo noturno,
+alerta de emergencial, "Estou chegando" e modo luva (ideias do protótipo).
+
+### Onde paramos (20/11/2026, fim do M6f) — superado pelo do fim do M6
+**Estado:** M6a a M6f prontos, com commit: `~/Iapp/aurora-app-campo` e a branch `feature/catalogo-de-servicos` do back.
+**Falta o push** nos três repositórios (`aurora-servicos`, `aurora-frontend-servicos`, `aurora-app-campo`; a chave SSH
+tem senha; o app ainda sem remoto).
+
+**Próximo:** publicação interna do app (assinatura do APK de release, versão e distribuição pelo MDM da empresa,
+que depende do MDM escolhido pelo cliente); depois M7 (indicadores, J12, e os gatilhos automáticos de reotimização).
+
+**Conferir no primeiro teste em aparelho ou AVD:** SQLCipher (abrir, migrar até a v4, apagar na revogação), câmera e
+pasta das fotos, GPS, link `geo:` do Navegar, notificação da jornada, envio com o app em segundo plano e o mapa.
+
+**Decisões do usuário em aberto:** marca d'água de hora/GPS nas fotos; criptografar as fotos à parte; modo noturno,
+alerta de emergencial, "Estou chegando" e modo luva (ideias do protótipo); provedor de tiles do mapa em produção.
+
+### Onde paramos (20/11/2026) — superado pelo do fim do M6f
+**Estado:** M6a a M6e do app de campo prontos, com commit em `~/Iapp/aurora-app-campo`. **Falta o push** nos três
+repositórios (`aurora-servicos`, `aurora-frontend-servicos`, `aurora-app-campo`; a chave SSH tem senha).
+
+**Próximo:** fim do M6: mapa da rota no app (MapLibre, conferir licença do plugin) e publicação interna (assinatura
+do APK, distribuição pelo MDM da empresa); depois M7 (indicadores, J12).
+
+**Conferir no primeiro teste em aparelho ou AVD:** SQLCipher (abrir, migrar até a v4, apagar na revogação), câmera e
+pasta das fotos, GPS, link `geo:` do Navegar, notificação da jornada e envio com o app em segundo plano.
+
+**Decisões do usuário em aberto:** marca d'água de hora/GPS nas fotos; criptografar as fotos à parte; modo noturno,
+alerta de emergencial, "Estou chegando" e modo luva (ideias do protótipo).
+
+### Onde paramos (19/11/2026, fim do dia) — superado pelo de 20/11
+**Estado:** M6a a M6d do app de campo prontos, com commit: `~/Iapp/aurora-app-campo` (último `ff488f9`) e a branch
+`feature/catalogo-de-servicos` do back (`ultimaSequencia` no pacote e `GET /campo/equipes`). **Falta o push** nos três
+repositórios (`aurora-servicos`, `aurora-frontend-servicos`, `aurora-app-campo`; a chave SSH tem senha).
+
+**Próximo:** M6e — posições da jornada (amostra a cada 2 min ou 100 m) e envio com o app fechado (serviço em primeiro
+plano ou WorkManager, conferir licenças), tela da fila; depois mapa da rota e publicação interna (assinatura, MDM).
+
+**Conferir no primeiro teste em aparelho ou AVD** (não há emulador nesta máquina): SQLCipher (abrir, migrar da v2
+para a v3, apagar na revogação), câmera e pasta das fotos, GPS e o link `geo:` do Navegar.
+
+**Decisões do usuário em aberto:** marca d'água de hora/GPS nas fotos; criptografar as fotos à parte; modo noturno,
+alerta de emergencial, "Estou chegando" e modo luva (ideias do protótipo).
+
+### Onde paramos (19/11/2026, meio do dia) — superado pelo do fim do dia
+**Estado:** M1 a M5 dos serviços de campo prontos, com commit, nas branches `feature/catalogo-de-servicos` dos dois
+repositórios (`~/Iapp/aurora-servicos` e `~/Iapp/aurora-frontend-servicos`, worktrees). **Falta o push** (a chave SSH
+tem senha; rodar `git push` nos dois).
+
+**Próximo:** M6, app de campo em Flutter — aguardando o retorno do usuário sobre o protótipo
+(https://claude.ai/artifact/E4dybxLDYkSNHrhuSxq1pC; fontes em `docs/prototipo-app-campo/`) e as ideias em aberto (modo
+noturno, marca d’água nas fotos, alerta de emergencial, "Estou chegando", modo luva).
+
+**Para retomar o ambiente E2E isolado** (cópia do banco, agora na V35):
+`cd ~/Iapp/aurora/infra && docker compose -p aurora-servicos-e2e --env-file ~/Iapp/aurora/infra/.env up -d` e o
+Valhalla da branch: `cd ~/Iapp/aurora-servicos/infra && docker compose -p aurora-servicos-e2e -f compose.yaml
+--env-file ~/Iapp/aurora/infra/.env up -d valhalla`; API: `cd ~/Iapp/aurora-servicos/backend && set -a && .
+~/Iapp/aurora/infra/.env && set +a && ./mvnw -o -q spring-boot:run`; front: `cd ~/Iapp/aurora-frontend-servicos && npx
+ng serve`. O banco de desenvolvimento normal não foi tocado.
+
+**Pendências conhecidas:** aprovação do RIPD pelo cliente; seções 2 e 3 do RIPD (endereço dos imóveis, fotos das OS).
+
+### Onde paramos (18/11/2026, fim do dia) — superado pelo de 19/11
+**Estado:** M1 a M4 dos serviços de campo prontos, com commit, nas branches `feature/catalogo-de-servicos` dos dois
+repositórios (`~/Iapp/aurora-servicos` e `~/Iapp/aurora-frontend-servicos`, worktrees). Últimos commits: back
+`14a4182`, front `2efe738`. **Falta o push** (a chave SSH tem senha; rodar `git push` nos dois).
+
+**Decisões recentes do usuário:** celular da empresa (P10); RIPD com a localização dos funcionários escrito
+(`docs/ripd.md`, rascunho para o DPO do cliente).
+
+**Em andamento quando paramos:**
+1. **Protótipo do app de campo (antes do M6)** — 8 telas navegáveis: https://claude.ai/artifact/E4dybxLDYkSNHrhuSxq1pC
+   (cópia dos fontes em `docs/prototipo-app-campo/`). Aguardando o retorno do usuário sobre as telas e as ideias
+   em aberto: modo noturno automático × só claro; marca d’água de hora/GPS nas fotos; alerta de OS emergencial;
+   "Estou chegando" (exige telefone do morador); modo luva.
+2. **M5, roteirização** — só preparação feita, nenhum código:
+   - Recorte do OSM baixado em `~/Iapp/osm/sudeste-latest.osm.pbf` (864 MB); próximo passo: recortar a região dos
+     municípios de teste (Limeira, Piracicaba, Rio Claro) e gerar os tiles do Valhalla.
+   - Imagem `ghcr.io/valhalla/valhalla-scripted@sha256:693617873d42f24d9023eaa9aa002dccd832c9629c9ce8b60eb4ff30547215e1`
+     (MIT) já baixada; fixar pelo digest no compose.
+   - Timefold Solver 2.8.0 (Apache 2.0): usar só `timefold-solver-core`, sem o starter do Spring.
+   - Plano (vira a ADR 0046, migração V35): equipe com base, horário de jornada, tipo de veículo e habilidades
+     (RN-23 completa na programação); Valhalla no compose com matriz por perfil (moto, carro, caminhão) e cache;
+     Timefold com as regras da RN-25; API de prévia, fixar, publicar e reotimizar (J6, J7); rota no pacote do dia.
+
+**Para retomar o ambiente E2E isolado** (cópia do banco, já na V34):
+`cd ~/Iapp/aurora/infra && docker compose -p aurora-servicos-e2e --env-file ~/Iapp/aurora/infra/.env up -d`;
+API: `cd ~/Iapp/aurora-servicos/backend && set -a && . ~/Iapp/aurora/infra/.env && set +a && ./mvnw -o -q spring-boot:run`;
+front: `cd ~/Iapp/aurora-frontend-servicos && npx ng serve`. O banco de desenvolvimento normal não foi tocado.
+
+**Pendências conhecidas:** `servicos.spec.ts` falhou uma vez por corrida entre avisos (passa isolado); aprovação do
+RIPD pelo cliente; seções 2 e 3 do RIPD (endereço dos imóveis, fotos das OS).

@@ -26,6 +26,9 @@ public class Disjuntores {
 	/** Provedor de identidade (Keycloak Admin API). */
 	public static final String IDENTIDADE = "identidade";
 
+	/** Serviço de rotas pela malha viária (Valhalla, ADR 0046). */
+	public static final String ROTAS = "rotas";
+
 	private static final Logger LOG = LoggerFactory.getLogger(Disjuntores.class);
 
 	private final CircuitBreakerRegistry registro = CircuitBreakerRegistry.ofDefaults();

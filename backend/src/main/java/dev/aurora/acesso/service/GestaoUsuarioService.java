@@ -41,7 +41,7 @@ public class GestaoUsuarioService {
 
 	private static final String RECURSO = "usuario/";
 
-	private static final String SEM_ADMINISTRADOR = "O tenant ficaria sem administrador: mantenha ao menos um "
+	private static final String SEM_ADMINISTRADOR = "A empresa ficaria sem administrador: mantenha ao menos um "
 			+ "usuário ativo com gestão de usuários na unidade principal.";
 
 	private final UsuarioRepository usuarios;

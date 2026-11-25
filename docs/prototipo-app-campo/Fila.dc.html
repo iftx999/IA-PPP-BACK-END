@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Fila e sincronização</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&amp;family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#0a6b5b}a:hover{color:#074d41}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #f4f8f7; color: #0b1a1f; font-family: Inter, system-ui, sans-serif; display: flex; flex-direction: column">
+  <header style="background: #0b1a1f; color: #ffffff; padding: 16px; display: flex; flex-direction: column; gap: 12px">
+    <h1 style="margin: 0; font-family: Archivo, sans-serif; font-weight: 800; font-size: 24px">Fila</h1>
+    <p style="margin: 0; display: flex; align-items: center; gap: 8px; font-size: 14px; color: #f3d77a">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 2l20 20"></path><path d="M8.5 16.5a5 5 0 0 1 7 0"></path><path d="M5 12.9a10 10 0 0 1 5.2-2.8"></path><path d="M12 20h.01"></path></svg>
+      Sem sinal desde 15:40 · tudo fica guardado no celular
+    </p>
+    <button type="button" onClick="{{enviar}}" style="min-height: 52px; border-radius: 12px; border: 0; background: #4ad7bc; color: #04201b; font: 700 16px Inter, sans-serif; cursor: pointer">{{rotuloEnvio}}</button>
+  </header>
+
+  <div style="flex: 1; overflow: hidden; padding: 14px 12px; display: flex; flex-direction: column; gap: 16px">
+    <section aria-labelledby="h-pend" style="display: flex; flex-direction: column; gap: 8px">
+      <h2 id="h-pend" style="margin: 0 4px; font-size: 14px; font-weight: 700; color: #3d5359">Aguardando envio · {{pendentes}}</h2>
+      <sc-for list="{{fila}}" as="f" hint-placeholder-count="3">
+        <div style="background: #ffffff; border: 1px solid #d3e0dd; border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 8px">
+          <div style="display: flex; justify-content: space-between; gap: 8px">
+            <span style="font-weight: 600; font-size: 15px">{{f.titulo}}</span>
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #3d5359">{{f.hora}}</span>
+          </div>
+          <span style="font-size: 13px; color: #3d5359">{{f.detalhe}}</span>
+          <sc-if value="{{f.temProgresso}}" hint-placeholder-val="{{ false }}">
+            <div role="progressbar" aria-label="Envio da foto" aria-valuenow="{{f.progresso}}" aria-valuemin="0" aria-valuemax="100" style="height: 8px; border-radius: 4px; background: #e3ece9; overflow: hidden">
+              <div style="height: 8px; width: {{f.largura}}; background: #0a6b5b"></div>
+            </div>
+          </sc-if>
+        </div>
+      </sc-for>
+    </section>
+
+    <section aria-labelledby="h-conf" style="display: flex; flex-direction: column; gap: 8px">
+      <h2 id="h-conf" style="margin: 0 4px; font-size: 14px; font-weight: 700; color: #3d5359">Precisa de atenção</h2>
+      <div style="background: #fbeeee; border: 1px solid #e2b9bb; border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 6px">
+        <span style="font-weight: 700; font-size: 15px; color: #8b3a3f">OS 1038 passou para outra equipe</span>
+        <span style="font-size: 14px">Você já tinha iniciado: o seu registro valeu e o programador foi avisado. A OS continua com você.</span>
+      </div>
+      <div style="background: #ffffff; border: 1px solid #d3e0dd; border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 6px">
+        <span style="font-weight: 700; font-size: 15px">OS 1040 foi cancelada</span>
+        <span style="font-size: 14px; color: #3d5359">Saiu da sua lista. Nada a fazer.</span>
+      </div>
+    </section>
+
+    <section aria-labelledby="h-env" style="display: flex; flex-direction: column; gap: 6px">
+      <h2 id="h-env" style="margin: 0 4px; font-size: 14px; font-weight: 700; color: #3d5359">Enviados hoje · 14</h2>
+      <p style="margin: 0 4px; font-size: 14px; color: #3d5359">Último envio às 15:38. Fotos: 6 de 6 conferidas.</p>
+    </section>
+  </div>
+
+  <nav aria-label="Navegação do app" style="flex: none; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); background: #ffffff; border-top: 1px solid #d3e0dd; padding: 6px 8px 14px">
+    <a href="Main.dc.html" style="min-height: 56px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: #3d5359; text-decoration: none; font-size: 13px; font-weight: 600">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 20l-6-3V4l6 3 6-3 6 3v13l-6-3-6 3z"></path><path d="M9 7v13M15 4v13"></path></svg>
+      Hoje
+    </a>
+    <a href="Fila.dc.html" aria-current="page" style="min-height: 56px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: #0a6b5b; text-decoration: none; font-size: 13px; font-weight: 700">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-3-6.7"></path><path d="M21 4v5h-5"></path></svg>
+      Fila ({{pendentes}})
+    </a>
+    <a href="Jornada.dc.html" style="min-height: 56px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: #3d5359; text-decoration: none; font-size: 13px; font-weight: 600">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>
+      Jornada
+    </a>
+  </nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { enviando: false };
+  }
+  renderVals() {
+    const fila = [
+      { titulo: 'Encerrou OS 1042 · executada', hora: '15:58', detalhe: 'Ligação nova · 5 parâmetros', temProgresso: false },
+      { titulo: 'Foto “depois” da OS 1042', hora: '15:58', detalhe: '412 KB · 60% enviado, continua de onde parou', temProgresso: true, progresso: 60, largura: '60%' }
+    ];
+    return {
+      fila,
+      pendentes: fila.length,
+      rotuloEnvio: this.state.enviando ? 'Tentando enviar…' : 'Enviar agora',
+      enviar: () => this.setState({ enviando: true })
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -116,6 +116,7 @@ backup do passo 2 (seção 4).
 Troca periódica (ou após incidente): gere novos valores, atualize o `.env` e `up -d`. Atenção:
 - `AURORA_AUDITORIA_CHAVE` assina a trilha: trocar inicia uma nova cadeia (ADR 0009).
 - `AURORA_CHAVE_CURSOR`: cursores de paginação antigos deixam de valer (o usuário só recarrega a lista).
+- `AURORA_CHAVE_CONTATOS` (ADR 0052): os telefones já importados ficam ilegíveis; importe de novo o CSV de contatos.
 - `AURORA_IDENTIDADE_SEGREDO`: troque também no cliente `aurora-api-admin` do Keycloak.
 - `AURORA_SEGUNDO_FATOR_ADMINISTRADORES` (padrão `true`): exige o código do aplicativo autenticador de quem gerencia
   usuários (ADR 0023). Administrador que perdeu o celular: outro administrador remove o aplicativo em

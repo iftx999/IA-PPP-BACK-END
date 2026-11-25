@@ -45,8 +45,9 @@ public enum TipoEvento {
 	ACESSO_DADO_PESSOAL,
 
 	/**
-	 * ADR 0041: relatório do que a Aurora guarda de uma matrícula, emitido para atender um
-	 * titular (LGPD, art. 18), com o protocolo do pedido. A matrícula não vai para a trilha.
+	 * ADR 0041: relatório do que a Aurora guarda de uma matrícula, emitido para atender
+	 * um titular (LGPD, art. 18), com o protocolo do pedido. A matrícula não vai para a
+	 * trilha.
 	 */
 	ATENDIMENTO_AO_TITULAR,
 
@@ -90,6 +91,48 @@ public enum TipoEvento {
 	/** ADR 0036: equipes de campo, campanhas de ligação e ordens de serviço. */
 	EQUIPE_CADASTRADA, EQUIPE_ALTERADA, CAMPANHA_CRIADA, CAMPANHA_ENCERRADA, CAMPANHA_CANCELADA, ORDENS_DISTRIBUIDAS,
 	RESULTADO_DE_ORDEM_REGISTRADO,
+
+	/**
+	 * ADR 0042: catálogo de serviços (serviço cadastrado ou alterado, com ou sem nova
+	 * versão; grupo, veículo, habilidade ou motivo cadastrado ou alterado).
+	 */
+	SERVICO_CADASTRADO, SERVICO_ALTERADO, ITEM_DO_CATALOGO_CADASTRADO, ITEM_DO_CATALOGO_ALTERADO,
+
+	/**
+	 * ADR 0043: importação de trechos e de endereços; correção manual de logradouro e de
+	 * trecho.
+	 */
+	LOGRADOUROS_IMPORTADOS, ENDERECOS_IMPORTADOS, LOGRADOURO_CORRIGIDO, TRECHO_CORRIGIDO,
+
+	/**
+	 * ADR 0044: OS avulsas, de trecho e lotes criados; OS programadas ou reprogramadas,
+	 * devolvidas e canceladas; feriados cadastrados e removidos.
+	 */
+	ORDENS_CRIADAS, ORDENS_PROGRAMADAS, ORDEM_DEVOLVIDA, ORDEM_CANCELADA, FERIADO_CADASTRADO, FERIADO_REMOVIDO,
+
+	/**
+	 * ADR 0045: celular cadastrado e revogado; conflito de campo aberto e decidido; foto
+	 * recusada (antivírus ou conteúdo); fotos de OS vistas na web; posições expurgadas.
+	 */
+	DISPOSITIVO_CADASTRADO, DISPOSITIVO_REVOGADO, CONFLITO_DE_CAMPO_ABERTO, CONFLITO_DE_CAMPO_DECIDIDO, ANEXO_RECUSADO,
+	ANEXO_DE_ORDEM_LIDO,
+
+	/**
+	 * ADR 0046: roteirização pedida (prévia, recálculo ou reotimização), publicada como
+	 * programação ou descartada.
+	 */
+	ROTEIRIZACAO_PEDIDA, ROTEIRIZACAO_PUBLICADA, ROTEIRIZACAO_DESCARTADA,
+
+	/**
+	 * ADR 0049: sugestão automática de reotimização aceita ou ignorada pelo programador.
+	 */
+	REOTIMIZACAO_SUGERIDA_ACEITA, REOTIMIZACAO_SUGERIDA_IGNORADA,
+
+	/** ADR 0050: o agente confirmou no app a nova ordem das OS. */
+	ROTA_CONFIRMADA_NO_CAMPO,
+
+	/** ADR 0052: telefones dos imóveis importados e aviso de chegada ao morador. */
+	CONTATOS_DE_IMOVEIS_IMPORTADOS, AVISO_DE_CHEGADA,
 
 	/** ADR 0021: páginas digitalizadas lidas por OCR (nome herdado). */
 	TEXTO_RECONHECIDO_POR_OCR,

@@ -1,7 +1,6 @@
 package dev.aurora.privacidade.model;
 
 import java.time.Instant;
-import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.List;
 import java.util.UUID;
@@ -29,9 +28,9 @@ public record RelatorioDoTitular(String matricula, String protocolo, Instant emi
 			String unidadeNome, Instant atualizadoEm) {
 	}
 
-	/** Ordem de serviço aberta para o imóvel (ADR 0036), com o que a equipe registrou. */
-	public record OrdemDeServico(UUID id, int numero, String campanha, String tipo, String status, LocalDate prazo,
-			@Nullable String equipe, @Nullable String motivo, @Nullable String observacao,
+	/** Ordem de serviço do imóvel (ADR 0044), com o que a equipe registrou. */
+	public record OrdemDeServico(UUID id, long numero, @Nullable String campanha, String servico, String status,
+			Instant prazo, @Nullable String equipe, @Nullable String motivo, @Nullable String observacao,
 			@Nullable Instant resultadoEm, Instant criadaEm) {
 	}
 

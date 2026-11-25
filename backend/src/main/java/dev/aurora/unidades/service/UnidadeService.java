@@ -99,7 +99,7 @@ public class UnidadeService implements Unidades {
 	@Transactional
 	public UUID criar(TipoUnidade tipo, UUID paiId, DadosUnidade pedido) {
 		if (tipo.tiposPai().isEmpty()) {
-			throw new RegraVioladaException("O grupo é a raiz do tenant e é criado no cadastro do tenant.");
+			throw new RegraVioladaException("O grupo é a raiz da empresa e é criado no cadastro dela.");
 		}
 		var pai = unidades.buscarParaGestao(paiId)
 			.orElseThrow(() -> new RegraVioladaException("Unidade de cima não encontrada no seu escopo."));
@@ -145,7 +145,7 @@ public class UnidadeService implements Unidades {
 		unidades.travarSubarvore(id);
 		var unidade = buscarParaGestao(id);
 		if (unidade.raiz()) {
-			throw new RegraVioladaException("O grupo é a raiz do tenant e não pode ser movido.");
+			throw new RegraVioladaException("O grupo é a raiz da empresa e não pode ser movido.");
 		}
 		if (novoPaiId.equals(unidade.unidadePaiId())) {
 			return;
@@ -176,7 +176,7 @@ public class UnidadeService implements Unidades {
 			return;
 		}
 		if (unidade.raiz()) {
-			throw new RegraVioladaException("O grupo é a raiz do tenant e não pode ser inativado.");
+			throw new RegraVioladaException("O grupo é a raiz da empresa e não pode ser inativado.");
 		}
 		if (ativa) {
 			var pai = buscarParaGestao(unidade.unidadePaiId());

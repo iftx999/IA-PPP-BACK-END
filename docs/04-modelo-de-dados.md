@@ -67,6 +67,18 @@ erDiagram
 | `trecho_rede` | id, unidade_id, geom (linestring), status (`CONFIRMADA`, `PRESUMIDA`) | Camada de rede |
 | `marcacao` | id, geom, titulo, observacao, matricula (nullable), criada_por, criada_em, status | Visita marcada no mapa |
 
+### Catálogo de serviços (ADR 0042, V31)
+| Tabela | Campos principais | Observações |
+|--------|-------------------|-------------|
+| `grupo_servico` | id, codigo, nome, ativo | Agrupa o catálogo |
+| `servico` | id, grupo_id, codigo (imutável), ativo, versao_atual | O que não é versionado |
+| `servico_versao` | id, servico_id, versao, nome, unidade_medida, alvo, tempo_padrao_min, tempo_por_unidade, prazos (4 colunas), tipo_veiculo_id, habilidade_id, conferido_pela_carga, criada_por | Só inserção (RN-20) |
+| `parametro_servico` | servico_versao_id, chave, rotulo, tipo, obrigatorio, minimo, maximo, unidade, opcoes (jsonb), condicao (jsonb), ordem | Só inserção |
+| `motivo` | id, tipo (`PARALISACAO`, `DEVOLUCAO`, `NAO_EXECUCAO`, `CANCELAMENTO`), codigo, nome, exige_observacao, servico_id (nulo = todos), ativo | |
+| `tipo_veiculo` / `habilidade` | id, codigo, nome, (perfil_rota), ativo | Exigências do serviço; usadas na rota (M5) |
+
+> Tabelas dos próximos marcos (logradouros, OS genérica, eventos, rotas, jornada, aparelhos) em [10.10](10-servicos-e-roteirizacao.md#1010-modelo-de-dados-proposta).
+
 ### Alertas e dados
 | Tabela | Campos principais | Observações |
 |--------|-------------------|-------------|

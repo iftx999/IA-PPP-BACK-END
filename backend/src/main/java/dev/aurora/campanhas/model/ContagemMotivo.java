@@ -1,5 +1,9 @@
 package dev.aurora.campanhas.model;
 
-/** Quantas OS terminaram com cada motivo de recusa ou inviabilidade (I4). */
-public record ContagemMotivo(StatusOrdem status, MotivoResultado motivo, long quantidade) {
+/**
+ * Quantas OS terminaram (ou foram devolvidas) com cada motivo do catálogo (I4).
+ *
+ * @param tipo NAO_EXECUCAO ou DEVOLUCAO
+ */
+public record ContagemMotivo(String tipo, String codigo, String nome, long quantidade) {
 }

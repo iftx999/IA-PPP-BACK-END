@@ -1,7 +1,8 @@
 package dev.aurora.campanhas.service;
 
+import java.math.BigDecimal;
 import java.time.Clock;
-import java.time.LocalDate;
+import java.time.Duration;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.UUID;
@@ -11,10 +12,11 @@ import dev.aurora.auditoria.TipoEvento;
 import dev.aurora.campanhas.CampanhaDivergente;
 import dev.aurora.campanhas.Campanhas;
 import dev.aurora.campanhas.model.Conferencia;
-import dev.aurora.campanhas.model.MotivoResultado;
+import dev.aurora.campanhas.model.Justificativa;
 import dev.aurora.campanhas.model.OrdemServico;
 import dev.aurora.campanhas.model.RegistroResultado;
 import dev.aurora.campanhas.model.ResultadoOrdem;
+import dev.aurora.campanhas.model.StatusOrdem;
 import dev.aurora.campanhas.repository.EquipeRepository;
 import dev.aurora.campanhas.repository.OrdemServicoRepository;
 import dev.aurora.comum.ConflitoException;
@@ -28,20 +30,16 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Ordens de serviço no campo (I3) e a conferência pela carga (I4, RN-19). A equipe só vê
- * e registra as OS das equipes de que faz parte; o gestor registra por qualquer equipe da
- * sua área (ex.: empreiteira sem acesso à Aurora).
+ * Ordens de serviço no campo (doc 10, 10.6; ADR 0036, 0044) e a conferência pela carga
+ * (RN-19). A equipe só vê e movimenta as OS das equipes de que faz parte; o gestor
+ * encerra por qualquer equipe da sua área (ex.: empreiteira sem acesso à Aurora).
+ * Iniciar, paralisar e retomar chegam com o app (M4).
  */
 @Service
 public class OrdemServicoService implements Campanhas {
 
-	/** Resultados recentes que continuam na lista da equipe. */
-	static final int DIAS_DE_HISTORICO = 30;
-
-	/** Reagendamento máximo a partir de hoje. */
-	static final int REAGENDAMENTO_MAXIMO_EM_DIAS = 180;
-
-	static final int OBSERVACAO_MAXIMA = 500;
+	/** Encerradas e devolvidas recentes que continuam na lista da equipe. */
+	static final Duration HISTORICO = Duration.ofDays(30);
 
 	private final OrdemServicoRepository ordens;
 
@@ -49,97 +47,128 @@ public class OrdemServicoService implements Campanhas {
 
 	private final DadosPessoaisDasOrdens dadosPessoais;
 
+	private final MotivosDaOrdem motivos;
+
 	private final Auditoria auditoria;
 
 	private final Clock relogio;
 
 	OrdemServicoService(OrdemServicoRepository ordens, EquipeRepository equipes, DadosPessoaisDasOrdens dadosPessoais,
-			Auditoria auditoria, Clock relogio) {
+			MotivosDaOrdem motivos, Auditoria auditoria, Clock relogio) {
 		this.ordens = ordens;
 		this.equipes = equipes;
 		this.dadosPessoais = dadosPessoais;
+		this.motivos = motivos;
 		this.auditoria = auditoria;
 		this.relogio = relogio;
 	}
 
-	/** OS em campo das equipes da pessoa e os resultados dos últimos 30 dias. */
+	/** OS com as equipes da pessoa e as encerradas ou devolvidas nos últimos 30 dias. */
 	@Transactional
 	public List<OrdemServico> minhas() {
-		var hoje = LocalDate.now(relogio);
-		var lista = ordens.dasEquipes(equipes.equipesDe(usuario()), hoje, hoje.minusDays(DIAS_DE_HISTORICO));
+		var agora = relogio.instant();
+		var lista = ordens.dasEquipes(equipes.equipesDe(usuario()), agora, agora.minus(HISTORICO));
 		return dadosPessoais.aplicar(lista, "Ordens de serviço da equipe");
 	}
 
-	/** Resultado informado por alguém da equipe da OS. */
+	/** Encerramento informado por alguém da equipe da OS. */
 	@Transactional
-	public OrdemServico registrarPelaEquipe(UUID id, RegistroResultado registro) {
+	public OrdemServico encerrarPelaEquipe(UUID id, RegistroResultado registro) {
+		var travada = daEquipe(id);
+		return encerrar(id, travada, registro, true);
+	}
+
+	/** Encerramento informado pelo gestor (ex.: planilha da empreiteira). */
+	@Transactional
+	public OrdemServico encerrarPeloGestor(UUID id, RegistroResultado registro) {
+		var travada = ordens.travar(id).orElseThrow(RecursoNaoEncontradoException::new);
+		return encerrar(id, travada, registro, false);
+	}
+
+	/** A equipe devolve a OS para a programação, com motivo (D8). */
+	@Transactional
+	public OrdemServico devolver(UUID id, Justificativa pedido) {
+		var travada = daEquipe(id);
+		if (!travada.status().devolvivel()) {
+			throw new ConflitoException("Só OS programada, em execução ou paralisada pode ser devolvida.");
+		}
+		var justificativa = motivos.validar(pedido.motivoId(), "DEVOLUCAO", travada.servicoId(), pedido.observacao(),
+				"Informe o motivo da devolução.");
+		ordens.movimentar(id, StatusOrdem.DEVOLVIDA, justificativa.motivoId(), justificativa.observacao(), usuario());
+		var detalhes = new LinkedHashMap<String, @Nullable Object>();
+		detalhes.put("equipe", travada.equipeId() == null ? null : travada.equipeId().toString());
+		detalhes.put("servico", travada.servicoCodigo());
+		detalhes.put("motivo", justificativa.motivoId().toString());
+		auditoria.registrar(TipoEvento.ORDEM_DEVOLVIDA, "ordem-de-servico/" + id, detalhes);
+		return visivel(id, "OS devolvida");
+	}
+
+	private OrdemServicoRepository.Travada daEquipe(UUID id) {
 		var travada = ordens.travar(id).orElseThrow(RecursoNaoEncontradoException::new);
 		if (travada.equipeId() == null || !equipes.equipesDe(usuario()).contains(travada.equipeId())) {
 			throw new RecursoNaoEncontradoException();
 		}
-		return registrar(id, travada, registro, true);
+		return travada;
 	}
 
-	/** Resultado informado pelo gestor da campanha (ex.: planilha da empreiteira). */
-	@Transactional
-	public OrdemServico registrarPeloGestor(UUID id, RegistroResultado registro) {
-		var travada = ordens.travar(id).orElseThrow(RecursoNaoEncontradoException::new);
-		return registrar(id, travada, registro, false);
-	}
-
-	private OrdemServico registrar(UUID id, OrdemServicoRepository.Travada travada, RegistroResultado registro,
+	private OrdemServico encerrar(UUID id, OrdemServicoRepository.Travada travada, RegistroResultado registro,
 			boolean pelaEquipe) {
-		if (!travada.status().emCampo()) {
-			throw new ConflitoException(travada.status().aberta() ? "Envie a OS a uma equipe antes do resultado."
-					: "Esta OS já tem resultado.");
+		if (!travada.status().encerravel()) {
+			throw new ConflitoException(switch (travada.status()) {
+				case PLANEJADA, DEVOLVIDA -> "Programe a OS para uma equipe antes de encerrar.";
+				case PARALISADA -> "Retome a OS paralisada antes de encerrar.";
+				default -> "Esta OS já foi encerrada ou cancelada.";
+			});
 		}
-		var hoje = LocalDate.now(relogio);
-		var normalizado = validar(registro, hoje);
-		var conferencia = normalizado.resultado() == ResultadoOrdem.EXECUTADA && travada.tipo().conferidaPelaCarga()
+		Justificativa justificativa = null;
+		if (registro.resultado() == ResultadoOrdem.NAO_EXECUTADA) {
+			justificativa = motivos.validar(registro.motivoId(), "NAO_EXECUCAO", travada.servicoId(),
+					registro.observacao(), "Informe por que a OS não foi executada.");
+		}
+		var observacao = justificativa != null ? justificativa.observacao()
+				: MotivosDaOrdem.observacao(registro.observacao());
+		var quantidade = quantidade(registro, travada.quantidadePrevista());
+		var conferencia = registro.resultado() == ResultadoOrdem.EXECUTADA && travada.conferidoPelaCarga()
 				? Conferencia.PENDENTE : Conferencia.NAO_SE_APLICA;
-		ordens.registrarResultado(id, normalizado, usuario(), conferencia);
+		ordens.encerrar(id, registro.resultado(), justificativa == null ? null : justificativa.motivoId(), observacao,
+				quantidade, usuario(), conferencia);
 		var detalhes = new LinkedHashMap<String, @Nullable Object>();
-		detalhes.put("campanha", travada.campanhaId().toString());
-		detalhes.put("tipo", travada.tipo().name());
-		detalhes.put("resultado", normalizado.resultado().name());
-		detalhes.put("motivo", normalizado.motivo() == null ? null : normalizado.motivo().name());
-		detalhes.put("reagendadaPara",
-				normalizado.reagendadaPara() == null ? null : normalizado.reagendadaPara().toString());
+		detalhes.put("campanha", travada.campanhaId() == null ? null : travada.campanhaId().toString());
+		detalhes.put("servico", travada.servicoCodigo());
+		detalhes.put("resultado", registro.resultado().name());
+		detalhes.put("motivo", justificativa == null ? null : justificativa.motivoId().toString());
+		detalhes.put("quantidade", quantidade.toPlainString());
 		detalhes.put("registradoPor", pelaEquipe ? "EQUIPE" : "GESTOR");
 		auditoria.registrar(TipoEvento.RESULTADO_DE_ORDEM_REGISTRADO, "ordem-de-servico/" + id, detalhes);
 		if (conferencia == Conferencia.PENDENTE) {
 			// A carga do mês pode já ter chegado com o imóvel ligado.
 			ordens.conferir(relogio.getZone().getId());
 		}
-		var ordem = ordens.buscar(id, hoje).orElseThrow();
-		return dadosPessoais.aplicar(List.of(ordem), "Resultado de ordem de serviço").getFirst();
+		return visivel(id, "Encerramento de ordem de serviço");
 	}
 
-	static RegistroResultado validar(RegistroResultado r, LocalDate hoje) {
-		var observacao = r.observacao() == null || r.observacao().isBlank() ? null : r.observacao().strip();
-		if (observacao != null && observacao.length() > OBSERVACAO_MAXIMA) {
-			throw new RegraVioladaException("A observação tem no máximo " + OBSERVACAO_MAXIMA + " caracteres.");
+	/**
+	 * Quantidade executada: na executada, a informada (maior que zero) ou a prevista; na
+	 * não executada, zero.
+	 */
+	static BigDecimal quantidade(RegistroResultado registro, BigDecimal prevista) {
+		if (registro.resultado() == ResultadoOrdem.NAO_EXECUTADA) {
+			return BigDecimal.ZERO;
 		}
-		MotivoResultado motivo = null;
-		if (r.resultado().exigeMotivo()) {
-			if (r.motivo() == null || !r.motivo().valePara(r.resultado())) {
-				throw new RegraVioladaException(r.resultado() == ResultadoOrdem.RECUSADA ? "Informe o motivo da recusa."
-						: "Informe por que a OS é inviável.");
-			}
-			if (r.motivo() == MotivoResultado.OUTRO && observacao == null) {
-				throw new RegraVioladaException("Descreva o motivo na observação.");
-			}
-			motivo = r.motivo();
+		var informada = registro.quantidadeExecutada();
+		if (informada == null) {
+			return prevista;
 		}
-		LocalDate reagendada = null;
-		if (r.resultado() == ResultadoOrdem.REAGENDADA) {
-			if (r.reagendadaPara() == null || r.reagendadaPara().isBefore(hoje)
-					|| r.reagendadaPara().isAfter(hoje.plusDays(REAGENDAMENTO_MAXIMO_EM_DIAS))) {
-				throw new RegraVioladaException("Informe a nova data (de hoje até 180 dias).");
-			}
-			reagendada = r.reagendadaPara();
+		if (informada.signum() <= 0 || informada.scale() > 2
+				|| informada.compareTo(BigDecimal.valueOf(1_000_000)) >= 0) {
+			throw new RegraVioladaException("Informe a quantidade executada (maior que zero, até duas casas).");
 		}
-		return new RegistroResultado(r.resultado(), motivo, observacao, reagendada);
+		return informada;
+	}
+
+	private OrdemServico visivel(UUID id, String motivo) {
+		var ordem = ordens.buscar(id, relogio.instant()).orElseThrow();
+		return dadosPessoais.aplicar(List.of(ordem), motivo).getFirst();
 	}
 
 	/**
@@ -157,7 +186,7 @@ public class OrdemServicoService implements Campanhas {
 		return ordens.campanhasComDivergencia();
 	}
 
-	private static UUID usuario() {
+	static UUID usuario() {
 		var id = ContextoAcesso.exigir().usuarioId();
 		if (id == null) {
 			throw new IllegalStateException("Operação de usuário fora de uma requisição");

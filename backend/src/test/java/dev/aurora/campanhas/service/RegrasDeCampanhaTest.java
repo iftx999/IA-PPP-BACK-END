@@ -1,13 +1,11 @@
 package dev.aurora.campanhas.service;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.UUID;
 
 import dev.aurora.adesao.IndicadorDaUnidade;
 import dev.aurora.adesao.Situacao;
-import dev.aurora.campanhas.model.MotivoResultado;
 import dev.aurora.campanhas.model.Prioridade;
 import dev.aurora.campanhas.model.RegistroResultado;
 import dev.aurora.campanhas.model.ResultadoOrdem;
@@ -18,10 +16,8 @@ import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-/** RN-19: prioridade, impacto na meta e validação do resultado de campo. */
+/** RN-19: prioridade e impacto na meta; quantidade executada no encerramento. */
 class RegrasDeCampanhaTest {
-
-	private static final LocalDate HOJE = LocalDate.of(2026, 11, 2);
 
 	private static final Unidade UNIDADE = new Unidade(UUID.randomUUID(), "MUNICIPIO", UUID.randomUUID(), "C", "Cidade",
 			"3526902");
@@ -55,40 +51,24 @@ class RegrasDeCampanhaTest {
 	}
 
 	@Test
-	void resultadoExigeMotivoCompativel() {
-		assertThatThrownBy(() -> validar(ResultadoOrdem.RECUSADA, null, null, null))
-			.isInstanceOf(RegraVioladaException.class)
-			.hasMessageContaining("recusa");
-		assertThatThrownBy(() -> validar(ResultadoOrdem.INVIAVEL, MotivoResultado.SEM_INTERESSE, null, null))
-			.hasMessageContaining("inviável");
-		assertThatThrownBy(() -> validar(ResultadoOrdem.INVIAVEL, MotivoResultado.OUTRO, "  ", null))
-			.hasMessageContaining("observação");
-		var outro = validar(ResultadoOrdem.INVIAVEL, MotivoResultado.OUTRO, " rua sem acesso ", null);
-		assertThat(outro.observacao()).isEqualTo("rua sem acesso");
-		// Executada descarta motivo e data enviados por engano.
-		var executada = validar(ResultadoOrdem.EXECUTADA, MotivoResultado.CUSTO_DA_LIGACAO, null, HOJE);
-		assertThat(executada.motivo()).isNull();
-		assertThat(executada.reagendadaPara()).isNull();
-		assertThatThrownBy(() -> validar(ResultadoOrdem.EXECUTADA, null, "x".repeat(501), null))
-			.hasMessageContaining("500");
+	void quantidadeExecutada() {
+		var prevista = new BigDecimal("37.50");
+		assertThat(OrdemServicoService.quantidade(registro(ResultadoOrdem.EXECUTADA, null), prevista))
+			.isEqualByComparingTo("37.50");
+		assertThat(OrdemServicoService.quantidade(registro(ResultadoOrdem.EXECUTADA, "20"), prevista))
+			.isEqualByComparingTo("20");
+		// Não executada é sempre zero, mesmo se vier quantidade por engano.
+		assertThat(OrdemServicoService.quantidade(registro(ResultadoOrdem.NAO_EXECUTADA, "5"), prevista)).isZero();
+		for (var invalida : new String[] { "0", "-1", "1.005", "1000000" }) {
+			assertThatThrownBy(
+					() -> OrdemServicoService.quantidade(registro(ResultadoOrdem.EXECUTADA, invalida), prevista))
+				.as(invalida)
+				.isInstanceOf(RegraVioladaException.class);
+		}
 	}
 
-	@Test
-	void reagendamentoEntreHojeE180Dias() {
-		assertThatThrownBy(() -> validar(ResultadoOrdem.REAGENDADA, null, null, null))
-			.isInstanceOf(RegraVioladaException.class);
-		assertThatThrownBy(() -> validar(ResultadoOrdem.REAGENDADA, null, null, HOJE.minusDays(1)))
-			.isInstanceOf(RegraVioladaException.class);
-		assertThatThrownBy(() -> validar(ResultadoOrdem.REAGENDADA, null, null, HOJE.plusDays(181)))
-			.isInstanceOf(RegraVioladaException.class);
-		assertThat(validar(ResultadoOrdem.REAGENDADA, null, null, HOJE).reagendadaPara()).isEqualTo(HOJE);
-		assertThat(validar(ResultadoOrdem.REAGENDADA, null, null, HOJE.plusDays(180)).reagendadaPara())
-			.isEqualTo(HOJE.plusDays(180));
-	}
-
-	private static RegistroResultado validar(ResultadoOrdem resultado, MotivoResultado motivo, String observacao,
-			LocalDate data) {
-		return OrdemServicoService.validar(new RegistroResultado(resultado, motivo, observacao, data), HOJE);
+	private static RegistroResultado registro(ResultadoOrdem resultado, String quantidade) {
+		return new RegistroResultado(resultado, null, null, quantidade == null ? null : new BigDecimal(quantidade));
 	}
 
 	private static IndicadorDaUnidade indicador(long ligados, long comRede, String meta) {

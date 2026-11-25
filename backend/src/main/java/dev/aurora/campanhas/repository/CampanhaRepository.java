@@ -3,6 +3,8 @@ package dev.aurora.campanhas.repository;
 import java.sql.Date;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.List;
@@ -29,23 +31,23 @@ import org.springframework.stereotype.Repository;
 @Repository
 public class CampanhaRepository {
 
-	/** Funil de uma campanha {@code c}; {@code :hoje} define as atrasadas. */
+	/** Funil de uma campanha {@code c}; {@code :agora} define as atrasadas. */
 	private static final String FUNIL = """
 			  CROSS JOIN LATERAL (
 			        SELECT count(*) AS total,
 			               count(*) FILTER (WHERE o.status <> 'CANCELADA') AS planejadas,
 			               count(*) FILTER (WHERE o.enviada_em IS NOT NULL AND o.status <> 'CANCELADA') AS em_campo,
-			               count(*) FILTER (WHERE o.status = 'EXECUTADA') AS executadas,
+			               count(*) FILTER (WHERE o.resultado = 'EXECUTADA') AS executadas,
 			               count(*) FILTER (WHERE o.conferencia = 'CONFIRMADA') AS confirmadas,
 			               count(*) FILTER (WHERE o.conferencia = 'DIVERGENTE') AS divergentes,
 			               count(*) FILTER (WHERE o.conferencia = 'PENDENTE') AS pendentes,
-			               count(*) FILTER (WHERE o.status = 'RECUSADA') AS recusadas,
-			               count(*) FILTER (WHERE o.status = 'INVIAVEL') AS inviaveis,
-			               count(*) FILTER (WHERE o.status = 'REAGENDADA') AS reagendadas,
+			               count(*) FILTER (WHERE o.resultado = 'NAO_EXECUTADA') AS nao_executadas,
+			               count(*) FILTER (WHERE o.status = 'DEVOLVIDA') AS devolvidas,
 			               count(*) FILTER (WHERE o.status = 'CANCELADA') AS canceladas,
-			               count(*) FILTER (WHERE o.status = 'PLANEJADA') AS sem_equipe,
-			               count(*) FILTER (WHERE o.status IN ('PLANEJADA', 'EM_CAMPO', 'REAGENDADA')
-			                                  AND COALESCE(o.reagendada_para, o.prazo) < :hoje) AS atrasadas
+			               count(*) FILTER (WHERE o.status IN ('PLANEJADA', 'DEVOLVIDA')) AS sem_equipe,
+			               count(*) FILTER (WHERE o.status IN ('PLANEJADA', 'PROGRAMADA', 'EM_EXECUCAO', 'PARALISADA',
+			                                                  'DEVOLVIDA')
+			                                  AND o.prazo_em < :agora) AS atrasadas
 			          FROM ordem_servico o
 			         WHERE o.campanha_id = c.id) f
 			""";
@@ -59,12 +61,18 @@ public class CampanhaRepository {
 			  JOIN usuario p ON p.id = c.criada_por
 			""" + FUNIL;
 
-	/** Imóveis sem ligação do recorte na competência, com a marca de OS já aberta. */
+	/**
+	 * Imóveis sem ligação do recorte na competência, com a marca de OS já aberta do
+	 * serviço que a campanha geraria (o do factível ou o do cortado).
+	 */
 	private static final String CANDIDATOS = """
 			SELECT s.codigo_origem, s.unidade_id, s.situacao,
 			       EXISTS (SELECT 1 FROM ordem_servico o
 			                WHERE o.tenant_id = s.tenant_id AND o.codigo_origem = s.codigo_origem
-			                  AND o.status IN ('PLANEJADA', 'EM_CAMPO', 'REAGENDADA')) AS com_os_aberta
+			                  AND o.servico_id = CASE s.situacao WHEN 'CORTADO' THEN CAST(:cortado AS uuid)
+			                                                     ELSE CAST(:factivel AS uuid) END
+			                  AND o.status IN ('PLANEJADA', 'PROGRAMADA', 'EM_EXECUCAO', 'PARALISADA', 'DEVOLVIDA'))
+			              AS com_os_aberta
 			  FROM imovel_situacao_mensal s
 			  JOIN unidade u ON u.id = s.unidade_id
 			 WHERE s.competencia = :competencia
@@ -102,10 +110,16 @@ public class CampanhaRepository {
 		return jdbc.sql("SELECT tipo FROM unidade WHERE id = :id").param("id", unidade).query(String.class).optional();
 	}
 
-	/** Imóveis sem ligação do recorte, por matrícula. */
-	public List<Candidato> candidatos(Recorte recorte, YearMonth competencia) {
+	/**
+	 * Imóveis sem ligação do recorte, por matrícula.
+	 * @param factivel serviço que a campanha gera no imóvel factível
+	 * @param cortado serviço que a campanha gera no imóvel cortado
+	 */
+	public List<Candidato> candidatos(Recorte recorte, YearMonth competencia, UUID factivel, UUID cortado) {
 		var area = recorte.area();
 		return jdbc.sql(CANDIDATOS)
+			.param("factivel", factivel)
+			.param("cortado", cortado)
 			.param("competencia", inicio(competencia))
 			.param("unidade", recorte.unidadeId())
 			.param("situacao", recorte.situacao())
@@ -141,20 +155,20 @@ public class CampanhaRepository {
 			.update();
 	}
 
-	public List<Campanha> listar(@Nullable StatusCampanha status, LocalDate hoje) {
+	public List<Campanha> listar(@Nullable StatusCampanha status, Instant agora) {
 		return jdbc.sql(SELECAO + """
 				WHERE (CAST(:status AS text) IS NULL OR c.status = CAST(:status AS text))
 				ORDER BY c.status = 'ATIVA' DESC, c.criada_em DESC LIMIT 200""")
 			.param("status", status == null ? null : status.name())
-			.param("hoje", Date.valueOf(hoje))
+			.param("agora", Timestamp.from(agora))
 			.query(this::mapear)
 			.list();
 	}
 
-	public Optional<Campanha> buscar(UUID id, LocalDate hoje) {
+	public Optional<Campanha> buscar(UUID id, Instant agora) {
 		return jdbc.sql(SELECAO + " WHERE c.id = :id")
 			.param("id", id)
-			.param("hoje", Date.valueOf(hoje))
+			.param("agora", Timestamp.from(agora))
 			.query(this::mapear)
 			.optional();
 	}
@@ -181,9 +195,8 @@ public class CampanhaRepository {
 		var finalizada = linha.getTimestamp("finalizada_em");
 		var funil = new Funil(linha.getLong("total"), linha.getLong("planejadas"), linha.getLong("em_campo"),
 				linha.getLong("executadas"), linha.getLong("confirmadas"), linha.getLong("divergentes"),
-				linha.getLong("pendentes"), linha.getLong("recusadas"), linha.getLong("inviaveis"),
-				linha.getLong("reagendadas"), linha.getLong("canceladas"), linha.getLong("sem_equipe"),
-				linha.getLong("atrasadas"));
+				linha.getLong("pendentes"), linha.getLong("nao_executadas"), linha.getLong("devolvidas"),
+				linha.getLong("canceladas"), linha.getLong("sem_equipe"), linha.getLong("atrasadas"));
 		var recorte = json.readValue(linha.getString("criterios"), Recorte.class);
 		return new Campanha(linha.getObject("id", UUID.class), linha.getObject("unidade_id", UUID.class),
 				linha.getString("unidade_nome"), linha.getString("nome"),

@@ -14,7 +14,7 @@ conferido na fonte.
 | **Analista comercial** | Encontrar cada imóvel com rede e sem ligação, pela matrícula, no sistema comercial | [Visto] |
 | **Analista de contratos** | Subir o contrato, conferir o que a IA extraiu e aprovar | [Relatado] |
 | **Equipe de campo** | Receber a área do mapa em PDF/planilha e marcar visitas | [Visto] |
-| **Administrador do tenant** | Cadastrar unidades, usuários, perfis, escopos e integrações; consultar auditoria | [Visto] |
+| **Administrador da empresa** | Cadastrar unidades, usuários, perfis, escopos e integrações; consultar auditoria | [Visto] |
 | **Administrador da plataforma** | Criar tenants e primeiro administrador; não acessa dados dos clientes | [Proposta] |
 
 ## 1.3 Multi-tenant e hierarquia de unidades [Visto/Relatado]

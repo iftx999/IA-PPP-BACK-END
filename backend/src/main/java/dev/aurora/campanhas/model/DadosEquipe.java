@@ -7,5 +7,5 @@ import org.jspecify.annotations.Nullable;
 
 /** Cadastro ou alteração de equipe. */
 public record DadosEquipe(UUID unidadeId, String nome, TipoEquipe tipo, @Nullable String empresa, boolean ativa,
-		List<UUID> membros) {
+		List<UUID> membros, OperacaoDaEquipe operacao) {
 }

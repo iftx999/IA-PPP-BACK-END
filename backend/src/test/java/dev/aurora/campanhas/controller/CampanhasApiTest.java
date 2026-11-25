@@ -34,9 +34,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * ADR 0036 (I2–I4): campanha a partir dos sem ligação, OS priorizadas pelo semáforo,
- * envio à equipe, resultado de campo, conferência pela carga, alerta de divergência e
- * encerramento.
+ * ADR 0036 (I2–I4) e 0044: campanha a partir dos sem ligação, OS do catálogo priorizadas
+ * pelo semáforo, programação para a equipe, encerramento e devolução, conferência pela
+ * carga, alerta de divergência e encerramento da campanha.
  */
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -60,6 +60,7 @@ class CampanhasApiTest {
 		t = DadosDeTeste.criarTenant("Campanhas");
 		DadosDeTeste.criarAdesao(t);
 		DadosDeTeste.criarHistoricoDeImoveis(t);
+		DadosDeTeste.semearCatalogo(t);
 		DadosDeTeste.criarUsuario(t, "sub-admin", "admin@campanhas.teste", t.grupo());
 		var gestor = DadosDeTeste.criarPerfil(t, "Gestor", "campanha:gerenciar", "indicador:ler");
 		DadosDeTeste.criarUsuario(t, "sub-gestor", "gestor@campanhas.teste", t.cidadeA(), gestor);
@@ -112,22 +113,29 @@ class CampanhasApiTest {
 		assertThat(ordens.get("total").asInt()).isEqualTo(6);
 		assertThat(ordens.get("itens").get(0).get("matricula").asString()).isEqualTo("B-001");
 		assertThat(ordens.get("itens").get(0).get("prioridade").asString()).isEqualTo("ALTA");
-		assertThat(ordem(ordens, "2001001").get("tipo").asString()).isEqualTo("RELIGACAO");
-		assertThat(ordem(ordens, "2001002").get("tipo").asString()).isEqualTo("LIGACAO_NOVA");
+		assertThat(ordem(ordens, "2001001").get("servicoCodigo").asString()).isEqualTo("RELIGACAO");
+		assertThat(ordem(ordens, "2001002").get("servicoCodigo").asString()).isEqualTo("LIGACAO_NOVA");
+		assertThat(ordem(ordens, "2001002").get("origem").asString()).isEqualTo("CAMPANHA");
+		assertThat(ordem(ordens, "2001002").get("status").asString()).isEqualTo("PLANEJADA");
 
 		// Equipe própria na Cidade A; terceirizada exige a empresa.
 		postar("/api/v1/equipes", """
 				{"unidadeId":"%s","nome":"Empreiteira X","tipo":"TERCEIRIZADA","ativa":true,"membros":[]}"""
 			.formatted(t.cidadeA()), "sub-admin").andExpect(status().isUnprocessableContent());
 		var equipeJson = """
-				{"unidadeId":"%s","nome":"Equipe Cidade A","tipo":"PROPRIA","ativa":%s,"membros":["%s"]}""";
-		var equipe = id(postar("/api/v1/equipes", equipeJson.formatted(t.cidadeA(), true, campo), "sub-admin")
+				{"unidadeId":"%s","nome":"Equipe Cidade A","tipo":"PROPRIA","ativa":%s,"membros":["%s"],%s}""";
+		var operacao = operacaoCompleta("sub-admin");
+		var equipe = id(postar("/api/v1/equipes", equipeJson.formatted(t.cidadeA(), true, campo, operacao), "sub-admin")
 			.andExpect(status().isCreated())
 			.andExpect(jsonPath("$.membros[0].email").value("campo@campanhas.teste")));
 
 		// Sem lista: as planejadas por prioridade; B-001 fica fora da área da equipe.
-		postar("/api/v1/campanhas/" + campanha + "/distribuir", """
-				{"equipeId":"%s","ordens":[],"quantidade":10}""".formatted(equipe), "sub-admin")
+		var distribuicao = """
+				{"equipeId":"%s","data":"%s","ordens":[],"quantidade":10}""";
+		postar("/api/v1/campanhas/" + campanha + "/distribuir", distribuicao.formatted(equipe, hoje.minusDays(1)),
+				"sub-admin")
+			.andExpect(status().isUnprocessableContent());
+		postar("/api/v1/campanhas/" + campanha + "/distribuir", distribuicao.formatted(equipe, hoje), "sub-admin")
 			.andExpect(status().isOk())
 			.andExpect(jsonPath("$.enviadas").value(5))
 			.andExpect(jsonPath("$.foraDaArea").value(1));
@@ -135,7 +143,8 @@ class CampanhasApiTest {
 		mvc.perform(get("/api/v1/minhas-ordens").with(token("sub-campo")))
 			.andExpect(status().isOk())
 			.andExpect(jsonPath("$.length()").value(5))
-			.andExpect(jsonPath("$[0].status").value("EM_CAMPO"))
+			.andExpect(jsonPath("$[0].status").value("PROGRAMADA"))
+			.andExpect(jsonPath("$[0].dataProgramada").value(hoje.toString()))
 			.andExpect(jsonPath("$[0].matricula").value("2001001"));
 		mvc.perform(get("/api/v1/minhas-ordens").with(token("sub-outro")))
 			.andExpect(status().isOk())
@@ -147,28 +156,47 @@ class CampanhasApiTest {
 		var os5 = ordem(ordens, "2001005").get("id").asString();
 		resultado(os2, "{\"resultado\":\"EXECUTADA\"}", "sub-outro").andExpect(status().isNotFound());
 		resultado(os2, "{\"resultado\":\"EXECUTADA\"}", "sub-campo").andExpect(status().isOk())
-			.andExpect(jsonPath("$.status").value("EXECUTADA"))
+			.andExpect(jsonPath("$.status").value("ENCERRADA"))
+			.andExpect(jsonPath("$.resultado").value("EXECUTADA"))
+			.andExpect(jsonPath("$.quantidadeExecutada").value(1))
 			.andExpect(jsonPath("$.conferencia").value("PENDENTE"))
 			.andExpect(jsonPath("$.resultadoPor").value("campo@campanhas.teste"));
 		resultado(os2, "{\"resultado\":\"EXECUTADA\"}", "sub-campo").andExpect(status().isConflict());
-		resultado(os3, "{\"resultado\":\"RECUSADA\"}", "sub-campo").andExpect(status().isUnprocessableContent());
-		resultado(os3, "{\"resultado\":\"RECUSADA\",\"motivo\":\"SEM_REDE_NA_RUA\"}", "sub-campo")
-			.andExpect(status().isUnprocessableContent());
-		resultado(os3, "{\"resultado\":\"RECUSADA\",\"motivo\":\"SEM_INTERESSE\"}", "sub-campo")
-			.andExpect(status().isOk())
-			.andExpect(jsonPath("$.conferencia").value("NAO_SE_APLICA"));
-		resultado(os4, "{\"resultado\":\"REAGENDADA\",\"reagendadaPara\":\"%s\"}".formatted(hoje.plusDays(3)),
+
+		// Motivos do catálogo: não execução exige um do tipo certo.
+		var semInteresse = motivo("NAO_EXECUCAO", "SEM_INTERESSE");
+		var enderecoNaoEncontrado = motivo("DEVOLUCAO", "ENDERECO_NAO_ENCONTRADO");
+		resultado(os3, "{\"resultado\":\"NAO_EXECUTADA\"}", "sub-campo").andExpect(status().isUnprocessableContent());
+		resultado(os3, "{\"resultado\":\"NAO_EXECUTADA\",\"motivoId\":\"%s\"}".formatted(enderecoNaoEncontrado),
 				"sub-campo")
+			.andExpect(status().isUnprocessableContent());
+		resultado(os3, "{\"resultado\":\"NAO_EXECUTADA\",\"motivoId\":\"%s\"}".formatted(semInteresse), "sub-campo")
 			.andExpect(status().isOk())
-			.andExpect(jsonPath("$.status").value("REAGENDADA"));
-		// O gestor registra pela empreiteira sem acesso.
+			.andExpect(jsonPath("$.motivoNome").value("Morador sem interesse"))
+			.andExpect(jsonPath("$.quantidadeExecutada").value(0))
+			.andExpect(jsonPath("$.conferencia").value("NAO_SE_APLICA"));
+		// A equipe devolve para a programação (D8).
+		postar("/api/v1/minhas-ordens/" + os4 + "/devolver", "{\"motivoId\":\"%s\"}".formatted(semInteresse),
+				"sub-campo")
+			.andExpect(status().isUnprocessableContent());
+		postar("/api/v1/minhas-ordens/" + os4 + "/devolver",
+				"{\"motivoId\":\"%s\",\"observacao\":\"Rua sem placa\"}".formatted(enderecoNaoEncontrado), "sub-campo")
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.status").value("DEVOLVIDA"))
+			.andExpect(jsonPath("$.observacao").value("Rua sem placa"));
+		resultado(os4, "{\"resultado\":\"EXECUTADA\"}", "sub-campo").andExpect(status().isConflict());
+		// O gestor registra pela empreiteira sem acesso (motivos de não execução).
+		mvc.perform(get("/api/v1/campanhas/motivos").with(token("sub-admin")))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$[?(@.codigo == 'SEM_INTERESSE')].tipo").value("NAO_EXECUCAO"))
+			.andExpect(jsonPath("$[?(@.tipo == 'DEVOLUCAO')]").isEmpty());
 		mvc.perform(put("/api/v1/campanhas/ordens/{id}/resultado", os5).contentType(MediaType.APPLICATION_JSON)
 			.content("{\"resultado\":\"EXECUTADA\"}")
 			.with(token("sub-admin"))).andExpect(status().isOk());
 
 		// Equipe com OS em campo não é desativada.
 		mvc.perform(put("/api/v1/equipes/{id}", equipe).contentType(MediaType.APPLICATION_JSON)
-			.content(equipeJson.formatted(t.cidadeA(), false, campo))
+			.content(equipeJson.formatted(t.cidadeA(), false, campo, operacao))
 			.with(token("sub-admin"))).andExpect(status().isConflict());
 
 		// RN-19: a carga do mês mostra 2001002 ligado (confirmada). 2001005 foi executada
@@ -189,24 +217,41 @@ class CampanhasApiTest {
 			.andExpect(jsonPath("$.campanha.funil.executadas").value(2))
 			.andExpect(jsonPath("$.campanha.funil.confirmadas").value(1))
 			.andExpect(jsonPath("$.campanha.funil.divergentes").value(1))
-			.andExpect(jsonPath("$.campanha.funil.recusadas").value(1))
-			.andExpect(jsonPath("$.campanha.funil.reagendadas").value(1))
+			.andExpect(jsonPath("$.campanha.funil.naoExecutadas").value(1))
+			.andExpect(jsonPath("$.campanha.funil.devolvidas").value(1))
+			.andExpect(jsonPath("$.campanha.funil.semEquipe").value(2))
 			.andExpect(jsonPath("$.equipes[0].executadas").value(2))
-			.andExpect(jsonPath("$.motivos[0].motivo").value("SEM_INTERESSE"));
+			.andExpect(jsonPath("$.equipes[0].devolvidas").value(1))
+			.andExpect(jsonPath("$.motivos.length()").value(2))
+			.andExpect(jsonPath("$.motivos[?(@.codigo == 'SEM_INTERESSE')].tipo").value("NAO_EXECUCAO"));
 		mvc.perform(get("/api/v1/alertas").with(token("sub-admin")))
 			.andExpect(status().isOk())
 			.andExpect(jsonPath("$[?(@.tipo == 'ORDEM_DIVERGENTE')].link")
 				.value("/campanhas/" + campanha + "?conferencia=DIVERGENTE"));
 
-		// Encerrar cancela as que ainda estão em aberto (B-001, 2001001 e 2001004); a
-		// equipe continua vendo os resultados dos últimos 30 dias (2001002 e 2001003).
+		// Encerrar cancela as que não começaram (B-001 planejada, 2001001 programada e
+		// 2001004 devolvida); a equipe continua vendo as encerradas dos últimos 30 dias.
 		postar("/api/v1/campanhas/" + campanha + "/encerrar", "", "sub-admin").andExpect(status().isOk())
 			.andExpect(jsonPath("$.status").value("ENCERRADA"))
 			.andExpect(jsonPath("$.funil.canceladas").value(3));
 		postar("/api/v1/campanhas/" + campanha + "/cancelar", "", "sub-admin").andExpect(status().isConflict());
 		mvc.perform(get("/api/v1/minhas-ordens").with(token("sub-campo")))
 			.andExpect(status().isOk())
-			.andExpect(jsonPath("$.length()").value(2));
+			.andExpect(jsonPath("$.length()").value(3))
+			.andExpect(jsonPath("$[*].status")
+				.value(org.hamcrest.Matchers.everyItem(org.hamcrest.Matchers.is("ENCERRADA"))));
+	}
+
+	private String motivo(String tipo, String codigo) throws Exception {
+		var resposta = mvc.perform(get("/api/v1/minhas-ordens/motivos").with(token("sub-campo")))
+			.andExpect(status().isOk())
+			.andReturn();
+		for (var m : json.readTree(resposta.getResponse().getContentAsString())) {
+			if (m.get("tipo").asString().equals(tipo) && m.get("codigo").asString().equals(codigo)) {
+				return m.get("id").asString();
+			}
+		}
+		throw new AssertionError("Motivo não encontrado: " + tipo + "/" + codigo);
 	}
 
 	private ResultActions postar(String url, String corpo, String sub) throws Exception {
@@ -251,6 +296,29 @@ class CampanhasApiTest {
 
 	private static RequestPostProcessor token(String sub) {
 		return jwt().jwt(j -> j.issuer(t.emissor()).subject(sub));
+	}
+
+	/**
+	 * Operação de uma equipe que atende todo o catálogo de teste (RN-23): todas as
+	 * habilidades e caminhão de vácuo (atende moto, carro e o próprio vácuo).
+	 */
+	private String operacaoCompleta(String sub) throws Exception {
+		var opcoes = json.readTree(mvc.perform(get("/api/v1/equipes/opcoes").with(token(sub)))
+			.andExpect(status().isOk())
+			.andReturn()
+			.getResponse()
+			.getContentAsString());
+		String vacuo = null;
+		for (var v : opcoes.get("veiculos")) {
+			if ("CAMINHAO_VACUO".equals(v.get("codigo").asString())) {
+				vacuo = v.get("id").asString();
+			}
+		}
+		var habilidades = new java.util.StringJoiner(",");
+		opcoes.get("habilidades").forEach(h -> habilidades.add("\"" + h.get("id").asString() + "\""));
+		return """
+				"operacao":{"jornadaInicio":"07:30","jornadaFim":"16:30","pausaMin":60,"tipoVeiculoId":"%s","habilidades":[%s]}"""
+			.formatted(vacuo, habilidades);
 	}
 
 }
