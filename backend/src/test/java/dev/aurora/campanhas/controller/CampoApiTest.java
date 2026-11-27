@@ -142,7 +142,8 @@ class CampoApiTest {
 			.andExpect(jsonPath("$.raioInicioM").value(300))
 			.andExpect(jsonPath("$.ordens[0].ultimaSequencia").value(0))
 			// ADR 0053: o catálogo semeado pede foto em todas as fases.
-			.andExpect(jsonPath("$.ordens[0].fasesComFoto.length()").value(4)));
+			.andExpect(jsonPath("$.ordens[0].fasesComFoto.length()").value(4))
+			.andExpect(jsonPath("$.ordens[0].fasesComObservacao.length()").value(4)));
 		var versao = pacote.get("ordens").get(0).get("servicoVersaoId").asString();
 		assertThat(pacote.get("parametros").get(versao).size()).isEqualTo(4);
 		var versaoDoPacote = pacote.get("versao").asLong();
@@ -172,7 +173,8 @@ class CampoApiTest {
 			.andExpect(jsonPath("$.eventos[0].situacao").value("AGUARDANDO"));
 		eventos(celular, agora,
 				evento(iniciar, os1, 1, "INICIAR",
-						",\"posicao\":{\"latitude\":-22.95,\"longitude\":-47.06},\"fotos\":[\"" + fotoDoInicio + "\"]",
+						",\"posicao\":{\"latitude\":-22.95,\"longitude\":-47.06},\"fotos\":[\"" + fotoDoInicio
+								+ "\"],\"observacao\":\"Calçada quebrada\"",
 						agora.minusSeconds(1800)))
 			.andExpect(jsonPath("$.eventos[0].situacao").value("APLICADO"))
 			.andExpect(jsonPath("$.eventos[0].avisos.length()").value(1))
@@ -197,7 +199,8 @@ class CampoApiTest {
 			.andExpect(jsonPath("$.eventos[0].mensagem").value("A mesma foto aparece duas vezes na ação."));
 		eventos(celular, agora, evento(UUID.randomUUID(), os1, 5, "RETOMAR", "", agora.minusSeconds(1300)))
 			.andExpect(jsonPath("$.eventos[0].situacao").value("APLICADO"))
-			.andExpect(jsonPath("$.eventos[0].avisos[0]").value("SEM_FOTO"));
+			.andExpect(jsonPath("$.eventos[0].avisos[0]").value("SEM_FOTO"))
+			.andExpect(jsonPath("$.eventos[0].avisos[1]").value("SEM_OBSERVACAO"));
 		// O pacote diz até onde a sequência da OS já foi (a recusada também ocupa o
 		// número).
 		mvc.perform(

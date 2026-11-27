@@ -25,7 +25,7 @@ import dev.aurora.campanhas.service.DispositivoService;
 import dev.aurora.campanhas.service.ExecucaoService;
 import dev.aurora.campanhas.service.JornadaService;
 import dev.aurora.contexto.ExigePermissao;
-import dev.aurora.servicos.FaseComFoto;
+import dev.aurora.servicos.FaseDaOrdem;
 import dev.aurora.servicos.ParametroDaOrdem;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
@@ -137,7 +137,8 @@ class CampoController {
 	 * @param ultimaSequencia o próximo evento do celular nesta OS é este + 1
 	 */
 	record OrdemDoPacoteResponse(OrdemServicoResponse ordem, UUID servicoVersaoId, int ultimaSequencia,
-			boolean avisoDeChegada, @Nullable Instant avisadoEm, List<FaseComFoto> fasesComFoto) {
+			boolean avisoDeChegada, @Nullable Instant avisadoEm, List<FaseDaOrdem> fasesComFoto,
+			List<FaseDaOrdem> fasesComObservacao) {
 	}
 
 	/** "Estou chegando" (ADR 0052). */
@@ -177,7 +178,8 @@ class CampoController {
 					p.ordens()
 						.stream()
 						.map(o -> new OrdemDoPacoteResponse(OrdemServicoResponse.de(o.ordem()), o.servicoVersaoId(),
-								o.ultimaSequencia(), o.avisoDeChegada(), o.avisadoEm(), o.fasesComFoto()))
+								o.ultimaSequencia(), o.avisoDeChegada(), o.avisadoEm(), o.fasesComFoto(),
+								o.fasesComObservacao()))
 						.toList(),
 					parametros, p.motivos().stream().map(MotivoDaOrdemResponse::de).toList(), p.raioInicioM(),
 					p.geradoEm());

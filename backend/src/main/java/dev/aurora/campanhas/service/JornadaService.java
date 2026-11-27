@@ -27,7 +27,7 @@ import dev.aurora.comum.ConflitoException;
 import dev.aurora.comum.RecursoNaoEncontradoException;
 import dev.aurora.comum.RegraVioladaException;
 import dev.aurora.contexto.ContextoAcesso;
-import dev.aurora.servicos.FaseComFoto;
+import dev.aurora.servicos.ExigenciasNasFases;
 import dev.aurora.servicos.Servicos;
 import org.jspecify.annotations.Nullable;
 
@@ -205,7 +205,7 @@ public class JornadaService implements JornadasDoCampo {
 		var detalhes = dadosPessoais.aplicar(ordens.buscarVarias(versaoDaOrdem.keySet(), agora),
 				"Pacote do dia do app de campo");
 		var parametros = servicos.parametros(Set.copyOf(versaoDaOrdem.values()));
-		var fases = servicos.fasesComFoto(Set.copyOf(versaoDaOrdem.values()));
+		var exigencias = servicos.exigenciasNasFases(Set.copyOf(versaoDaOrdem.values()));
 		var motivos = servicos.motivosParaOrdem().stream().filter(m -> MOTIVOS_DO_CAMPO.contains(m.tipo())).toList();
 		var jornada = jornadas.abertas(List.of(equipe)).stream().findFirst().orElse(null);
 		var nome = equipes.buscar(equipe).orElseThrow(RecursoNaoEncontradoException::new).nome();
@@ -215,9 +215,9 @@ public class JornadaService implements JornadasDoCampo {
 				noPacote.stream().map(OrdemServicoRepository.NoPacote::id).sorted().toList(),
 				detalhes.stream().map(o -> {
 					var aviso = avisos.getOrDefault(o.id(), semContato);
+					var exige = exigencias.getOrDefault(versaoDaOrdem.get(o.id()), ExigenciasNasFases.TODAS);
 					return new PacoteDoDia.OrdemDoPacote(o, versaoDaOrdem.get(o.id()), sequencias.get(o.id()),
-							aviso.temContato(), aviso.avisadoEm(),
-							fases.getOrDefault(versaoDaOrdem.get(o.id()), FaseComFoto.TODAS));
+							aviso.temContato(), aviso.avisadoEm(), exige.foto(), exige.observacao());
 				}).toList(), parametros, motivos, execucao.raioDoInicio(), agora);
 	}
 

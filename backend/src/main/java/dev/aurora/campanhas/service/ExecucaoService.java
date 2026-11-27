@@ -32,7 +32,8 @@ import dev.aurora.campanhas.repository.ExecucaoRepository.OrdemNoCampo;
 import dev.aurora.campanhas.repository.JornadaRepository;
 import dev.aurora.campanhas.repository.OrdemServicoRepository;
 import dev.aurora.comum.RegraVioladaException;
-import dev.aurora.servicos.FaseComFoto;
+import dev.aurora.servicos.ExigenciasNasFases;
+import dev.aurora.servicos.FaseDaOrdem;
 import dev.aurora.servicos.Servicos;
 import org.jspecify.annotations.Nullable;
 import tools.jackson.databind.JsonNode;
@@ -370,27 +371,32 @@ public class ExecucaoService {
 			}
 			case ENCERRAR -> encerrar(e, os, v, usuario);
 		}
-		if (e.fotos().isEmpty() && exigeFoto(e.tipo(), os)) {
-			// O app exige a foto; sem ela (app antigo ou fora do app), vale o que o campo
-			// fez e fica o aviso.
-			avisos.add("SEM_FOTO");
+		// ADR 0053: o app exige foto e observação; sem elas (app antigo ou fora do app),
+		// vale o que o campo fez e fica o aviso.
+		var fase = fase(e.tipo());
+		if (fase != null) {
+			var exige = servicos.exigenciasNasFases(List.of(os.servicoVersaoId()))
+				.getOrDefault(os.servicoVersaoId(), ExigenciasNasFases.TODAS);
+			if (e.fotos().isEmpty() && exige.foto().contains(fase)) {
+				avisos.add("SEM_FOTO");
+			}
+			if (v.observacao() == null && exige.observacao().contains(fase)) {
+				avisos.add("SEM_OBSERVACAO");
+			}
 		}
 		return new Desfecho(SituacaoEvento.APLICADO, null, distancia,
 				v.valores() == null ? null : v.valores().valores());
 	}
 
-	/** ADR 0053: a versão do serviço da OS exige foto nesta fase. */
-	private boolean exigeFoto(AcaoDeCampo acao, OrdemNoCampo os) {
-		var fase = switch (acao) {
-			case INICIAR -> FaseComFoto.INICIAR;
-			case PARALISAR -> FaseComFoto.PARALISAR;
-			case RETOMAR -> FaseComFoto.RETOMAR;
-			case DEVOLVER -> FaseComFoto.DEVOLVER;
+	/** Fase da OS com foto e observação configuráveis (ADR 0053); o encerramento não. */
+	private static @Nullable FaseDaOrdem fase(AcaoDeCampo acao) {
+		return switch (acao) {
+			case INICIAR -> FaseDaOrdem.INICIAR;
+			case PARALISAR -> FaseDaOrdem.PARALISAR;
+			case RETOMAR -> FaseDaOrdem.RETOMAR;
+			case DEVOLVER -> FaseDaOrdem.DEVOLVER;
 			case ENCERRAR -> null;
 		};
-		return fase != null && servicos.fasesComFoto(List.of(os.servicoVersaoId()))
-			.getOrDefault(os.servicoVersaoId(), FaseComFoto.TODAS)
-			.contains(fase);
 	}
 
 	private void encerrar(EventoDeCampo e, OrdemNoCampo os, Validado v, UUID usuario) {

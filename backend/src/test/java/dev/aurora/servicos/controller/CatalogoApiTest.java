@@ -120,8 +120,9 @@ class CatalogoApiTest {
 			.andExpect(jsonPath("$.definicao.tempoPadraoMin").value(45))
 			.andExpect(jsonPath("$.definicao.parametros[1].condicao.valor").value("false"))
 			.andExpect(jsonPath("$.definicao.parametros[2].maximo").value(3))
-			// ADR 0053: sem dizer, foto em todas as fases.
+			// ADR 0053: sem dizer, foto e observação em todas as fases.
 			.andExpect(jsonPath("$.definicao.fasesComFoto", contains("INICIAR", "PARALISAR", "RETOMAR", "DEVOLVER")))
+			.andExpect(jsonPath("$.definicao.fasesComObservacao", hasSize(4)))
 			.andReturn()
 			.getResponse()
 			.getContentAsString());
@@ -143,9 +144,8 @@ class CatalogoApiTest {
 			.andExpect(jsonPath("$[0].definicao.parametros[2].maximo").value(5))
 			.andExpect(jsonPath("$[1].definicao.parametros[2].maximo").value(3))
 			.andExpect(jsonPath("$[0].criadaPor").isNotEmpty());
-		// ADR 0053: as fases com foto são versionadas (repetidas e fora de ordem contam
-		// como
-		// a mesma escolha).
+		// ADR 0053: as fases com foto e com observação são versionadas (repetidas e fora
+		// de ordem contam como a mesma escolha).
 		var soInicio = corpo.formatted(grupo, 5)
 			.replace("\"conferidoPelaCarga\":false", "\"conferidoPelaCarga\":false,\"fasesComFoto\":[%s]");
 		enviar(put("/api/v1/catalogo/servicos/{id}", id), soInicio.formatted("\"DEVOLVER\",\"INICIAR\",\"INICIAR\""))
@@ -159,6 +159,12 @@ class CatalogoApiTest {
 			.andExpect(jsonPath("$.definicao.fasesComFoto", hasSize(0)));
 		enviar(put("/api/v1/catalogo/servicos/{id}", id), soInicio.formatted("\"ENCERRAR\""))
 			.andExpect(status().isBadRequest());
+		enviar(put("/api/v1/catalogo/servicos/{id}", id),
+				soInicio.formatted("")
+					.replace("\"fasesComFoto\":[]", "\"fasesComFoto\":[],\"fasesComObservacao\":[\"PARALISAR\"]"))
+			.andExpect(jsonPath("$.versao").value(5))
+			.andExpect(jsonPath("$.definicao.fasesComFoto", hasSize(0)))
+			.andExpect(jsonPath("$.definicao.fasesComObservacao", contains("PARALISAR")));
 
 		// Código repetido, condição inválida e serviço de trecho conferido pela carga.
 		enviar(post("/api/v1/catalogo/servicos"), corpo.formatted(grupo, 3)).andExpect(status().isConflict());
@@ -179,8 +185,8 @@ class CatalogoApiTest {
 						SELECT count(*) FROM evento_auditoria
 						 WHERE tenant_id = '%s' AND recurso = 'servico/%s'""".formatted(t.id(), id))) {
 			linhas.next();
-			// Criação e cinco atualizações (uma delas com as fases com foto repetidas).
-			assertThat(linhas.getLong(1)).isEqualTo(6);
+			// Criação e seis atualizações (uma delas com as fases com foto repetidas).
+			assertThat(linhas.getLong(1)).isEqualTo(7);
 		}
 	}
 
