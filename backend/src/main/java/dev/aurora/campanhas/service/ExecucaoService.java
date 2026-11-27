@@ -9,10 +9,12 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 
 import dev.aurora.auditoria.Auditoria;
 import dev.aurora.auditoria.TipoEvento;
+import dev.aurora.campanhas.model.AcaoDeCampo;
 import dev.aurora.campanhas.model.Conferencia;
 import dev.aurora.campanhas.model.EventoDeCampo;
 import dev.aurora.campanhas.model.RegistroResultado;
@@ -30,6 +32,7 @@ import dev.aurora.campanhas.repository.ExecucaoRepository.OrdemNoCampo;
 import dev.aurora.campanhas.repository.JornadaRepository;
 import dev.aurora.campanhas.repository.OrdemServicoRepository;
 import dev.aurora.comum.RegraVioladaException;
+import dev.aurora.servicos.FaseComFoto;
 import dev.aurora.servicos.Servicos;
 import org.jspecify.annotations.Nullable;
 import tools.jackson.databind.JsonNode;
@@ -296,6 +299,12 @@ public class ExecucaoService {
 	}
 
 	private Validado validar(EventoDeCampo e, OrdemNoCampo os) {
+		if (Set.copyOf(e.fotos()).size() != e.fotos().size()) {
+			throw new RegraVioladaException("A mesma foto aparece duas vezes na ação.");
+		}
+		if (e.tipo() == AcaoDeCampo.ENCERRAR && !e.fotos().isEmpty()) {
+			throw new RegraVioladaException("No encerramento, as fotos vão nos parâmetros do serviço.");
+		}
 		return switch (e.tipo()) {
 			case INICIAR, RETOMAR -> new Validado(null, MotivosDaOrdem.observacao(e.observacao()), null, null);
 			case PARALISAR -> {
@@ -361,8 +370,27 @@ public class ExecucaoService {
 			}
 			case ENCERRAR -> encerrar(e, os, v, usuario);
 		}
+		if (e.fotos().isEmpty() && exigeFoto(e.tipo(), os)) {
+			// O app exige a foto; sem ela (app antigo ou fora do app), vale o que o campo
+			// fez e fica o aviso.
+			avisos.add("SEM_FOTO");
+		}
 		return new Desfecho(SituacaoEvento.APLICADO, null, distancia,
 				v.valores() == null ? null : v.valores().valores());
+	}
+
+	/** ADR 0053: a versão do serviço da OS exige foto nesta fase. */
+	private boolean exigeFoto(AcaoDeCampo acao, OrdemNoCampo os) {
+		var fase = switch (acao) {
+			case INICIAR -> FaseComFoto.INICIAR;
+			case PARALISAR -> FaseComFoto.PARALISAR;
+			case RETOMAR -> FaseComFoto.RETOMAR;
+			case DEVOLVER -> FaseComFoto.DEVOLVER;
+			case ENCERRAR -> null;
+		};
+		return fase != null && servicos.fasesComFoto(List.of(os.servicoVersaoId()))
+			.getOrDefault(os.servicoVersaoId(), FaseComFoto.TODAS)
+			.contains(fase);
 	}
 
 	private void encerrar(EventoDeCampo e, OrdemNoCampo os, Validado v, UUID usuario) {

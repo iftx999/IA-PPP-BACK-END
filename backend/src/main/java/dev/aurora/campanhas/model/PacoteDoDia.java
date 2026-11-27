@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import dev.aurora.servicos.FaseComFoto;
 import dev.aurora.servicos.MotivoDaOrdem;
 import dev.aurora.servicos.ParametroDaOrdem;
 import org.jspecify.annotations.Nullable;
@@ -35,9 +36,15 @@ public record PacoteDoDia(long versao, boolean diferenca, UUID equipeId, String 
 	 * @param ultimaSequencia último evento do campo já processado nesta OS
 	 * @param avisoDeChegada o imóvel tem celular para o "Estou chegando" (ADR 0052)
 	 * @param avisadoEm quando o morador foi avisado, se já foi
+	 * @param fasesComFoto fases em que o app exige foto (ADR 0053)
 	 */
 	public record OrdemDoPacote(OrdemServico ordem, UUID servicoVersaoId, int ultimaSequencia, boolean avisoDeChegada,
-			@Nullable Instant avisadoEm) {
+			@Nullable Instant avisadoEm, List<FaseComFoto> fasesComFoto) {
+
+		public OrdemDoPacote {
+			fasesComFoto = List.copyOf(fasesComFoto);
+		}
+
 	}
 
 }

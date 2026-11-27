@@ -2,6 +2,7 @@ package dev.aurora.campanhas.model;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 import org.jspecify.annotations.Nullable;
@@ -17,8 +18,16 @@ import tools.jackson.databind.JsonNode;
  * pelos ids dos anexos)
  * @param ocorridoEm relógio do celular
  * @param versaoPacote versão do pacote do dia que o celular tinha
+ * @param fotos ids das fotos tiradas na ação (iniciar, paralisar, retomar, devolver; ADR
+ * 0053), enviadas depois
  */
 public record EventoDeCampo(UUID id, UUID osId, int sequencia, AcaoDeCampo tipo, @Nullable UUID motivoId,
 		@Nullable String observacao, @Nullable ResultadoOrdem resultado, @Nullable BigDecimal quantidade,
-		@Nullable JsonNode valores, Instant ocorridoEm, @Nullable Posicao posicao, @Nullable Long versaoPacote) {
+		@Nullable JsonNode valores, Instant ocorridoEm, @Nullable Posicao posicao, @Nullable Long versaoPacote,
+		List<UUID> fotos) {
+
+	public EventoDeCampo {
+		fotos = List.copyOf(fotos);
+	}
+
 }

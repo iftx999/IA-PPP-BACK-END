@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.UUID;
 
 import dev.aurora.contexto.ExigePermissao;
+import dev.aurora.servicos.FaseComFoto;
 import dev.aurora.servicos.model.AlvoServico;
 import dev.aurora.servicos.model.Condicao;
 import dev.aurora.servicos.model.DadosServico;
@@ -81,19 +82,19 @@ class ServicoController {
 	record DefinicaoDto(@NotNull @Size(max = 120) String nome, @Nullable @Size(max = 500) String descricao,
 			@NotNull UnidadeMedida unidadeMedida, @NotNull AlvoServico alvo, @NotNull BigDecimal tempoPadraoMin,
 			boolean tempoPorUnidade, @NotNull @Valid PrazosDto prazos, @Nullable UUID tipoVeiculoId,
-			@Nullable UUID habilidadeId, boolean conferidoPelaCarga,
+			@Nullable UUID habilidadeId, boolean conferidoPelaCarga, @Nullable List<@NotNull FaseComFoto> fasesComFoto,
 			@NotNull @Size(max = DefinicaoServico.MAXIMO_DE_PARAMETROS) List<@NotNull @Valid ParametroDto> parametros) {
 
 		static DefinicaoDto de(DefinicaoServico d) {
 			return new DefinicaoDto(d.nome(), d.descricao(), d.unidadeMedida(), d.alvo(), d.tempoPadraoMin(),
 					d.tempoPorUnidade(), PrazosDto.de(d.prazos()), d.tipoVeiculoId(), d.habilidadeId(),
-					d.conferidoPelaCarga(), d.parametros().stream().map(ParametroDto::de).toList());
+					d.conferidoPelaCarga(), d.fasesComFoto(), d.parametros().stream().map(ParametroDto::de).toList());
 		}
 
 		DefinicaoServico modelo() {
 			return new DefinicaoServico(nome, descricao, unidadeMedida, alvo, tempoPadraoMin, tempoPorUnidade,
 					prazos.modelo(), tipoVeiculoId, habilidadeId, conferidoPelaCarga,
-					parametros.stream().map(ParametroDto::modelo).toList());
+					FaseComFoto.normalizadas(fasesComFoto), parametros.stream().map(ParametroDto::modelo).toList());
 		}
 	}
 

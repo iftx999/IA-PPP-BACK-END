@@ -5,6 +5,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -13,6 +14,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
+import dev.aurora.servicos.FaseComFoto;
 import dev.aurora.servicos.model.AlvoServico;
 import dev.aurora.servicos.model.Condicao;
 import dev.aurora.servicos.model.DefinicaoServico;
@@ -39,7 +41,7 @@ public class ServicoRepository {
 	private static final String VERSAO = """
 			v.id AS versao_id, v.versao, v.nome, v.descricao, v.unidade_medida, v.alvo, v.tempo_padrao_min,
 			v.tempo_por_unidade, v.prazo_emergencial_horas, v.prazo_alta_dias, v.prazo_media_dias, v.prazo_baixa_dias,
-			v.tipo_veiculo_id, v.habilidade_id, v.conferido_pela_carga""";
+			v.tipo_veiculo_id, v.habilidade_id, v.conferido_pela_carga, v.fases_com_foto""";
 
 	private static final String SELECAO = "SELECT s.id, s.grupo_id, s.codigo, s.ativo, s.atualizado_em, " + VERSAO + """
 
@@ -98,12 +100,14 @@ public class ServicoRepository {
 
 	public void inserirVersao(UUID servico, int versao, DefinicaoServico d, UUID autor) {
 		var id = UUID.randomUUID();
-		jdbc.sql("""
-				INSERT INTO servico_versao (id, tenant_id, servico_id, versao, nome, descricao, unidade_medida, alvo,
-				       tempo_padrao_min, tempo_por_unidade, prazo_emergencial_horas, prazo_alta_dias, prazo_media_dias,
-				       prazo_baixa_dias, tipo_veiculo_id, habilidade_id, conferido_pela_carga, criada_por)
-				VALUES (:id, app_tenant(), :servico, :versao, :nome, :descricao, :unidade, :alvo, :tempo, :porUnidade,
-				       :emergencial, :alta, :media, :baixa, :veiculo, :habilidade, :carga, :autor)""")
+		jdbc.sql(
+				"""
+						INSERT INTO servico_versao (id, tenant_id, servico_id, versao, nome, descricao, unidade_medida, alvo,
+						       tempo_padrao_min, tempo_por_unidade, prazo_emergencial_horas, prazo_alta_dias, prazo_media_dias,
+						       prazo_baixa_dias, tipo_veiculo_id, habilidade_id, conferido_pela_carga, fases_com_foto, criada_por)
+						VALUES (:id, app_tenant(), :servico, :versao, :nome, :descricao, :unidade, :alvo, :tempo, :porUnidade,
+						       :emergencial, :alta, :media, :baixa, :veiculo, :habilidade, :carga, CAST(:fases AS text[]),
+						       :autor)""")
 			.param("id", id)
 			.param("servico", servico)
 			.param("versao", versao)
@@ -120,6 +124,7 @@ public class ServicoRepository {
 			.param("veiculo", d.tipoVeiculoId())
 			.param("habilidade", d.habilidadeId())
 			.param("carga", d.conferidoPelaCarga())
+			.param("fases", d.fasesComFoto().stream().map(Enum::name).toArray(String[]::new))
 			.param("autor", autor)
 			.update();
 		var ordem = 0;
@@ -208,6 +213,19 @@ public class ServicoRepository {
 		return porVersao;
 	}
 
+	/** Fases com foto de cada versão pedida. */
+	public Map<UUID, List<FaseComFoto>> fasesComFoto(Collection<UUID> versoes) {
+		var porVersao = new HashMap<UUID, List<FaseComFoto>>();
+		if (versoes.isEmpty()) {
+			return porVersao;
+		}
+		jdbc.sql("SELECT id, fases_com_foto FROM servico_versao WHERE id IN (:versoes)")
+			.param("versoes", versoes)
+			.query((r, n) -> porVersao.put(r.getObject("id", UUID.class), fases(r)))
+			.list();
+		return porVersao;
+	}
+
 	private static LinhaServico servico(ResultSet r, int n) throws SQLException {
 		return new LinhaServico(r.getObject("id", UUID.class), r.getObject("grupo_id", UUID.class),
 				r.getString("codigo"), r.getBoolean("ativo"), r.getTimestamp("atualizado_em").toInstant(), versao(r));
@@ -222,7 +240,12 @@ public class ServicoRepository {
 				new Prazos(r.getInt("prazo_emergencial_horas"), r.getInt("prazo_alta_dias"),
 						r.getInt("prazo_media_dias"), r.getInt("prazo_baixa_dias")),
 				r.getObject("tipo_veiculo_id", UUID.class), r.getObject("habilidade_id", UUID.class),
-				r.getBoolean("conferido_pela_carga"));
+				r.getBoolean("conferido_pela_carga"), fases(r));
+	}
+
+	static List<FaseComFoto> fases(ResultSet r) throws SQLException {
+		var fases = (String[]) r.getArray("fases_com_foto").getArray();
+		return Arrays.stream(fases).map(FaseComFoto::valueOf).toList();
 	}
 
 	private record LinhaServico(UUID id, UUID grupoId, String codigo, boolean ativo, Instant atualizadoEm,
@@ -234,11 +257,11 @@ public class ServicoRepository {
 
 	private record VersaoLida(UUID id, int numero, String nome, @Nullable String descricao, UnidadeMedida unidade,
 			AlvoServico alvo, BigDecimal tempo, boolean porUnidade, Prazos prazos, @Nullable UUID veiculo,
-			@Nullable UUID habilidade, boolean carga) {
+			@Nullable UUID habilidade, boolean carga, List<FaseComFoto> fases) {
 
 		DefinicaoServico definicao(List<Parametro> parametros) {
 			return new DefinicaoServico(nome, descricao, unidade, alvo, tempo, porUnidade, prazos, veiculo, habilidade,
-					carga, parametros);
+					carga, fases, parametros);
 		}
 	}
 

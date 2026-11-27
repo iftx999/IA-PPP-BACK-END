@@ -53,3 +53,4 @@ gera um novo ADR que o substitui.
 | [0050](0050-confirmacao-da-rota-avisos-e-modo-noturno.md) | Confirmação da nova rota pelo agente, avisos da operação e modo noturno do app | Aceito |
 | [0051](0051-fotos-cifradas-alerta-de-emergencial-e-modo-luva.md) | Fotos cifradas no celular, alerta de OS emergencial e modo luva | Aceito |
 | [0052](0052-aviso-de-chegada-ao-morador.md) | "Estou chegando": aviso de chegada ao morador por SMS, com o celular cifrado | Aceito |
+| [0053](0053-fotos-nas-fases-da-os.md) | Foto nas fases da OS (iniciar, paralisar, retomar, devolver), configurável por serviço | Aceito |

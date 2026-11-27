@@ -230,18 +230,20 @@ class OrdemController {
 	 *
 	 * @param situacao APLICADO, CONFLITO, SUPERADO, AGUARDANDO ou REJEITADO
 	 * @param avisos RELOGIO, FORA_DO_LOCAL, SEM_GPS, SEM_JORNADA, EXECUCAO_SIMULTANEA,
-	 * APARELHO_REVOGADO
+	 * APARELHO_REVOGADO, SEM_FOTO
+	 * @param fotos ids das fotos tiradas na ação (em {@code anexos})
 	 */
 	record EventoDaOrdemResponse(UUID id, int sequencia, AcaoDeCampo tipo, String situacao, @Nullable String mensagem,
 			@Nullable ResultadoOrdem resultado, @Nullable String motivoNome, @Nullable String observacao,
 			@Nullable BigDecimal quantidade, @Nullable JsonNode valores, Instant ocorridoEm, Instant recebidoEm,
 			@Nullable Double latitude, @Nullable Double longitude, @Nullable BigDecimal precisaoM,
-			@Nullable BigDecimal distanciaM, List<String> avisos, String equipeNome, String usuarioNome) {
+			@Nullable BigDecimal distanciaM, List<String> avisos, List<UUID> fotos, String equipeNome,
+			String usuarioNome) {
 
 		static EventoDaOrdemResponse de(EventoDaOrdem e) {
 			return new EventoDaOrdemResponse(e.id(), e.sequencia(), e.tipo(), e.situacao().name(), e.mensagem(),
 					e.resultado(), e.motivoNome(), e.observacao(), e.quantidade(), e.valores(), e.ocorridoEm(),
-					e.recebidoEm(), e.latitude(), e.longitude(), e.precisaoM(), e.distanciaM(), e.avisos(),
+					e.recebidoEm(), e.latitude(), e.longitude(), e.precisaoM(), e.distanciaM(), e.avisos(), e.fotos(),
 					e.equipeNome(), e.usuarioNome());
 		}
 	}

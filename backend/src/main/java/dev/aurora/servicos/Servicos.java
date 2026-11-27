@@ -34,6 +34,12 @@ public interface Servicos {
 	Map<UUID, List<ParametroDaOrdem>> parametros(Collection<UUID> versoes);
 
 	/**
+	 * ADR 0053: fases em que o app exige foto, por versão pedida (versão sem fase com
+	 * foto vem com a lista vazia).
+	 */
+	Map<UUID, List<FaseComFoto>> fasesComFoto(Collection<UUID> versoes);
+
+	/**
 	 * RN-21: o {@code dias}-ésimo dia útil depois de {@code inicio}, sem sábados,
 	 * domingos, feriados nacionais e os cadastrados para a unidade ou para as de cima.
 	 */

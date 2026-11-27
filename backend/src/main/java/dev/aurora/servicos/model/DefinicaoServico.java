@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.UUID;
 
 import dev.aurora.comum.RegraVioladaException;
+import dev.aurora.servicos.FaseComFoto;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -16,17 +17,28 @@ import org.jspecify.annotations.Nullable;
  * @param tempoPadraoMin minutos por OS ou, com {@code tempoPorUnidade}, por unidade de
  * medida
  * @param conferidoPelaCarga a carga mensal confirma a execução (RN-19); só em imóvel
+ * @param fasesComFoto fases em que o app exige foto (ADR 0053)
  */
 public record DefinicaoServico(String nome, @Nullable String descricao, UnidadeMedida unidadeMedida, AlvoServico alvo,
 		BigDecimal tempoPadraoMin, boolean tempoPorUnidade, Prazos prazos, @Nullable UUID tipoVeiculoId,
-		@Nullable UUID habilidadeId, boolean conferidoPelaCarga, List<Parametro> parametros) {
+		@Nullable UUID habilidadeId, boolean conferidoPelaCarga, List<FaseComFoto> fasesComFoto,
+		List<Parametro> parametros) {
 
 	public static final int MAXIMO_DE_PARAMETROS = 40;
 
 	private static final BigDecimal UM_DIA_EM_MINUTOS = BigDecimal.valueOf(1440);
 
 	public DefinicaoServico {
+		fasesComFoto = FaseComFoto.normalizadas(fasesComFoto);
 		parametros = List.copyOf(parametros);
+	}
+
+	/** Com foto em todas as fases (o padrão). */
+	public DefinicaoServico(String nome, @Nullable String descricao, UnidadeMedida unidadeMedida, AlvoServico alvo,
+			BigDecimal tempoPadraoMin, boolean tempoPorUnidade, Prazos prazos, @Nullable UUID tipoVeiculoId,
+			@Nullable UUID habilidadeId, boolean conferidoPelaCarga, List<Parametro> parametros) {
+		this(nome, descricao, unidadeMedida, alvo, tempoPadraoMin, tempoPorUnidade, prazos, tipoVeiculoId, habilidadeId,
+				conferidoPelaCarga, FaseComFoto.TODAS, parametros);
 	}
 
 	/**
@@ -60,7 +72,7 @@ public record DefinicaoServico(String nome, @Nullable String descricao, UnidadeM
 			lista.add(limpo);
 		}
 		return new DefinicaoServico(nomeLimpo, descricaoLimpa, unidadeMedida, alvo, tempo, tempoPorUnidade, prazos,
-				tipoVeiculoId, habilidadeId, conferidoPelaCarga, lista);
+				tipoVeiculoId, habilidadeId, conferidoPelaCarga, fasesComFoto, lista);
 	}
 
 }

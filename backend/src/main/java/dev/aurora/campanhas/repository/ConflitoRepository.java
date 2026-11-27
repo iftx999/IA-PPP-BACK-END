@@ -107,31 +107,36 @@ public class ConflitoRepository {
 
 	/** Eventos do app na OS, na ordem da sequência. */
 	public List<EventoDaOrdem> eventos(UUID os) {
-		return jdbc.sql("""
-				SELECT e.id, e.sequencia, e.tipo, e.situacao, e.mensagem, e.resultado, m.nome AS motivo_nome,
-				       e.observacao, e.quantidade, e.valores, e.ocorrido_em, e.recebido_em, ST_Y(e.posicao) AS latitude,
-				       ST_X(e.posicao) AS longitude, e.precisao_m, e.distancia_m, e.avisos, eq.nome AS equipe_nome,
-				       u.nome AS usuario_nome
-				  FROM os_evento e
-				  JOIN equipe eq ON eq.id = e.equipe_id
-				  JOIN usuario u ON u.id = e.usuario_id
-				  LEFT JOIN motivo m ON m.id = e.motivo_id
-				 WHERE e.os_id = :os
-				 ORDER BY e.sequencia, e.recebido_em""").param("os", os).query((l, n) -> {
-			var resultado = l.getString("resultado");
-			var valores = l.getString("valores");
-			var latitude = l.getDouble("latitude");
-			var semPonto = l.wasNull();
-			return new EventoDaOrdem(l.getObject("id", UUID.class), l.getInt("sequencia"),
-					AcaoDeCampo.valueOf(l.getString("tipo")), SituacaoEvento.valueOf(l.getString("situacao")),
-					l.getString("mensagem"), resultado == null ? null : ResultadoOrdem.valueOf(resultado),
-					l.getString("motivo_nome"), l.getString("observacao"), l.getBigDecimal("quantidade"),
-					valores == null ? null : json.readTree(valores), l.getTimestamp("ocorrido_em").toInstant(),
-					l.getTimestamp("recebido_em").toInstant(), semPonto ? null : latitude,
-					semPonto ? null : l.getDouble("longitude"), l.getBigDecimal("precisao_m"),
-					l.getBigDecimal("distancia_m"), ExecucaoRepository.avisos(l.getArray("avisos")),
-					l.getString("equipe_nome"), l.getString("usuario_nome"));
-		}).list();
+		return jdbc
+			.sql("""
+					SELECT e.id, e.sequencia, e.tipo, e.situacao, e.mensagem, e.resultado, m.nome AS motivo_nome,
+					       e.observacao, e.quantidade, e.valores, e.ocorrido_em, e.recebido_em, ST_Y(e.posicao) AS latitude,
+					       ST_X(e.posicao) AS longitude, e.precisao_m, e.distancia_m, e.avisos, e.fotos, eq.nome AS equipe_nome,
+					       u.nome AS usuario_nome
+					  FROM os_evento e
+					  JOIN equipe eq ON eq.id = e.equipe_id
+					  JOIN usuario u ON u.id = e.usuario_id
+					  LEFT JOIN motivo m ON m.id = e.motivo_id
+					 WHERE e.os_id = :os
+					 ORDER BY e.sequencia, e.recebido_em""")
+			.param("os", os)
+			.query((l, n) -> {
+				var resultado = l.getString("resultado");
+				var valores = l.getString("valores");
+				var latitude = l.getDouble("latitude");
+				var semPonto = l.wasNull();
+				return new EventoDaOrdem(l.getObject("id", UUID.class), l.getInt("sequencia"),
+						AcaoDeCampo.valueOf(l.getString("tipo")), SituacaoEvento.valueOf(l.getString("situacao")),
+						l.getString("mensagem"), resultado == null ? null : ResultadoOrdem.valueOf(resultado),
+						l.getString("motivo_nome"), l.getString("observacao"), l.getBigDecimal("quantidade"),
+						valores == null ? null : json.readTree(valores), l.getTimestamp("ocorrido_em").toInstant(),
+						l.getTimestamp("recebido_em").toInstant(), semPonto ? null : latitude,
+						semPonto ? null : l.getDouble("longitude"), l.getBigDecimal("precisao_m"),
+						l.getBigDecimal("distancia_m"), ExecucaoRepository.avisos(l.getArray("avisos")),
+						ExecucaoRepository.fotos(l.getArray("fotos")), l.getString("equipe_nome"),
+						l.getString("usuario_nome"));
+			})
+			.list();
 	}
 
 	private static Conflito mapear(ResultSet l, int n) throws SQLException {

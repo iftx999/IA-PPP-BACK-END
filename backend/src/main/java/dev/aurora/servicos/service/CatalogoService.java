@@ -14,6 +14,7 @@ import dev.aurora.comum.ConflitoException;
 import dev.aurora.comum.RecursoNaoEncontradoException;
 import dev.aurora.comum.RegraVioladaException;
 import dev.aurora.contexto.ContextoAcesso;
+import dev.aurora.servicos.FaseComFoto;
 import dev.aurora.servicos.MotivoDaOrdem;
 import dev.aurora.servicos.ParametroDaOrdem;
 import dev.aurora.servicos.ServicoDaOrdem;
@@ -121,6 +122,12 @@ public class CatalogoService implements Servicos {
 								p.condicao() == null ? null : p.condicao().valor()))
 						.toList()));
 		return porVersao;
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public Map<UUID, List<FaseComFoto>> fasesComFoto(Collection<UUID> versoes) {
+		return servicos.fasesComFoto(versoes);
 	}
 
 	@Override

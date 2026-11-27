@@ -140,7 +140,9 @@ class CampoApiTest {
 			.andExpect(jsonPath("$.ids.length()").value(3))
 			.andExpect(jsonPath("$.jornada").doesNotExist())
 			.andExpect(jsonPath("$.raioInicioM").value(300))
-			.andExpect(jsonPath("$.ordens[0].ultimaSequencia").value(0)));
+			.andExpect(jsonPath("$.ordens[0].ultimaSequencia").value(0))
+			// ADR 0053: o catálogo semeado pede foto em todas as fases.
+			.andExpect(jsonPath("$.ordens[0].fasesComFoto.length()").value(4)));
 		var versao = pacote.get("ordens").get(0).get("servicoVersaoId").asString();
 		assertThat(pacote.get("parametros").get(versao).size()).isEqualTo(4);
 		var versaoDoPacote = pacote.get("versao").asLong();
@@ -163,14 +165,17 @@ class CampoApiTest {
 		// alvo fica marcado; o reenvio do início não aplica de novo.
 		var iniciar = UUID.randomUUID();
 		var paralisar = UUID.randomUUID();
+		var fotoDoInicio = UUID.randomUUID();
 		var agora = Instant.now();
 		eventos(celular, agora,
 				evento(paralisar, os1, 2, "PARALISAR", ",\"motivoId\":\"" + chuva + "\"", agora.minusSeconds(1700)))
 			.andExpect(jsonPath("$.eventos[0].situacao").value("AGUARDANDO"));
 		eventos(celular, agora,
-				evento(iniciar, os1, 1, "INICIAR", ",\"posicao\":{\"latitude\":-22.95,\"longitude\":-47.06}",
+				evento(iniciar, os1, 1, "INICIAR",
+						",\"posicao\":{\"latitude\":-22.95,\"longitude\":-47.06},\"fotos\":[\"" + fotoDoInicio + "\"]",
 						agora.minusSeconds(1800)))
 			.andExpect(jsonPath("$.eventos[0].situacao").value("APLICADO"))
+			.andExpect(jsonPath("$.eventos[0].avisos.length()").value(1))
 			.andExpect(jsonPath("$.eventos[0].avisos[0]").value("FORA_DO_LOCAL"));
 		assertThat(ordem(os1).get("status").asString()).isEqualTo("PARALISADA");
 		eventos(celular, agora.minusSeconds(900), evento(iniciar, os1, 1, "INICIAR", "", agora.minusSeconds(1800)))
@@ -183,21 +188,29 @@ class CampoApiTest {
 				evento(UUID.randomUUID(), os1, 3, "ENCERRAR", ",\"resultado\":\"EXECUTADA\"", agora.minusSeconds(1400)))
 			.andExpect(jsonPath("$.eventos[0].situacao").value("REJEITADO"))
 			.andExpect(jsonPath("$.eventos[0].mensagem").value("Não é possível encerrar uma OS paralisada."));
-		eventos(celular, agora, evento(UUID.randomUUID(), os1, 4, "RETOMAR", "", agora.minusSeconds(1300)))
-			.andExpect(jsonPath("$.eventos[0].situacao").value("APLICADO"));
+		// ADR 0053: a mesma foto duas vezes é recusada; sem foto, vale o campo com aviso.
+		var repetida = UUID.randomUUID();
+		eventos(celular, agora,
+				evento(UUID.randomUUID(), os1, 4, "RETOMAR", ",\"fotos\":[\"%s\",\"%s\"]".formatted(repetida, repetida),
+						agora.minusSeconds(1350)))
+			.andExpect(jsonPath("$.eventos[0].situacao").value("REJEITADO"))
+			.andExpect(jsonPath("$.eventos[0].mensagem").value("A mesma foto aparece duas vezes na ação."));
+		eventos(celular, agora, evento(UUID.randomUUID(), os1, 5, "RETOMAR", "", agora.minusSeconds(1300)))
+			.andExpect(jsonPath("$.eventos[0].situacao").value("APLICADO"))
+			.andExpect(jsonPath("$.eventos[0].avisos[0]").value("SEM_FOTO"));
 		// O pacote diz até onde a sequência da OS já foi (a recusada também ocupa o
 		// número).
 		mvc.perform(
 				get("/api/v1/campo/jornada?desde=" + versaoDoPacote).header(CELULAR, celular).with(token("sub-agente")))
-			.andExpect(jsonPath("$.ordens[?(@.ordem.id == '%s')].ultimaSequencia".formatted(os1)).value(4));
+			.andExpect(jsonPath("$.ordens[?(@.ordem.id == '%s')].ultimaSequencia".formatted(os1)).value(5));
 
 		// RN-22: encerrar executada exige os parâmetros obrigatórios e as fotos mínimas.
 		var foto = UUID.randomUUID();
-		eventos(celular, agora, evento(UUID.randomUUID(), os1, 5, "ENCERRAR", """
+		eventos(celular, agora, evento(UUID.randomUUID(), os1, 6, "ENCERRAR", """
 				,"resultado":"EXECUTADA","valores":{"viavel":true,"abaixo_da_rede":false}""", agora.minusSeconds(1200)))
 			.andExpect(jsonPath("$.eventos[0].situacao").value("REJEITADO"))
 			.andExpect(jsonPath("$.eventos[0].mensagem").value("Preencha \"Foto da fachada\"."));
-		eventos(celular, agora, evento(UUID.randomUUID(), os1, 6, "ENCERRAR", """
+		eventos(celular, agora, evento(UUID.randomUUID(), os1, 7, "ENCERRAR", """
 				,"resultado":"EXECUTADA","valores":{"viavel":true,"abaixo_da_rede":false,"distancia_rede":12.5,
 				 "foto":["%s"]},"posicao":{"latitude":-22.9001,"longitude":-47.0601,"precisaoM":5}""".formatted(foto),
 				agora.minusSeconds(1100)))
@@ -233,8 +246,9 @@ class CampoApiTest {
 			.andExpect(jsonPath("$.situacao").value("RECUSADO"));
 		mvc.perform(get("/api/v1/ordens/{id}/execucao", os1).with(token("sub-programador-campo")))
 			.andExpect(status().isOk())
-			.andExpect(jsonPath("$.eventos.length()").value(7))
+			.andExpect(jsonPath("$.eventos.length()").value(8))
 			.andExpect(jsonPath("$.eventos[0].tipo").value("INICIAR"))
+			.andExpect(jsonPath("$.eventos[0].fotos[0]").value(fotoDoInicio.toString()))
 			.andExpect(jsonPath("$.eventos[0].distanciaM").isNumber())
 			.andExpect(jsonPath("$.anexos.length()").value(2))
 			.andExpect(jsonPath("$.parametros.length()").value(4));

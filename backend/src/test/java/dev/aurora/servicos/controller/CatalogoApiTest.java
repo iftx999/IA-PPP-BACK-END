@@ -18,6 +18,7 @@ import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.hasSize;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -112,16 +113,18 @@ class CatalogoApiTest {
 				   {"chave":"motivo","rotulo":"Por que não","tipo":"TEXTO","obrigatorio":true,
 				    "condicao":{"chave":"trocada","valor":"false"}},
 				   {"chave":"fotos","rotulo":"Fotos","tipo":"FOTO","obrigatorio":true,"minimo":1,"maximo":%d}]}}""";
-		var criado = json.readTree(
-				enviar(post("/api/v1/catalogo/servicos"), corpo.formatted(grupo, 3)).andExpect(status().isCreated())
-					.andExpect(jsonPath("$.codigo").value("TROCA_DE_TAMPA_DE_PV"))
-					.andExpect(jsonPath("$.versao").value(1))
-					.andExpect(jsonPath("$.definicao.tempoPadraoMin").value(45))
-					.andExpect(jsonPath("$.definicao.parametros[1].condicao.valor").value("false"))
-					.andExpect(jsonPath("$.definicao.parametros[2].maximo").value(3))
-					.andReturn()
-					.getResponse()
-					.getContentAsString());
+		var criado = json.readTree(enviar(post("/api/v1/catalogo/servicos"), corpo.formatted(grupo, 3))
+			.andExpect(status().isCreated())
+			.andExpect(jsonPath("$.codigo").value("TROCA_DE_TAMPA_DE_PV"))
+			.andExpect(jsonPath("$.versao").value(1))
+			.andExpect(jsonPath("$.definicao.tempoPadraoMin").value(45))
+			.andExpect(jsonPath("$.definicao.parametros[1].condicao.valor").value("false"))
+			.andExpect(jsonPath("$.definicao.parametros[2].maximo").value(3))
+			// ADR 0053: sem dizer, foto em todas as fases.
+			.andExpect(jsonPath("$.definicao.fasesComFoto", contains("INICIAR", "PARALISAR", "RETOMAR", "DEVOLVER")))
+			.andReturn()
+			.getResponse()
+			.getContentAsString());
 		var id = criado.get("id").asString();
 
 		// Mesma definição (só a situação muda): continua na versão 1.
@@ -140,6 +143,22 @@ class CatalogoApiTest {
 			.andExpect(jsonPath("$[0].definicao.parametros[2].maximo").value(5))
 			.andExpect(jsonPath("$[1].definicao.parametros[2].maximo").value(3))
 			.andExpect(jsonPath("$[0].criadaPor").isNotEmpty());
+		// ADR 0053: as fases com foto são versionadas (repetidas e fora de ordem contam
+		// como
+		// a mesma escolha).
+		var soInicio = corpo.formatted(grupo, 5)
+			.replace("\"conferidoPelaCarga\":false", "\"conferidoPelaCarga\":false,\"fasesComFoto\":[%s]");
+		enviar(put("/api/v1/catalogo/servicos/{id}", id), soInicio.formatted("\"DEVOLVER\",\"INICIAR\",\"INICIAR\""))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.versao").value(3))
+			.andExpect(jsonPath("$.definicao.fasesComFoto", contains("INICIAR", "DEVOLVER")));
+		enviar(put("/api/v1/catalogo/servicos/{id}", id), soInicio.formatted("\"INICIAR\",\"DEVOLVER\""))
+			.andExpect(jsonPath("$.versao").value(3));
+		enviar(put("/api/v1/catalogo/servicos/{id}", id), soInicio.formatted(""))
+			.andExpect(jsonPath("$.versao").value(4))
+			.andExpect(jsonPath("$.definicao.fasesComFoto", hasSize(0)));
+		enviar(put("/api/v1/catalogo/servicos/{id}", id), soInicio.formatted("\"ENCERRAR\""))
+			.andExpect(status().isBadRequest());
 
 		// Código repetido, condição inválida e serviço de trecho conferido pela carga.
 		enviar(post("/api/v1/catalogo/servicos"), corpo.formatted(grupo, 3)).andExpect(status().isConflict());
@@ -160,7 +179,8 @@ class CatalogoApiTest {
 						SELECT count(*) FROM evento_auditoria
 						 WHERE tenant_id = '%s' AND recurso = 'servico/%s'""".formatted(t.id(), id))) {
 			linhas.next();
-			assertThat(linhas.getLong(1)).isEqualTo(3);
+			// Criação e cinco atualizações (uma delas com as fases com foto repetidas).
+			assertThat(linhas.getLong(1)).isEqualTo(6);
 		}
 	}
 

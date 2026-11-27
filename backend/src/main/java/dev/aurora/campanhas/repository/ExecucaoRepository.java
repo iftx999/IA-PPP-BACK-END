@@ -39,7 +39,7 @@ public class ExecucaoRepository {
 	private static final String EVENTO = """
 			SELECT e.id, e.os_id, e.sequencia, e.tipo, e.situacao, e.mensagem, e.resultado, e.motivo_id, e.observacao,
 			       e.quantidade, e.valores, e.ocorrido_em, ST_Y(e.posicao) AS latitude, ST_X(e.posicao) AS longitude,
-			       e.precisao_m, e.avisos, e.equipe_id, e.usuario_id, e.dispositivo_id, e.versao_pacote
+			       e.precisao_m, e.avisos, e.equipe_id, e.usuario_id, e.dispositivo_id, e.versao_pacote, e.fotos
 			  FROM os_evento e
 			""";
 
@@ -277,12 +277,13 @@ public class ExecucaoRepository {
 		jdbc.sql("""
 				INSERT INTO os_evento (id, tenant_id, os_id, unidade_id, sequencia, tipo, situacao, mensagem, resultado,
 				                       motivo_id, observacao, quantidade, valores, ocorrido_em, posicao, precisao_m,
-				                       avisos, equipe_id, usuario_id, dispositivo_id, versao_pacote)
+				                       avisos, equipe_id, usuario_id, dispositivo_id, versao_pacote, fotos)
 				VALUES (:id, app_tenant(), :os, :unidade, :sequencia, :tipo, :situacao, :mensagem, :resultado, :motivo,
 				        :observacao, :quantidade, CAST(:valores AS jsonb), :ocorrido,
 				        CASE WHEN CAST(:latitude AS double precision) IS NULL THEN NULL
 				             ELSE ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4674) END,
-				        :precisao, CAST(:avisos AS text[]), :equipe, :usuario, :dispositivo, :versaoPacote)""")
+				        :precisao, CAST(:avisos AS text[]), :equipe, :usuario, :dispositivo, :versaoPacote,
+				        CAST(:fotos AS uuid[]))""")
 			.param("id", e.id())
 			.param("os", e.osId())
 			.param("unidade", unidade)
@@ -296,6 +297,7 @@ public class ExecucaoRepository {
 			.param("quantidade", e.quantidade())
 			.param("valores", e.valores() == null || e.valores().isNull() ? null : json.writeValueAsString(e.valores()))
 			.param("ocorrido", Timestamp.from(e.ocorridoEm()))
+			.param("fotos", e.fotos().stream().map(UUID::toString).toArray(String[]::new))
 			.param("latitude", p == null ? null : p.latitude())
 			.param("longitude", p == null ? null : p.longitude())
 			.param("precisao", p == null ? null : p.precisaoM())
@@ -338,12 +340,18 @@ public class ExecucaoRepository {
 				l.getInt("sequencia"), AcaoDeCampo.valueOf(l.getString("tipo")), l.getObject("motivo_id", UUID.class),
 				l.getString("observacao"), resultado == null ? null : ResultadoOrdem.valueOf(resultado),
 				l.getBigDecimal("quantidade"), valores == null ? null : json.readTree(valores),
-				l.getTimestamp("ocorrido_em").toInstant(), semPonto ? null : new Posicao(latitude,
-						l.getDouble("longitude"), precisao == null ? null : precisao.doubleValue()),
-				semVersao ? null : versao);
+				l.getTimestamp("ocorrido_em").toInstant(),
+				semPonto ? null
+						: new Posicao(latitude, l.getDouble("longitude"),
+								precisao == null ? null : precisao.doubleValue()),
+				semVersao ? null : versao, fotos(l.getArray("fotos")));
 		return new EventoGravado(evento, SituacaoEvento.valueOf(l.getString("situacao")), l.getString("mensagem"),
 				avisos(l.getArray("avisos")), l.getObject("equipe_id", UUID.class),
 				l.getObject("usuario_id", UUID.class), l.getObject("dispositivo_id", UUID.class));
+	}
+
+	static List<UUID> fotos(@Nullable Array array) throws SQLException {
+		return array == null ? List.of() : Arrays.asList((UUID[]) array.getArray());
 	}
 
 	static List<String> avisos(@Nullable Array array) throws SQLException {
